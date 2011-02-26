@@ -20,17 +20,27 @@ public:
 protected:
 	static Handle<Value> New(const Arguments& args) {
 		HandleScope scope;
-		Repository *repo = new Repository();
+		
+		if (args.Length() == 0 || !args[0]->IsString()) {
+			return ThrowException(Exception::Error(String::New("Please provide a repo path.")));
+    	}
+		String::Utf8Value path(args[0]->ToString());
+
+		Repository *repo = new Repository(*path);
 		repo->Wrap(args.This());
 		return args.This();
 	}
 
-	Repository(const char* path) : EventEmitter()  {
+	Repository() : EventEmitter()  {
 		
 	}
 	
 	~Repository() {
 		git_repository_free(repo);
+	}
+
+	int open(char *path) {
+		return git_repository_open(path);
 	}
 
 	git_repository *repo;
