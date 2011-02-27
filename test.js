@@ -14,7 +14,7 @@ for(var i = 0; i < 1; i++) {
 	var data = obj.data;
 	console.log(data);
 	console.log(data.toString());*/
-	
+
 	var commit = myRepo.getCommit("8a916d5fbce49f5780668a1ee780e0ef2e89360f");
 	console.log(commit);
 	console.log(commit.message);
@@ -23,8 +23,10 @@ for(var i = 0; i < 1; i++) {
 	console.log(commit.author);
 	console.log(commit.committer);
 	console.log(commit.id);
-	console.log(".");
-	
+	console.log(commit == myRepo.getCommit("8a916d5fbce49f5780668a1ee780e0ef2e89360f"))
+
+/*
+	console.log(commit.tree == commit.tree);
 	var tree = commit.tree;
 	console.log(tree);
 	console.log(tree.id);
@@ -34,6 +36,14 @@ for(var i = 0; i < 1; i++) {
 	console.log(entry);
 	console.log(entry.name);
 	
-	delete myRepo;
+	//delete myRepo;
+	//myRepo = null;*/
+
+	commit = null;
 	myRepo = null;
+	
+	require("profiler").gc();
+	
+	
+	console.log(".");
 }
