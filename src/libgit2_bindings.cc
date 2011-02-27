@@ -13,6 +13,13 @@ using namespace node;
 #define RAWOBJ_TYPE_SYMBOL String::NewSymbol("type")
 #define RAWOBJ_DATA_SYMBOL String::NewSymbol("data")
 
+#define COMMIT_ID_SYMBOL String::NewSymbol("id")
+#define COMMIT_MESSAGE_SHORT_SYMBOL String::NewSymbol("messageShort")
+#define COMMIT_MESSAGE_SYMBOL String::NewSymbol("message")
+#define COMMIT_TIME_SYMBOL String::NewSymbol("time")
+#define COMMIT_AUTHOR_SYMBOL String::NewSymbol("author")
+#define COMMIT_COMMITTER_SYMBOL String::NewSymbol("committer")
+
 // The following macros were ripped from node-gd. thanks taggon!
 #define REQ_ARGS(N)                                                     \
   if (args.Length() < (N))                                              \
@@ -53,6 +60,107 @@ using namespace node;
   if(git_oid_mkstr(& VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
   	return ThrowException(Exception::TypeError(							\
   				  String::New("Argument " #I " is not an oid")));
+
+#define CREATE_PERSON_OBJ(NAME, SRC)									\
+  Local<Object> NAME = Object::New();									\
+  (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
+  (NAME)->Set(String::New("email"), String::New((SRC)->email));
+
+class Commit : public ObjectWrap {
+public:
+	static Persistent<FunctionTemplate> constructor_template;
+	
+	static void Init(Handle<Object> target) {
+		HandleScope scope;
+		
+		Local<FunctionTemplate> t = FunctionTemplate::New(New);
+		constructor_template = Persistent<FunctionTemplate>::New(t);
+		constructor_template->SetClassName(String::New("Commit"));
+		t->InstanceTemplate()->SetInternalFieldCount(1);
+		
+		t->PrototypeTemplate()->SetAccessor(COMMIT_ID_SYMBOL, IdGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SYMBOL, MessageGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SHORT_SYMBOL, MessageShortGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_TIME_SYMBOL, TimeGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_AUTHOR_SYMBOL, AuthorGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_COMMITTER_SYMBOL, CommitterGetter);
+	}
+
+protected:
+	static Handle<Value> New(const Arguments& args) {
+		HandleScope scope;
+	
+		REQ_ARGS(1);
+		REQ_EXT_ARG(0, theCommit);
+	
+		Commit *commit = new Commit();
+		commit->commit_ = (git_commit*)theCommit->Value();
+	
+		commit->Wrap(args.This());
+		commit->MakeWeak();
+
+		return args.This();
+	}
+
+	static Handle<Value> IdGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		const char* oidStr = git_oid_allocfmt(git_commit_id(commit->commit_));		
+		
+		return scope.Close(String::New(oidStr));
+	}
+	
+	static Handle<Value> MessageGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		const char* message = git_commit_message(commit->commit_);
+		
+		return scope.Close(String::New(message));
+	}
+
+	static Handle<Value> MessageShortGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		const char* message = git_commit_message_short(commit->commit_);
+		
+		return scope.Close(String::New(message));
+	}
+
+	static Handle<Value> TimeGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		time_t time = git_commit_time(commit->commit_);
+		return scope.Close(Date::New(static_cast<double>(time)*1000));
+	}
+	
+	static Handle<Value> AuthorGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		const git_signature *author;
+		author = git_commit_author(commit->commit_);
+		CREATE_PERSON_OBJ(authorObj, author);
+
+		return scope.Close(authorObj);
+	}
+	
+	static Handle<Value> CommitterGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		const git_signature *committer;
+		committer = git_commit_committer(commit->commit_);
+		CREATE_PERSON_OBJ(committerObj, committer);
+
+		return scope.Close(committerObj);
+	}
+
+	git_commit *commit_;
+};
 
 class RawObject : public ObjectWrap {
 public:
@@ -168,12 +276,12 @@ public:
 		Local<FunctionTemplate> t = FunctionTemplate::New(New);
 		t->Inherit(EventEmitter::constructor_template);
     	t->InstanceTemplate()->SetInternalFieldCount(1);
-    	
+
     	NODE_SET_PROTOTYPE_METHOD(t, "getObjectDatabase", GetODB);
+    	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 
 		target->Set(String::New("Repository"), t->GetFunction());
 	}
-	git_repository *repo_;
 
 protected:
 	static Handle<Value> New(const Arguments& args) {
@@ -205,6 +313,25 @@ protected:
 		Persistent<Object> result(ObjectDatabase::constructor_template->GetFunction()->NewInstance(1, &arg));
 		return scope.Close(result);
 	}
+	
+	static Handle<Value> GetCommit(const Arguments& args) {
+		HandleScope scope;
+		
+		REQ_ARGS(1);
+		REQ_OID_ARG(0, commitOid);
+
+		Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+		
+		git_commit* commit;
+		if(git_commit_lookup(&commit, repo->repo_, &commitOid) != GIT_SUCCESS) {
+			// TODO: error code handling.
+			return Null();
+		}
+		
+		Local<Value> arg = External::New(commit);
+		Persistent<Object> result(Commit::constructor_template->GetFunction()->NewInstance(1, &arg));
+		return scope.Close(result);
+	}
 
 	Repository() : EventEmitter()  {
 		
@@ -228,6 +355,8 @@ protected:
 			repo_ = NULL;
 		}
 	}
+
+	git_repository *repo_;
 };
 
 class Git2 {
@@ -236,11 +365,13 @@ public:
 		Repository::Init(target);
 		RawObject::Init(target);
 		ObjectDatabase::Init(target);
+		Commit::Init(target);
 	}
 };
 
 Persistent<FunctionTemplate> ObjectDatabase::constructor_template;
 Persistent<FunctionTemplate> RawObject::constructor_template;
+Persistent<FunctionTemplate> Commit::constructor_template;
 
 extern "C" void
 init(Handle<Object> target) {
