@@ -19,6 +19,13 @@ using namespace node;
 #define COMMIT_TIME_SYMBOL String::NewSymbol("time")
 #define COMMIT_AUTHOR_SYMBOL String::NewSymbol("author")
 #define COMMIT_COMMITTER_SYMBOL String::NewSymbol("committer")
+#define COMMIT_TREE_SYMBOL String::NewSymbol("tree")
+
+#define TREE_ID_SYMBOL String::NewSymbol("id")
+#define TREE_LENGTH_SYMBOL String::NewSymbol("length")
+
+#define TREE_ENTRY_NAME_SYMBOL String::NewSymbol("name")
+
 
 // The following macros were ripped from node-gd. thanks taggon!
 #define REQ_ARGS(N)                                                     \
@@ -66,6 +73,118 @@ using namespace node;
   (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
   (NAME)->Set(String::New("email"), String::New((SRC)->email));
 
+class TreeEntry : public ObjectWrap {
+public:
+	static Persistent<FunctionTemplate> constructor_template;
+	
+	static void Init(Handle<Object> target) {
+		HandleScope scope;
+		
+		Local<FunctionTemplate> t = FunctionTemplate::New(New);
+		constructor_template = Persistent<FunctionTemplate>::New(t);
+		constructor_template->SetClassName(String::New("TreeEntry"));
+		t->InstanceTemplate()->SetInternalFieldCount(1);
+		
+		t->PrototypeTemplate()->SetAccessor(TREE_ENTRY_NAME_SYMBOL, NameGetter);
+	}
+protected:
+	static Handle<Value> New(const Arguments& args) {
+		HandleScope scope;
+		
+		REQ_ARGS(1);
+		REQ_EXT_ARG(0, theEntry);
+		
+		TreeEntry *entry = new TreeEntry();
+		entry->entry_ = (git_tree_entry*)theEntry->Value();
+
+		entry->Wrap(args.This());
+		entry->MakeWeak();
+
+		return args.This();
+	}
+	
+	static Handle<Value> NameGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		TreeEntry *entry = ObjectWrap::Unwrap<TreeEntry>(info.This());
+		const char* fileName = git_tree_entry_name(entry->entry_);
+		
+		return scope.Close(String::New(fileName));
+	}
+
+	git_tree_entry *entry_;
+};
+
+class Tree : public ObjectWrap {
+public:
+	static Persistent<FunctionTemplate> constructor_template;
+	
+	static void Init(Handle<Object> target) {
+		HandleScope scope;
+		
+		Local<FunctionTemplate> t = FunctionTemplate::New(New);
+		constructor_template = Persistent<FunctionTemplate>::New(t);
+		constructor_template->SetClassName(String::New("Tree"));
+		t->InstanceTemplate()->SetInternalFieldCount(1);
+		
+		t->PrototypeTemplate()->SetAccessor(TREE_ID_SYMBOL, IdGetter);
+		t->PrototypeTemplate()->SetAccessor(TREE_LENGTH_SYMBOL, LengthGetter);
+		t->PrototypeTemplate()->SetIndexedPropertyHandler(IndexHandler);
+	}
+protected:
+	static Handle<Value> New(const Arguments& args) {
+		HandleScope scope;
+		
+		REQ_ARGS(1);
+		REQ_EXT_ARG(0, theTree);
+
+		Tree *tree = new Tree();
+		tree->tree_ = (git_tree*)theTree->Value();
+		
+		tree->Wrap(args.This());
+		tree->MakeWeak();
+		
+		return args.This();
+	}
+	
+	static Handle<Value> IdGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+		const char* oidStr = git_oid_allocfmt(git_tree_id(tree->tree_));		
+		
+		return scope.Close(String::New(oidStr));
+	}
+	
+	static Handle<Value> LengthGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+		size_t entryCount = git_tree_entrycount(tree->tree_);		
+		
+		return scope.Close(Integer::New(entryCount));
+	}
+
+	static Handle<Value> IndexHandler(uint32_t index, const AccessorInfo& info) {
+		HandleScope scope;
+		
+		Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
+		size_t entryCount = git_tree_entrycount(tree->tree_);		
+		
+		if(index > (entryCount-1)) {
+			return ThrowException(Exception::Error(String::New("Tree entry index is out of range.")));
+		}
+		
+		git_tree_entry *entry = git_tree_entry_byindex(tree->tree_, index);
+		
+		Local<Value> arg = External::New(entry);
+		Persistent<Object> result(TreeEntry::constructor_template->GetFunction()->NewInstance(1, &arg));
+		return scope.Close(result);
+	}
+
+	git_tree *tree_;
+};
+
 class Commit : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
@@ -77,13 +196,14 @@ public:
 		constructor_template = Persistent<FunctionTemplate>::New(t);
 		constructor_template->SetClassName(String::New("Commit"));
 		t->InstanceTemplate()->SetInternalFieldCount(1);
-		
+
 		t->PrototypeTemplate()->SetAccessor(COMMIT_ID_SYMBOL, IdGetter);
 		t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SYMBOL, MessageGetter);
 		t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SHORT_SYMBOL, MessageShortGetter);
 		t->PrototypeTemplate()->SetAccessor(COMMIT_TIME_SYMBOL, TimeGetter);
 		t->PrototypeTemplate()->SetAccessor(COMMIT_AUTHOR_SYMBOL, AuthorGetter);
 		t->PrototypeTemplate()->SetAccessor(COMMIT_COMMITTER_SYMBOL, CommitterGetter);
+		t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);
 	}
 
 protected:
@@ -157,6 +277,19 @@ protected:
 		CREATE_PERSON_OBJ(committerObj, committer);
 
 		return scope.Close(committerObj);
+	}
+	
+	static Handle<Value> TreeGetter(Local<String> property, const AccessorInfo& info) {
+		HandleScope scope;
+
+
+		Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+		
+		const git_tree *tree = git_commit_tree(commit->commit_);
+
+		Local<Value> arg = External::New((void*)tree);
+		Persistent<Object> result(Tree::constructor_template->GetFunction()->NewInstance(1, &arg));
+		return scope.Close(result);
 	}
 
 	git_commit *commit_;
@@ -366,12 +499,16 @@ public:
 		RawObject::Init(target);
 		ObjectDatabase::Init(target);
 		Commit::Init(target);
+		Tree::Init(target);
+		TreeEntry::Init(target);
 	}
 };
 
 Persistent<FunctionTemplate> ObjectDatabase::constructor_template;
 Persistent<FunctionTemplate> RawObject::constructor_template;
 Persistent<FunctionTemplate> Commit::constructor_template;
+Persistent<FunctionTemplate> Tree::constructor_template;
+Persistent<FunctionTemplate> TreeEntry::constructor_template;
 
 extern "C" void
 init(Handle<Object> target) {

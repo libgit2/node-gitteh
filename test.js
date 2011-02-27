@@ -25,6 +25,15 @@ for(var i = 0; i < 1; i++) {
 	console.log(commit.id);
 	console.log(".");
 	
+	var tree = commit.tree;
+	console.log(tree);
+	console.log(tree.id);
+	console.log(tree.length);
+	
+	var entry = tree[0];
+	console.log(entry);
+	console.log(entry.name);
+	
 	delete myRepo;
 	myRepo = null;
 }
