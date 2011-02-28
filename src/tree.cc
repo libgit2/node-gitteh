@@ -54,9 +54,19 @@ Handle<Value> Tree::IndexHandler(uint32_t index, const AccessorInfo& info) {
 
 	git_tree_entry *entry = git_tree_entry_byindex(tree->tree_, index);
 
-	Local<Value> arg = External::New(entry);
-	Persistent<Object> result(TreeEntry::constructor_template->GetFunction()->NewInstance(1, &arg));
-	return scope.Close(result);
+	TreeEntry *treeEntryObject;
+	if(!tree->treeEntryObjects_[(int)entry]) {
+		Handle<Value> constructorArgs[2] = { External::New(entry), External::New(tree) };
+		Handle<Object> jsObject = TreeEntry::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
+
+		treeEntryObject = ObjectWrap::Unwrap<TreeEntry>(jsObject);
+		tree->treeEntryObjects_[(int)entry] = static_cast<void *>(treeEntryObject);
+	}
+	else {
+		treeEntryObject = static_cast<TreeEntry*>(tree->treeEntryObjects_[(int)entry]);
+	}
+
+	return scope.Close(treeEntryObject->handle_);
 }
 
 Tree::~Tree() {

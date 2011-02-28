@@ -62,9 +62,29 @@ vows.describe("Commit").addBatch({
 			"is correct tree": function(tree) {
 				assert.equal(tree.id, fixtureValues.FIRST_COMMIT_TREE.id);
 			},
-			
+
 			"gives us same object if requested again": function(wtf, tree) {
 				assert.isTrue(tree === this.context.commit.tree);
+			},
+			
+			"entries": {
+				"is correct length": function(tree) {
+					assert.equal(tree.length, fixtureValues.FIRST_COMMIT_TREE.entries.length);
+				},
+				
+				"- first entry": {
+					topic: function(tree) {
+						return tree[0];
+					},
+					
+					"has correct name": function(entry) {
+						assert.equal(entry.filename, fixtureValues.FIRST_COMMIT_TREE.entries[0].filename);
+					},
+					
+					"has correct attributes": function(entry) {
+						assert.equal(entry.attributes, fixtureValues.FIRST_COMMIT_TREE.entries[0].attributes);
+					},
+				}
 			}
 		}
 	}

@@ -10,5 +10,12 @@ module.exports.FIRST_COMMIT = {
 };
 
 module.exports.FIRST_COMMIT_TREE = {
-	id: "3020f22e8b22650f524523710f3c211f214f8e75" 
+	id: "3020f22e8b22650f524523710f3c211f214f8e75",
+	
+	entries: [
+		{
+			filename: "file.txt",
+			attributes: 33188 // Note, this is 100644 in octal.
+		}
+	]
 }

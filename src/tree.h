@@ -3,6 +3,7 @@
 
 #include "gitteh.h"
 #include "repository.h"
+#include <map>
 
 #define TREE_ID_SYMBOL String::NewSymbol("id")
 #define TREE_LENGTH_SYMBOL String::NewSymbol("length")
@@ -20,6 +21,7 @@ protected:
 
 	git_tree *tree_;
 	Repository *repo_;
+	std::map<int, void*> treeEntryObjects_;
 };
 
 #endif	// GITTEH_TREE_H
