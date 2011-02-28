@@ -1,9 +1,28 @@
 var path = require("path");
+var gitteh = require("./build/default/gitteh");
+var profiler = require("profiler");
 
-var blah = require("./build/default/gitteh");
+var repo = new gitteh.Repository(path.join(__dirname, ".git"));
+console.log(repo);
+
+var commit = repo.getCommit("8a916d5fbce49f5780668a1ee780e0ef2e89360f");
+console.log("The commit: ", commit);
+console.log(commit.id);
+console.log("Commit duplication: ", commit != repo.getCommit("8a916d5fbce49f5780668a1ee780e0ef2e89360f"));
+
+console.log("Attempting GC.");
+commit = null;
+profiler.gc();
+
+console.log("Grabbing commit again.");
+commit = repo.getCommit("8a916d5fbce49f5780668a1ee780e0ef2e89360f");
+console.log(commit);
+console.log(commit.id);
+
+/*
 
 for(var i = 0; i < 1; i++) {
-	var myRepo = new blah.Repository(path.join(__dirname, ".git"));
+	var myRepo = new blah.Repository();
 
 	console.log(myRepo);
 	var odb = myRepo.getObjectDatabase();
@@ -49,3 +68,4 @@ for(var i = 0; i < 1; i++) {
 	
 	console.log(".");
 }
+*/

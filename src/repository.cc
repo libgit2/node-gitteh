@@ -81,7 +81,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		// TODO: error code handling.
 		return Null();
 	}
-
+/*
 	Local<Value> commitArg = External::New(commit);
 	Local<Value> repoArg = External::New(repo);
 	Local<Value> constructorArgs[2] = {commitArg, repoArg};
@@ -89,9 +89,11 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	Persistent<Object> result(Commit::constructor_template->GetFunction()->NewInstance(2, constructorArgs));
 	//result.MakeWeak(&constructorArgs, StubWeakCallback);
 
-	commitStore->Set(String::NewSymbol(oidStr), result);
+	commitStore->Set(String::NewSymbol(oidStr), result);*/
 
-	return scope.Close(result);
+	return repo->wrapCommit(commit);
+
+	//return scope.Close(result);
 }
 
 Repository::~Repository() {
@@ -103,4 +105,32 @@ void Repository::close() {
 		git_repository_free(repo_);
 		repo_ = NULL;
 	}
+}
+
+// Using object_wrap.h from libxmljs as inspiration.
+Handle<Object> Repository::wrapCommit(git_commit* commit) {
+	HandleScope scope;
+
+	// Create a JS object for this commit if one doesn't already exist.
+	Commit *commitObject;
+	if(!commitObjects[(int)commit]) {
+		//commitObject = new Commit();
+
+		Handle<Value> constructorArgs[2] = { External::New(commit), External::New(this) };
+		Handle<Object> jsObject = Commit::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
+
+		commitObject = ObjectWrap::Unwrap<Commit>(jsObject);
+		commitObjects[(int)commit] = static_cast<void *>(commitObject);
+	}
+	else {
+		commitObject = static_cast<Commit*>(commitObjects[(int)commit]);
+	}
+
+	return scope.Close(commitObject->handle_);
+}
+
+void Repository::notifyCommitDeath(git_commit* commit) {
+	map<int,void*>::iterator it;
+	it = commitObjects.find((int)commit);
+	commitObjects.erase(it);
 }

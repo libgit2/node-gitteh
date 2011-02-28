@@ -31,8 +31,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 	commit->repo_ = (Repository*)theRepo->Value();
 
 	commit->Wrap(args.This());
-	commit->MakeWeak();
-
 	return args.This();
 }
 
@@ -107,4 +105,7 @@ Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& inf
 }
 
 Commit::~Commit() {
+	// TODO: don't think we ever need to free commits as they're handled by the repo, even newly created ones
+	// (I think), probably need to look into this.
+	repo_->notifyCommitDeath(commit_);
 }
