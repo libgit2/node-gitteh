@@ -26,10 +26,10 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	// Setup some basic info about this commit.
 	const char* oidStr = git_oid_allocfmt(git_commit_id(commit->commit_));
-	args.This()->Set(String::New("id"), String::New(oidStr));
+	args.This()->Set(String::New("id"), String::New(oidStr), ReadOnly);
 
 	const char* message = git_commit_message(commit->commit_);
-	args.This()->Set(String::New("message"), String::New(message));
+	args.This()->Set(String::New("message"), String::New(message), ReadOnly);
 
 	const char* shortMessage = git_commit_message_short(commit->commit_);
 	args.This()->Set(String::New("shortMessage"), String::New(shortMessage));

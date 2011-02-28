@@ -23,6 +23,11 @@ vows.describe("Commit").addBatch({
 			assert.equal(commit.id, "ca1f3314acd24c4551da8c26adaf562272db1d19");
 		},
 		
+		"commit id is immutable": function(commit) {
+			commit.id = "foo";
+			assert.equal(commit.id, "ca1f3314acd24c4551da8c26adaf562272db1d19");
+		},
+		
 		"has correct message": function(commit) {
 			assert.equal(commit.message, "First commit.\n");
 		},
