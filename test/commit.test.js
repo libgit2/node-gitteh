@@ -2,13 +2,14 @@ var vows = require("vows"),
 	assert = require("assert"),
 	gitteh = require("../build/default/gitteh"),
 	path = require("path"),
-	profiler = require("profiler");
+	profiler = require("profiler"),
+	fixtureValues = require("./fixtures/values");
 
 var repo = new gitteh.Repository(path.join(__dirname, "fixtures/gitrepo"));
 vows.describe("Commit").addBatch({
-	"Commit *ca1f3314acd24c4551da8c26adaf562272db1d19*": {
+	"First commit": {
 		topic: function() {
-			return repo.getCommit("ca1f3314acd24c4551da8c26adaf562272db1d19");
+			return repo.getCommit(fixtureValues.FIRST_COMMIT.id);
 		},
 		
 		"exists": function(commit) {
@@ -16,40 +17,40 @@ vows.describe("Commit").addBatch({
 		},
 		
 		"gives us same object if requested again": function(commit) {
-			assert.isTrue(commit === repo.getCommit("ca1f3314acd24c4551da8c26adaf562272db1d19"), "Commit objects do not match!");
+			assert.isTrue(commit === repo.getCommit(fixtureValues.FIRST_COMMIT.id), "Commit objects do not match!");
 		},
 		
 		"has correct id": function(commit) {
-			assert.equal(commit.id, "ca1f3314acd24c4551da8c26adaf562272db1d19");
+			assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
 		},
 		
 		"commit id is immutable": function(commit) {
 			commit.id = "foo";
-			assert.equal(commit.id, "ca1f3314acd24c4551da8c26adaf562272db1d19");
+			assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
 		},
 		
 		"has correct message": function(commit) {
-			assert.equal(commit.message, "First commit.\n");
+			assert.equal(commit.message, fixtureValues.FIRST_COMMIT.message);
 		},
 		
 		"has correct short message": function(commit) {
-			assert.equal(commit.shortMessage, "First commit.");
+			assert.equal(commit.shortMessage, fixtureValues.FIRST_COMMIT.shortMessage);
 		},
 
 		"has correct author": function(commit) {
 			assert.isNotNull(commit.author);
-			assert.equal(commit.author.name, "Sam Day");
-			assert.equal(commit.author.email, "sam.c.day@gmail.com");
+			assert.equal(commit.author.name, fixtureValues.FIRST_COMMIT.authorName);
+			assert.equal(commit.author.email, fixtureValues.FIRST_COMMIT.authorEmail);
 		},
 		
 		"has correct committer": function(commit) {
 			assert.isNotNull(commit.committer);
-			assert.equal(commit.committer.name, "Sam Day");
-			assert.equal(commit.committer.email, "sam.c.day@gmail.com");
+			assert.equal(commit.committer.name, fixtureValues.FIRST_COMMIT.committerName);
+			assert.equal(commit.committer.email, fixtureValues.FIRST_COMMIT.committerEmail);
 		},
 		
 		"has correct time": function(commit) {
-			assert.equal(commit.time.getTime(), new Date("Mon Feb 28 14:59:45 2011 +1000").getTime());
+			assert.equal(commit.time.getTime(), fixtureValues.FIRST_COMMIT.time.getTime());
 		},
 		
 		"tree": {
@@ -59,7 +60,7 @@ vows.describe("Commit").addBatch({
 			},
 			
 			"is correct tree": function(tree) {
-				assert.equal(tree.id, "3020f22e8b22650f524523710f3c211f214f8e75");
+				assert.equal(tree.id, fixtureValues.FIRST_COMMIT_TREE.id);
 			},
 			
 			"gives us same object if requested again": function(wtf, tree) {
