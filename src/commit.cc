@@ -24,9 +24,11 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theCommit);
+	REQ_EXT_ARG(1, theRepo);
 
 	Commit *commit = new Commit();
 	commit->commit_ = (git_commit*)theCommit->Value();
+	commit->repo_ = (Repository*)theRepo->Value();
 
 	commit->Wrap(args.This());
 	commit->MakeWeak();

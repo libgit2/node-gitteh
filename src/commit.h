@@ -2,6 +2,7 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
+#include "repository.h"
 #include "tree.h"
 
 #define COMMIT_ID_SYMBOL String::NewSymbol("id")
@@ -28,6 +29,7 @@ protected:
 	static Handle<Value> CommitterGetter(Local<String> property, const AccessorInfo& info);
 	static Handle<Value> TreeGetter(Local<String> property, const AccessorInfo& info);
 
+	Repository *repo_;
 	git_commit *commit_;
 };
 

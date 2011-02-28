@@ -82,9 +82,12 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		return Null();
 	}
 
-	Local<Value> arg = External::New(commit);
-	Persistent<Object> result(Commit::constructor_template->GetFunction()->NewInstance(1, &arg));
-	result.MakeWeak(&arg, StubWeakCallback);
+	Local<Value> commitArg = External::New(commit);
+	Local<Value> repoArg = External::New(repo);
+	Local<Value> constructorArgs[2] = {commitArg, repoArg};
+
+	Persistent<Object> result(Commit::constructor_template->GetFunction()->NewInstance(2, constructorArgs));
+	//result.MakeWeak(&constructorArgs, StubWeakCallback);
 
 	commitStore->Set(String::NewSymbol(oidStr), result);
 

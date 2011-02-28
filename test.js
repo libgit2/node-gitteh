@@ -43,6 +43,7 @@ for(var i = 0; i < 1; i++) {
 	commit = null;
 	myRepo = null;
 	
+	console.log("Attempting GC.");
 	require("profiler").gc();
 	
 	
