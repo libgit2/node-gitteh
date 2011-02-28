@@ -19,14 +19,15 @@ void Tree::Init(Handle<Object> target) {
 Handle<Value> Tree::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(1);
+	REQ_ARGS(2);
 	REQ_EXT_ARG(0, theTree);
+	REQ_EXT_ARG(1, theRepository);
 
 	Tree *tree = new Tree();
 	tree->tree_ = (git_tree*)theTree->Value();
+	tree->repo_ = (Repository*)theRepository->Value();
 
 	tree->Wrap(args.This());
-	tree->MakeWeak();
 
 	return args.This();
 }
@@ -64,4 +65,8 @@ Handle<Value> Tree::IndexHandler(uint32_t index, const AccessorInfo& info) {
 	Local<Value> arg = External::New(entry);
 	Persistent<Object> result(TreeEntry::constructor_template->GetFunction()->NewInstance(1, &arg));
 	return scope.Close(result);
+}
+
+Tree::~Tree() {
+	repo_->notifyTreeDeath(tree_);
 }

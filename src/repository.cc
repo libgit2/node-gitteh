@@ -1,10 +1,11 @@
 #include "repository.h"
 #include "commit.h"
+#include "tree.h"
 #include "odb.h"
 
 using namespace std;
 
-static void StubWeakCallback(Persistent<Value> val, void* data) {
+static void StubWeakCallback(Persistent<Value> val, void *data) {
 	// TODO: should we actually be doing anything here? node's ObjectWrap deletes the object, but as far as I can tell, the dtor
 	// for my weak ref'd stuff is getting called, which means memory is being freed... Unless I'm completely retarded?
 }
@@ -108,7 +109,7 @@ void Repository::close() {
 }
 
 // Using object_wrap.h from libxmljs as inspiration.
-Handle<Object> Repository::wrapCommit(git_commit* commit) {
+Handle<Object> Repository::wrapCommit(git_commit *commit) {
 	HandleScope scope;
 
 	// Create a JS object for this commit if one doesn't already exist.
@@ -129,8 +130,32 @@ Handle<Object> Repository::wrapCommit(git_commit* commit) {
 	return scope.Close(commitObject->handle_);
 }
 
-void Repository::notifyCommitDeath(git_commit* commit) {
+void Repository::notifyCommitDeath(git_commit *commit) {
 	map<int,void*>::iterator it;
 	it = commitObjects.find((int)commit);
 	commitObjects.erase(it);
+}
+
+Handle<Object> Repository::wrapTree(git_tree *tree) {
+	HandleScope scope;
+
+	Tree *treeObject;
+	if(!treeObjects[(int)tree]) {
+		Handle<Value> constructorArgs[2] = { External::New(tree), External::New(this) };
+		Handle<Object> jsObject = Tree::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
+
+		treeObject = ObjectWrap::Unwrap<Tree>(jsObject);
+		treeObjects[(int)tree] = static_cast<void *>(treeObject);
+	}
+	else {
+		treeObject = static_cast<Tree*>(treeObjects[(int)tree]);
+	}
+
+	return scope.Close(treeObject->handle_);
+}
+
+void Repository::notifyTreeDeath(git_tree *tree) {
+	map<int,void*>::iterator it;
+	it = treeObjects.find((int)tree);
+	treeObjects.erase(it);
 }

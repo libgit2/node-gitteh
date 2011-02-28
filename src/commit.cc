@@ -10,13 +10,7 @@ void Commit::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Commit"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	/*t->PrototypeTemplate()->SetAccessor(COMMIT_ID_SYMBOL, IdGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SYMBOL, MessageGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_MESSAGE_SHORT_SYMBOL, MessageShortGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_TIME_SYMBOL, TimeGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_AUTHOR_SYMBOL, AuthorGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_COMMITTER_SYMBOL, CommitterGetter);
-	t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);*/
+	t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);
 }
 
 Handle<Value> Commit::New(const Arguments& args) {
@@ -64,9 +58,7 @@ Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& inf
 
 	const git_tree *tree = git_commit_tree(commit->commit_);
 
-	Local<Value> arg = External::New((void*)tree);
-	Persistent<Object> result(Tree::constructor_template->GetFunction()->NewInstance(1, &arg));
-	return scope.Close(result);
+	return commit->repo_->wrapTree(const_cast<git_tree*>(tree));
 }
 
 Commit::~Commit() {

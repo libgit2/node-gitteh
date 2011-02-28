@@ -30,7 +30,7 @@ vows.describe("Commit").addBatch({
 		"has correct short message": function(commit) {
 			assert.equal(commit.shortMessage, "First commit.");
 		},
-		
+
 		"has correct author": function(commit) {
 			assert.isNotNull(commit.author);
 			assert.equal(commit.author.name, "Sam Day");
@@ -45,6 +45,21 @@ vows.describe("Commit").addBatch({
 		
 		"has correct time": function(commit) {
 			assert.equal(commit.time.getTime(), new Date("Mon Feb 28 14:59:45 2011 +1000").getTime());
+		},
+		
+		"tree": {
+			topic: function(commit) {
+				this.context.commit = commit;
+				return commit.tree;
+			},
+			
+			"is correct tree": function(tree) {
+				assert.equal(tree.id, "3020f22e8b22650f524523710f3c211f214f8e75");
+			},
+			
+			"gives us same object if requested again": function(wtf, tree) {
+				assert.isTrue(tree === this.context.commit.tree);
+			}
 		}
 	}
 }).export(module);

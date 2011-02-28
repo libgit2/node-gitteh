@@ -15,6 +15,9 @@ public:
 	Handle<Object> wrapCommit(git_commit*);
 	void notifyCommitDeath(git_commit*);
 
+	Handle<Object> wrapTree(git_tree*);
+	void notifyTreeDeath(git_tree*);
+
 protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetODB(const Arguments&);
@@ -23,6 +26,7 @@ protected:
 
 	git_repository *repo_;
 	std::map<int, void*> commitObjects;
+	std::map<int, void*> treeObjects;
 };
 
 #endif // GITTEH_REPO_H
