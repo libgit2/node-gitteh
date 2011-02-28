@@ -16,18 +16,12 @@
 class Commit : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
-	static void Init(Handle<Object> target);
+	static void Init(Handle<Object>);
 	~Commit();
 
 protected:
-	static Handle<Value> New(const Arguments& args);
-	static Handle<Value> IdGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> MessageGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> MessageShortGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> TimeGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> AuthorGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> CommitterGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> TreeGetter(Local<String> property, const AccessorInfo& info);
+	static Handle<Value> New(const Arguments&);
+	static Handle<Value> TreeGetter(Local<String>, const AccessorInfo&);
 
 	Repository *repo_;
 	git_commit *commit_;
