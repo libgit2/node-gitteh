@@ -10,14 +10,13 @@
 class Tree : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
-	static void Init(Handle<Object> target);
+	static void Init(Handle<Object>);
 	~Tree();
 
 protected:
-	static Handle<Value> New(const Arguments& args);
-	static Handle<Value> IdGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> LengthGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> IndexHandler(uint32_t index, const AccessorInfo& info);
+	static Handle<Value> New(const Arguments&);
+	static Handle<Value> LengthGetter(Local<String>, const AccessorInfo&);
+	static Handle<Value> IndexHandler(uint32_t, const AccessorInfo&);
 
 	git_tree *tree_;
 	Repository *repo_;

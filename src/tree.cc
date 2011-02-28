@@ -11,7 +11,6 @@ void Tree::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Tree"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	t->PrototypeTemplate()->SetAccessor(TREE_ID_SYMBOL, IdGetter);
 	t->PrototypeTemplate()->SetAccessor(TREE_LENGTH_SYMBOL, LengthGetter);
 	t->PrototypeTemplate()->SetIndexedPropertyHandler(IndexHandler);
 }
@@ -29,16 +28,9 @@ Handle<Value> Tree::New(const Arguments& args) {
 
 	tree->Wrap(args.This());
 
+	args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(git_tree_id(tree->tree_))), ReadOnly);
+
 	return args.This();
-}
-
-Handle<Value> Tree::IdGetter(Local<String> property, const AccessorInfo& info) {
-	HandleScope scope;
-
-	Tree *tree = ObjectWrap::Unwrap<Tree>(info.This());
-	const char* oidStr = git_oid_allocfmt(git_tree_id(tree->tree_));
-
-	return scope.Close(String::New(oidStr));
 }
 
 Handle<Value> Tree::LengthGetter(Local<String> property, const AccessorInfo& info) {
