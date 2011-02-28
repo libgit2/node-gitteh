@@ -46,25 +46,6 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repo->Wrap(args.This());
 	repo->MakeWeak();
 
-	git_oid commitId;
-	git_oid_mkstr(&commitId, "8a916d5fbce49f5780668a1ee780e0ef2e89360f");
-
-	git_commit* commit;
-	git_commit_lookup(&commit, repo->repo_, &commitId);
-
-	git_commit* parentCommit = git_commit_parent(commit, 0);
-
-	const git_oid* parentCommitId = git_commit_id(parentCommit);
-
-	const char* parentCommitIdStr = git_oid_allocfmt(parentCommitId);
-
-	cout << "parent commit id: " << parentCommitIdStr << "\n";
-
-	git_commit* another;
-	git_commit_lookup(&another, repo->repo_, parentCommitId);
-
-	cout << (int)parentCommit << " " << (int)another << "\n";
-
 	return args.This();
 }
 
