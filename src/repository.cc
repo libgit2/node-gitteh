@@ -45,6 +45,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	repo->path_ = *path;
 
+	args.This()->Set(String::New("path"), String::New(repo->path_), ReadOnly);
+
 	repo->Wrap(args.This());
 	repo->MakeWeak();
 
