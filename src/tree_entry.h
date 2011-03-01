@@ -8,12 +8,12 @@ class TreeEntry : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object> target);
+	Tree *tree_;
 
 protected:
 	static Handle<Value> New(const Arguments& args);
 
 	git_tree_entry *entry_;
-	Tree *tree_;
 };
 
 #endif // GITTEH_TREE_ENTRY_H

@@ -3,7 +3,9 @@
 
 #include "gitteh.h"
 #include "repository.h"
-#include <map>
+#include "object_store.h"
+
+class TreeEntry;
 
 #define TREE_ID_SYMBOL String::NewSymbol("id")
 #define TREE_LENGTH_SYMBOL String::NewSymbol("length")
@@ -14,15 +16,18 @@ public:
 	static void Init(Handle<Object>);
 	~Tree();
 
+	TreeEntry *wrapEntry(git_tree_entry*);
+
 	Repository *repository_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> LengthGetter(Local<String>, const AccessorInfo&);
-	static Handle<Value> IndexHandler(uint32_t, const AccessorInfo&);
+	static Handle<Value> EntryIndexedHandler(uint32_t, const AccessorInfo&);
+	static Handle<Value> EntryNamedHandler(Local<String>, const AccessorInfo&);
 
 	git_tree *tree_;
-	std::map<int, void*> treeEntryObjects_;
+	size_t entryCount_;
+	ObjectStore<TreeEntry, git_tree_entry> entryStore_;
 };
 
 #endif	// GITTEH_TREE_H
