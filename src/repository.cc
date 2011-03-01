@@ -43,6 +43,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 		return ThrowException(ex);
 	}
 
+	repo->path_ = *path;
+
 	repo->Wrap(args.This());
 	repo->MakeWeak();
 
@@ -102,7 +104,11 @@ Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(info.This());
 	if(repo->index_ == NULL) {
 		git_index *index;
-		git_repository_index(&index, repo->repo_);
+		int result = git_repository_index(&index, repo->repo_);
+		if(result == GIT_EBAREINDEX) {
+			git_index_open_bare(&index, repo->path_);
+		}
+
 		Handle<Value> arg = External::New(index);
 		Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(1, &arg);
 		repo->index_ = ObjectWrap::Unwrap<Index>(instance);

@@ -30,6 +30,7 @@ protected:
 	ObjectStore<Commit, git_commit> commitStore_;
 	ObjectStore<Tree, git_tree> treeStore_;
 	Index *index_;
+	char *path_;
 };
 
 #endif // GITTEH_REPO_H

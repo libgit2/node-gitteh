@@ -22,18 +22,18 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
+
 	args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(git_tree_id(tree->tree_))), ReadOnly);
 
 	Handle<ObjectTemplate> entriesObjectTemplate = ObjectTemplate::New();
 	entriesObjectTemplate->SetInternalFieldCount(1);
 	entriesObjectTemplate->SetIndexedPropertyHandler(EntryIndexedHandler);
-	entriesObjectTemplate->SetNamedPropertyHandler(EntryNamedHandler);
+	//entriesObjectTemplate->SetNamedPropertyHandler(EntryNamedHandler);
 
 	Handle<Object> entriesObject = entriesObjectTemplate->NewInstance();
-	entriesObject->Set(String::New("length"), Integer::New(tree->entryCount_));
 	entriesObject->SetInternalField(0, args.This());
-
 	args.This()->Set(String::New("entries"), entriesObject);
+	entriesObject->Set(String::New("length"), Persistent<Integer>::New(Integer::New(tree->entryCount_)));
 
 	tree->Wrap(args.This());
 	return args.This();
