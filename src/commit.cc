@@ -47,7 +47,7 @@ Handle<Value> Commit::New(const Arguments& args) {
 	CREATE_PERSON_OBJ(committerObj, committer);
 	args.This()->Set(String::New("committer"), committerObj);
 
-	commit->parentCount = git_commit_parentcount(commit->commit_);
+	commit->parentCount_ = git_commit_parentcount(commit->commit_);
 	// Setup the parents.
 	Handle<ObjectTemplate> parentObjectTemplate = ObjectTemplate::New();
 	parentObjectTemplate->SetInternalFieldCount(1);
@@ -55,7 +55,7 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	Handle<Object> parentsObject = parentObjectTemplate->NewInstance();
 	parentsObject->SetInternalField(0, args.This());
-	parentsObject->Set(String::New("length"), Integer::New(commit->parentCount));
+	parentsObject->Set(String::New("length"), Integer::New(commit->parentCount_));
 
 	args.This()->Set(String::New("parents"), parentsObject, ReadOnly);
 
@@ -79,7 +79,7 @@ Handle<Value> Commit::IndexedParentGetter(uint32_t index, const AccessorInfo& in
 
 	Commit *commit = ObjectWrap::Unwrap<Commit>(Local<Object>::Cast(info.This()->GetInternalField(0)));
 
-	if(index >= commit->parentCount) {
+	if(index >= commit->parentCount_) {
 		return ThrowException(Exception::Error(String::New("Parent commit index is out of bounds.")));
 	}
 

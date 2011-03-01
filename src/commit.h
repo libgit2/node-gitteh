@@ -27,7 +27,7 @@ protected:
 	static Handle<Value> IndexedParentGetter(uint32_t, const AccessorInfo&);
 
 	git_commit *commit_;
-	int parentCount;
+	int parentCount_;
 };
 
 #endif // GITTEH_COMMIT_H
