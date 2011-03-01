@@ -47,6 +47,18 @@ Handle<Value> Commit::New(const Arguments& args) {
 	CREATE_PERSON_OBJ(committerObj, committer);
 	args.This()->Set(String::New("committer"), committerObj);
 
+	commit->parentCount = git_commit_parentcount(commit->commit_);
+	// Setup the parents.
+	Handle<ObjectTemplate> parentObjectTemplate = ObjectTemplate::New();
+	parentObjectTemplate->SetInternalFieldCount(1);
+	parentObjectTemplate->SetIndexedPropertyHandler(IndexedParentGetter);
+
+	Handle<Object> parentsObject = parentObjectTemplate->NewInstance();
+	parentsObject->SetInternalField(0, args.This());
+	parentsObject->Set(String::New("length"), Integer::New(commit->parentCount));
+
+	args.This()->Set(String::New("parents"), parentsObject, ReadOnly);
+
 	commit->Wrap(args.This());
 	return args.This();
 }
@@ -60,6 +72,20 @@ Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& inf
 
 	Tree *treeObject = commit->repository_->wrapTree(const_cast<git_tree*>(tree));
 	return treeObject->handle_;
+}
+
+Handle<Value> Commit::IndexedParentGetter(uint32_t index, const AccessorInfo& info) {
+	HandleScope scope;
+
+	Commit *commit = ObjectWrap::Unwrap<Commit>(Local<Object>::Cast(info.This()->GetInternalField(0)));
+
+	if(index >= commit->parentCount) {
+		return ThrowException(Exception::Error(String::New("Parent commit index is out of bounds.")));
+	}
+
+	git_commit *parent = git_commit_parent(commit->commit_, index);
+	Commit *parentObject = commit->repository_->wrapCommit(parent);
+	return parentObject->handle_;
 }
 
 Commit::~Commit() {
