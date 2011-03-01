@@ -11,3 +11,4 @@ Under active development. Nasty code written by an idiot with the equivalent of 
 * Bind everything libgit2 has to offer and make it available to Node.js.
 * Evaluate if async is necessary, implement where needed if it is.
 * Possibly provide a higher level API over the bindings (perhaps in a separate project).
+* Async support

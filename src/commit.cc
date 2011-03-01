@@ -10,7 +10,9 @@ void Commit::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Commit"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);
+	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
+	NODE_SET_PROTOTYPE_METHOD(t, "getParent", GetParent);
+	//t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);
 }
 
 Handle<Value> Commit::New(const Arguments& args) {
@@ -29,10 +31,10 @@ Handle<Value> Commit::New(const Arguments& args) {
 	args.This()->Set(String::New("id"), String::New(oidStr), ReadOnly);
 
 	const char* message = git_commit_message(commit->commit_);
-	args.This()->Set(String::New("message"), String::New(message), ReadOnly);
+	args.This()->Set(String::New("message"), String::New(message));
 
 	const char* shortMessage = git_commit_message_short(commit->commit_);
-	args.This()->Set(String::New("shortMessage"), String::New(shortMessage));
+	args.This()->Set(String::New("shortMessage"), String::New(shortMessage), ReadOnly);
 
 	time_t time = git_commit_time(commit->commit_);
 	args.This()->Set(String::New("time"), Date::New(static_cast<double>(time)*1000));
@@ -48,7 +50,8 @@ Handle<Value> Commit::New(const Arguments& args) {
 	args.This()->Set(String::New("committer"), committerObj);
 
 	commit->parentCount_ = git_commit_parentcount(commit->commit_);
-	// Setup the parents.
+
+/*	// Setup the parents.
 	Handle<ObjectTemplate> parentObjectTemplate = ObjectTemplate::New();
 	parentObjectTemplate->SetInternalFieldCount(1);
 	parentObjectTemplate->SetIndexedPropertyHandler(IndexedParentGetter);
@@ -57,16 +60,18 @@ Handle<Value> Commit::New(const Arguments& args) {
 	parentsObject->SetInternalField(0, args.This());
 	parentsObject->Set(String::New("length"), Integer::New(commit->parentCount_));
 
-	args.This()->Set(String::New("parents"), parentsObject, ReadOnly);
+	args.This()->Set(String::New("parents"), parentsObject, ReadOnly);*/
+
+	args.This()->Set(String::New("parentCount"), Integer::New(commit->parentCount_), ReadOnly);
 
 	commit->Wrap(args.This());
 	return args.This();
 }
 
-Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& info) {
+Handle<Value> Commit::GetTree(const Arguments& args) {
 	HandleScope scope;
 
-	Commit *commit = ObjectWrap::Unwrap<Commit>(info.This());
+	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
 
 	const git_tree *tree = git_commit_tree(commit->commit_);
 
@@ -74,10 +79,13 @@ Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& inf
 	return treeObject->handle_;
 }
 
-Handle<Value> Commit::IndexedParentGetter(uint32_t index, const AccessorInfo& info) {
+Handle<Value> Commit::GetParent(const Arguments& args) {
 	HandleScope scope;
 
-	Commit *commit = ObjectWrap::Unwrap<Commit>(Local<Object>::Cast(info.This()->GetInternalField(0)));
+	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
+
+	REQ_ARGS(1);
+	REQ_INT_ARG(0, index);
 
 	if(index >= commit->parentCount_) {
 		return ThrowException(Exception::Error(String::New("Parent commit index is out of bounds.")));

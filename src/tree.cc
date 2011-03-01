@@ -22,7 +22,6 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-
 	args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(git_tree_id(tree->tree_))), ReadOnly);
 
 	Handle<ObjectTemplate> entriesObjectTemplate = ObjectTemplate::New();

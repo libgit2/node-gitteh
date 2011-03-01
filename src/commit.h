@@ -23,7 +23,8 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> TreeGetter(Local<String>, const AccessorInfo&);
+	static Handle<Value> GetTree(const Arguments&);
+	static Handle<Value> GetParent(const Arguments&);
 	static Handle<Value> IndexedParentGetter(uint32_t, const AccessorInfo&);
 
 	git_commit *commit_;
