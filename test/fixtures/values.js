@@ -1,3 +1,5 @@
+module.exports.REPO_PATH = require("path").join(__dirname, "gitrepo");
+
 module.exports.FIRST_COMMIT = {
 	id: "ca1f3314acd24c4551da8c26adaf562272db1d19",
 	message: "First commit.\n",

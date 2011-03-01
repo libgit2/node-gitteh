@@ -5,7 +5,7 @@ var vows = require("vows"),
 	profiler = require("profiler"),
 	fixtureValues = require("./fixtures/values");
 
-var repo = new gitteh.Repository(path.join(__dirname, "fixtures/gitrepo"));
+var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 
 var createCommitTests = function(commitFixture) {
 	var context = {
