@@ -2,9 +2,12 @@
 #define GITTEH_REPO_H
 
 #include "gitteh.h"
-#include <map>
+#include "object_store.h"
 
 #define REPO_INTERNAL_FIELD_COMMIT_STORE 1
+
+class Commit;
+class Tree;
 
 class Repository : public ObjectWrap {
 public:
@@ -12,11 +15,8 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
-	Handle<Object> wrapCommit(git_commit*);
-	void notifyCommitDeath(git_commit*);
-
-	Handle<Object> wrapTree(git_tree*);
-	void notifyTreeDeath(git_tree*);
+	Tree *wrapTree(git_tree *tree);
+	Commit *wrapCommit(git_commit *commit);
 
 protected:
 	static Handle<Value> New(const Arguments&);
@@ -25,8 +25,8 @@ protected:
 	void close();
 
 	git_repository *repo_;
-	std::map<int, void*> commitObjects;
-	std::map<int, void*> treeObjects;
+	ObjectStore<Commit, git_commit> commitStore_;
+	ObjectStore<Tree, git_tree> treeStore_;
 };
 
 #endif // GITTEH_REPO_H

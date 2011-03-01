@@ -82,17 +82,9 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		// TODO: error code handling.
 		return Null();
 	}
-/*
-	Local<Value> commitArg = External::New(commit);
-	Local<Value> repoArg = External::New(repo);
-	Local<Value> constructorArgs[2] = {commitArg, repoArg};
 
-	Persistent<Object> result(Commit::constructor_template->GetFunction()->NewInstance(2, constructorArgs));
-	//result.MakeWeak(&constructorArgs, StubWeakCallback);
-
-	commitStore->Set(String::NewSymbol(oidStr), result);*/
-
-	return repo->wrapCommit(commit);
+	Commit *commitObject = repo->wrapCommit(commit);
+	return scope.Close(commitObject->handle_);
 
 	//return scope.Close(result);
 }
@@ -108,8 +100,8 @@ void Repository::close() {
 	}
 }
 
-// Using object_wrap.h from libxmljs as inspiration.
-Handle<Object> Repository::wrapCommit(git_commit *commit) {
+Commit *Repository::wrapCommit(git_commit *commit) {
+#if 0
 	HandleScope scope;
 
 	// Create a JS object for this commit if one doesn't already exist.
@@ -128,15 +120,19 @@ Handle<Object> Repository::wrapCommit(git_commit *commit) {
 	}
 
 	return scope.Close(commitObject->handle_);
+#endif
+
+	Commit *commitObject;
+	if(commitStore_.getObjectFor(commit, &commitObject)) {
+		// Commit needs to know who it's daddy is.
+		commitObject->repository_ = this;
+	}
+
+	return commitObject;
 }
 
-void Repository::notifyCommitDeath(git_commit *commit) {
-	map<int,void*>::iterator it;
-	it = commitObjects.find((int)commit);
-	commitObjects.erase(it);
-}
-
-Handle<Object> Repository::wrapTree(git_tree *tree) {
+Tree *Repository::wrapTree(git_tree *tree) {
+#if 0
 	HandleScope scope;
 
 	Tree *treeObject;
@@ -152,10 +148,12 @@ Handle<Object> Repository::wrapTree(git_tree *tree) {
 	}
 
 	return scope.Close(treeObject->handle_);
-}
+#endif
 
-void Repository::notifyTreeDeath(git_tree *tree) {
-	map<int,void*>::iterator it;
-	it = treeObjects.find((int)tree);
-	treeObjects.erase(it);
+	Tree *treeObject;
+	if(treeStore_.getObjectFor(tree, &treeObject)) {
+		treeObject->repository_ = this;
+	}
+
+	return treeObject;
 }

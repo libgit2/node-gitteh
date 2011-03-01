@@ -18,13 +18,11 @@ void Tree::Init(Handle<Object> target) {
 Handle<Value> Tree::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(2);
+	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theTree);
-	REQ_EXT_ARG(1, theRepository);
 
 	Tree *tree = new Tree();
 	tree->tree_ = (git_tree*)theTree->Value();
-	tree->repo_ = (Repository*)theRepository->Value();
 
 	tree->Wrap(args.This());
 
@@ -70,5 +68,4 @@ Handle<Value> Tree::IndexHandler(uint32_t index, const AccessorInfo& info) {
 }
 
 Tree::~Tree() {
-	repo_->notifyTreeDeath(tree_);
 }

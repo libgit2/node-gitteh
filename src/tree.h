@@ -14,13 +14,14 @@ public:
 	static void Init(Handle<Object>);
 	~Tree();
 
+	Repository *repository_;
+
 protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> LengthGetter(Local<String>, const AccessorInfo&);
 	static Handle<Value> IndexHandler(uint32_t, const AccessorInfo&);
 
 	git_tree *tree_;
-	Repository *repo_;
 	std::map<int, void*> treeEntryObjects_;
 };
 

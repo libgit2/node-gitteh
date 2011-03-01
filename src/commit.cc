@@ -18,11 +18,11 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theCommit);
-	REQ_EXT_ARG(1, theRepo);
+	//REQ_EXT_ARG(1, theRepo);
 
 	Commit *commit = new Commit();
 	commit->commit_ = (git_commit*)theCommit->Value();
-	commit->repo_ = (Repository*)theRepo->Value();
+	//commit->repo_ = (Repository*)theRepo->Value();
 
 	// Setup some basic info about this commit.
 	const char* oidStr = git_oid_allocfmt(git_commit_id(commit->commit_));
@@ -58,11 +58,11 @@ Handle<Value> Commit::TreeGetter(Local<String> property, const AccessorInfo& inf
 
 	const git_tree *tree = git_commit_tree(commit->commit_);
 
-	return commit->repo_->wrapTree(const_cast<git_tree*>(tree));
+	Tree *treeObject = commit->repository_->wrapTree(const_cast<git_tree*>(tree));
+	return treeObject->handle_;
 }
 
 Commit::~Commit() {
 	// TODO: don't think we ever need to free commits as they're handled by the repo, even newly created ones
 	// (I think), probably need to look into this.
-	repo_->notifyCommitDeath(commit_);
 }

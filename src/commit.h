@@ -19,11 +19,12 @@ public:
 	static void Init(Handle<Object>);
 	~Commit();
 
+	Repository *repository_;
+
 protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> TreeGetter(Local<String>, const AccessorInfo&);
 
-	Repository *repo_;
 	git_commit *commit_;
 };
 
