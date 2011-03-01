@@ -6,6 +6,8 @@
 #include "rawobj.h"
 #include "odb.h"
 #include "repository.h"
+#include "index.h"
+#include "index_entry.h"
 
 extern "C" void
 init(Handle<Object> target) {
@@ -16,4 +18,6 @@ init(Handle<Object> target) {
 	Commit::Init(target);
 	Tree::Init(target);
 	TreeEntry::Init(target);
+	Index::Init(target);
+	IndexEntry::Init(target);
 }

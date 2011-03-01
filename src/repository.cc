@@ -2,6 +2,7 @@
 #include "commit.h"
 #include "tree.h"
 #include "odb.h"
+#include "index.h"
 
 using namespace std;
 
@@ -23,6 +24,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getObjectDatabase", GetODB);
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
+
+	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
 	target->Set(String::New("Repository"), t->GetFunction());
 }
@@ -91,6 +94,21 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 
 	Tree *treeObject = repo->wrapTree(tree);
 	return scope.Close(treeObject->handle_);
+}
+
+Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(info.This());
+	if(repo->index_ == NULL) {
+		git_index *index;
+		git_repository_index(&index, repo->repo_);
+		Handle<Value> arg = External::New(index);
+		Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(1, &arg);
+		repo->index_ = ObjectWrap::Unwrap<Index>(instance);
+	}
+
+	return repo->index_->handle_;
 }
 
 Repository::~Repository() {
