@@ -4,8 +4,6 @@
 #include "gitteh.h"
 #include "object_store.h"
 
-#define REPO_INTERNAL_FIELD_COMMIT_STORE 1
-
 class Commit;
 class Tree;
 
@@ -22,6 +20,7 @@ protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetODB(const Arguments&);
 	static Handle<Value> GetCommit(const Arguments&);
+	static Handle<Value> GetTree(const Arguments&);
 	void close();
 
 	git_repository *repo_;

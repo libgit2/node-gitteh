@@ -18,10 +18,11 @@ void Repository::Init(Handle<Object> target) {
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("Repository"));
-	t->InstanceTemplate()->SetInternalFieldCount(3);
+	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getObjectDatabase", GetODB);
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
+	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 
 	target->Set(String::New("Repository"), t->GetFunction());
 }
@@ -38,11 +39,6 @@ Handle<Value> Repository::New(const Arguments& args) {
 		Handle<Value> ex = Exception::Error(String::New("Git error."));
 		return ThrowException(ex);
 	}
-
-	// Create our backing store.
-	Persistent<Object> commitStore = Persistent<Object>::New(Object::New());
-	commitStore.MakeWeak(&commitStore, StubWeakCallback);
-	args.This()->SetInternalField(REPO_INTERNAL_FIELD_COMMIT_STORE, commitStore);
 
 	repo->Wrap(args.This());
 	repo->MakeWeak();
@@ -68,25 +64,33 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	REQ_OID_ARG(0, commitOid);
 
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-	Local<Object> commitStore = Local<Object>::Cast(args.This()->GetInternalField(REPO_INTERNAL_FIELD_COMMIT_STORE));
 	const char* oidStr = git_oid_allocfmt(&commitOid);
-
-	Local<Value> possibleCommit = commitStore->Get(String::New(oidStr));
-
-	if(!possibleCommit->IsUndefined()) {
-		return scope.Close(commitStore->Get(String::New(oidStr)));
-	}
 
 	git_commit* commit;
 	if(git_commit_lookup(&commit, repo->repo_, &commitOid) != GIT_SUCCESS) {
 		// TODO: error code handling.
-		return Null();
+		return scope.Close(Null());
 	}
 
 	Commit *commitObject = repo->wrapCommit(commit);
 	return scope.Close(commitObject->handle_);
+}
 
-	//return scope.Close(result);
+Handle<Value> Repository::GetTree(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, commitOid);
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_tree *tree;
+	if(git_tree_lookup(&tree, repo->repo_, &commitOid) != GIT_SUCCESS) {
+		return scope.Close(Null());
+	}
+
+	Tree *treeObject = repo->wrapTree(tree);
+	return scope.Close(treeObject->handle_);
 }
 
 Repository::~Repository() {
@@ -101,27 +105,6 @@ void Repository::close() {
 }
 
 Commit *Repository::wrapCommit(git_commit *commit) {
-#if 0
-	HandleScope scope;
-
-	// Create a JS object for this commit if one doesn't already exist.
-	Commit *commitObject;
-	if(!commitObjects[(int)commit]) {
-		//commitObject = new Commit();
-
-		Handle<Value> constructorArgs[2] = { External::New(commit), External::New(this) };
-		Handle<Object> jsObject = Commit::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
-
-		commitObject = ObjectWrap::Unwrap<Commit>(jsObject);
-		commitObjects[(int)commit] = static_cast<void *>(commitObject);
-	}
-	else {
-		commitObject = static_cast<Commit*>(commitObjects[(int)commit]);
-	}
-
-	return scope.Close(commitObject->handle_);
-#endif
-
 	Commit *commitObject;
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
@@ -132,24 +115,6 @@ Commit *Repository::wrapCommit(git_commit *commit) {
 }
 
 Tree *Repository::wrapTree(git_tree *tree) {
-#if 0
-	HandleScope scope;
-
-	Tree *treeObject;
-	if(!treeObjects[(int)tree]) {
-		Handle<Value> constructorArgs[2] = { External::New(tree), External::New(this) };
-		Handle<Object> jsObject = Tree::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
-
-		treeObject = ObjectWrap::Unwrap<Tree>(jsObject);
-		treeObjects[(int)tree] = static_cast<void *>(treeObject);
-	}
-	else {
-		treeObject = static_cast<Tree*>(treeObjects[(int)tree]);
-	}
-
-	return scope.Close(treeObject->handle_);
-#endif
-
 	Tree *treeObject;
 	if(treeStore_.getObjectFor(tree, &treeObject)) {
 		treeObject->repository_ = this;
