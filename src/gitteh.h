@@ -14,7 +14,7 @@ using namespace node;
 #define REQ_ARGS(N)                                                     \
   if (args.Length() < (N))                                              \
     return ThrowException(Exception::TypeError(                         \
-                             String::New("Expected " #N "arguments")));
+                             String::New("Expected " #N " arguments")));
 
 #define REQ_STR_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsString())                     \
