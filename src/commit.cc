@@ -12,7 +12,6 @@ void Commit::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getParent", GetParent);
-	//t->PrototypeTemplate()->SetAccessor(COMMIT_TREE_SYMBOL, TreeGetter);
 }
 
 Handle<Value> Commit::New(const Arguments& args) {
@@ -20,11 +19,9 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theCommit);
-	//REQ_EXT_ARG(1, theRepo);
 
 	Commit *commit = new Commit();
 	commit->commit_ = (git_commit*)theCommit->Value();
-	//commit->repo_ = (Repository*)theRepo->Value();
 
 	// Setup some basic info about this commit.
 	const char* oidStr = git_oid_allocfmt(git_commit_id(commit->commit_));

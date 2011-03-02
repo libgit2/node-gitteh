@@ -26,7 +26,6 @@ protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> GetParent(const Arguments&);
-	static Handle<Value> IndexedParentGetter(uint32_t, const AccessorInfo&);
 
 	int parentCount_;
 };
