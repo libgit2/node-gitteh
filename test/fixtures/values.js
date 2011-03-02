@@ -64,13 +64,103 @@ module.exports.FIFTH_COMMIT = {
 	parents: ["46d47fb28223a7f29df5d2072eb05e380985a477", "bae21d9853dc927b3784420144afd9082d768024"],
 	tree: "98695ebf529d456e0e2cbf16ff6e06b0bfe3e843"
 };
-module.exports.FIRST_COMMIT_TREE = {
+
+module.exports.FIRST_TREE = {
 	id: "3020f22e8b22650f524523710f3c211f214f8e75",
 	
 	entries: [
 		{
+			id: "47ee7698c336ba5b163c193ae6309f0a7d7e9662",
 			filename: "file.txt",
-			attributes: 33188 // Note, this is 100644 in octal.
+			attributes: 100644
 		}
 	]
-}
+};
+
+module.exports.SECOND_TREE = {
+	id: "6a670a961ede0d6965e5326797e074d26ecee235",
+	
+	entries: [
+		{
+			id: "47ee7698c336ba5b163c193ae6309f0a7d7e9662",
+			filename: "file.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "second.txt",
+			attributes: 100644
+		}
+	]
+};
+
+module.exports.THIRD_TREE = {
+	id: "6cd2ee6530e7f104040569bd7bf516f90e86e747",
+	
+	entries: [
+		{
+			id: "47ee7698c336ba5b163c193ae6309f0a7d7e9662",
+			filename: "file.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "second.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "third.txt",
+			attributes: 100644
+		}
+	]
+};
+
+module.exports.FOURTH_TREE = {
+	id: "e51d4f52d0b38a9052c6cebaa1b49a0b75e8d82e",
+	
+	entries: [
+		{
+			id: "47ee7698c336ba5b163c193ae6309f0a7d7e9662",
+			filename: "file.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "fourth.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "second.txt",
+			attributes: 100644
+		}
+	]
+};
+
+module.exports.FIFTH_TREE = {
+	id: "98695ebf529d456e0e2cbf16ff6e06b0bfe3e843",
+	
+	entries: [
+		{
+			id: "47ee7698c336ba5b163c193ae6309f0a7d7e9662",
+			filename: "file.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "fourth.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "second.txt",
+			attributes: 100644
+		},
+		{
+			id: "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+			filename: "third.txt",
+			attributes: 100644
+		}
+	]
+};
