@@ -20,6 +20,7 @@ void RevWalker::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "hide", Hide);
 	NODE_SET_PROTOTYPE_METHOD(t, "next", Next);
 	NODE_SET_PROTOTYPE_METHOD(t, "sort", Sort);
+	NODE_SET_PROTOTYPE_METHOD(t, "reset", Reset);
 }
 
 Handle<Value> RevWalker::New(const Arguments& args) {
@@ -78,6 +79,37 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 Handle<Value> RevWalker::Hide(const Arguments& args) {
 	HandleScope scope;
 
+	REQ_ARGS(1);
+
+	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
+
+	git_commit *commit;
+	if(args[0]->IsString()) {
+		REQ_OID_ARG(0, commitOid);
+		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
+
+		if(result != GIT_SUCCESS) {
+			return ThrowException(Exception::Error(String::New("Commit not found.")));
+		}
+	}
+	else {
+		// Commit object.
+		if(!args[0]->IsObject()) {
+			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		}
+
+		Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
+		if(!Commit::constructor_template->HasInstance(commitArg)) {
+			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		}
+
+		Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
+		commit = commitObject->commit_;
+		//return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
+	}
+	
+	git_revwalk_hide(walker->walker_, commit);
+
 	return Undefined();
 }
 
@@ -106,6 +138,15 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
 	git_revwalk_sorting(walker->walker_, sorting);
+}
+
+Handle<Value> RevWalker::Reset(const Arguments& args) {
+	HandleScope scope;
+	
+	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
+	git_revwalk_reset(walker->walker_);
+
+	return Undefined();
 }
 
 RevWalker::~RevWalker() {

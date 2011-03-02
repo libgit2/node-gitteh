@@ -22,9 +22,20 @@ vows.describe("RevWalker").addBatch({
 			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
 		},
 		
-		"calling *next()* gives us second commit.": function(walker) {
-			var commit = walker.next();
-			assert.equal(commit.id, fixtureValues.SECOND_COMMIT.id);
+		"calling *next*": { 
+			topic: function(walker) {
+				var commit = walker.next();
+				this.context.walker = walker;
+				return commit;
+			},
+			
+			"gives us second commit": function(commit) {
+				assert.equal(commit.id, fixtureValues.SECOND_COMMIT.id);
+			},
+			
+			"commit is not redundant": function(commit) {
+				assert.isTrue(commit === repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+			}
 		},
 		
 		"calling *next()* gives us first commit.": function(walker) {
@@ -90,27 +101,35 @@ vows.describe("RevWalker").addBatch({
 		}
 	},
 	
-	"RevWalker from fifth commit in topographical order": {
+	"RevWalker with reset": {
 		topic: function() {
 			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TOPOLOGICAL);
-			walker.push(repo.getCommit(fixtureValues.FIFTH_COMMIT.id));
+			walker.sort(gitteh.SORT_TIME);
+			walker.push(fixtureValues.SECOND_COMMIT.id);
+			walker.reset();
+			walker.push(fixtureValues.FIFTH_COMMIT.id);
 			return walker;
 		},
-
-		"calling *next()* gives us fifth commit.": function(walker) {
+		
+		"gives us correct commit": function(walker) {
 			var commit = walker.next();
 			assert.equal(commit.id, fixtureValues.FIFTH_COMMIT.id);
+		}
+	},
+	
+	"RevWalker with hide": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.sort(gitteh.SORT_TIME);
+			walker.push(fixtureValues.FOURTH_COMMIT.id);
+			walker.hide(fixtureValues.THIRD_COMMIT.id);
+			walker.next();
+			return walker;
 		},
-
-		"calling *next()* gives us fourth commit.": function(walker) {
+		
+		"gives us correct commit": function(walker) {
 			var commit = walker.next();
-			assert.equal(commit.id, fixtureValues.FOURTH_COMMIT.id);
-		},
-
-		"calling *next()* gives us third commit.": function(walker) {
-			var commit = walker.next();
-			assert.equal(commit.id, fixtureValues.THIRD_COMMIT.id);
+			assert.isNull(commit);
 		}
 	}
 }).export(module);
