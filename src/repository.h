@@ -25,6 +25,7 @@ protected:
 	static Handle<Value> GetCommit(const Arguments&);
 	static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> GetTag(const Arguments&);
+	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
 	void close();

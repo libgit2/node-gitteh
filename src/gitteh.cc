@@ -9,6 +9,7 @@
 #include "index.h"
 #include "index_entry.h"
 #include "tag.h"
+#include "rev_walker.h"
 
 extern "C" void
 init(Handle<Object> target) {
@@ -22,4 +23,5 @@ init(Handle<Object> target) {
 	Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);
+	RevWalker::Init(target);
 }

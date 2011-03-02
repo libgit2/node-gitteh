@@ -4,6 +4,7 @@
 #include "odb.h"
 #include "index.h"
 #include "tag.h"
+#include "rev_walker.h"
 
 using namespace std;
 
@@ -21,6 +22,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
+	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
@@ -114,7 +116,18 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 
 	Tag *tagObj = repo->wrapTag(tag);
 	return scope.Close(tagObj->handle_);
+}
 
+Handle<Value> Repository::CreateWalker(const Arguments& args) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_revwalk *walker;
+	git_revwalk_new(&walker, repo->repo_);
+
+	Handle<Value> constructorArgs[2] = { External::New(walker), External::New(repo) };
+	Handle<Object> instance = RevWalker::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
 }
 
 Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
