@@ -22,8 +22,7 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> EntryIndexedHandler(uint32_t, const AccessorInfo&);
-	static Handle<Value> EntryNamedHandler(Local<String>, const AccessorInfo&);
+	static Handle<Value> GetByName(const Arguments&);
 
 	git_tree *tree_;
 	size_t entryCount_;

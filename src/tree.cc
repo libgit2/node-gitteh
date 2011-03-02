@@ -10,6 +10,8 @@ void Tree::Init(Handle<Object> target) {
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("Tree"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "getByName", GetByName);
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
@@ -50,26 +52,14 @@ Handle<Value> Tree::New(const Arguments& args) {
 	return args.This();
 }
 
-Handle<Value> Tree::EntryIndexedHandler(uint32_t index, const AccessorInfo& info) {
+Handle<Value> Tree::GetByName(const Arguments& args) {
 	HandleScope scope;
 
-	Tree *tree = ObjectWrap::Unwrap<Tree>(Local<Object>::Cast(info.This()->GetInternalField(0)));
+	REQ_ARGS(1);
+	REQ_STR_ARG(0, propertyName);
 
-	if(index >= tree->entryCount_) {
-		return ThrowException(Exception::Error(String::New("Tree entry index is out of range.")));
-	}
-
-	git_tree_entry *entry = git_tree_entry_byindex(tree->tree_, index);
-
-	TreeEntry *treeEntryObject = tree->wrapEntry(entry);
-	return scope.Close(treeEntryObject->handle_);
-}
-
-Handle<Value> Tree::EntryNamedHandler(Local<String> propertyName, const AccessorInfo& info) {
-	HandleScope scope;
-
-	Tree *tree = ObjectWrap::Unwrap<Tree>(Local<Object>::Cast(info.This()->GetInternalField(0)));
-	git_tree_entry *entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*String::Utf8Value(propertyName)));
+	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
+	git_tree_entry *entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*propertyName));
 
 	if(entry == NULL) {
 		return scope.Close(Null());

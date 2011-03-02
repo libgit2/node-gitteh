@@ -82,4 +82,21 @@ vows.describe("Tree").addBatch({
 	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),
 	"Fourth tree": createTreeTestContext(fixtureValues.FOURTH_TREE),
 	"Fifth tree": createTreeTestContext(fixtureValues.FIFTH_TREE),
+	
+	"Retrieving tree entries by name": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			this.context.tree = tree;
+			return tree.getByName(fixtureValues.FIRST_TREE.entries[0].filename);
+		},
+		
+		"gives us the correct entry": function(entry) {
+			assert.equal(entry.filename, fixtureValues.FIRST_TREE.entries[0].filename);
+			assert.equal(entry.id, fixtureValues.FIRST_TREE.entries[0].id);	
+		},
+		
+		"identical to getting it via index": function(entry) {
+			assert.isTrue(entry === this.context.tree.entries[0]);
+		}
+	}
 }).export(module);
