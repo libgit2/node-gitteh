@@ -78,6 +78,11 @@ var createCommitTests = function(commitFixture) {
 				assert.equal(commit.getParent(i).id, commitFixtureParent);
 			});
 		};
+		
+		context["parent length is immutable"] = function(commit) {
+			commit.parentCount = -1;
+			assert.equal(commit.parentCount, commitFixture.parents.length);
+		};
 
 		commitFixture.parents.forEach(function(commitFixtureParent, i) {
 			context["parent *" + commitFixtureParent + "* is not redundant"] = function(commit) {
