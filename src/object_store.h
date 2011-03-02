@@ -59,6 +59,18 @@ public:
 		return newlyCreated;
 	}
 
+	inline ~ObjectStore() {
+		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
+		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
+		ManagedObject<T,S>* managedObject;
+
+		while(it != end) {
+			managedObject = it->second;
+			managedObject->handle.ClearWeak();
+			++it;
+		}
+	}
+
 private:
 	static void WeakCallback (Persistent<Value> value, void *data) {
 		ManagedObject<T, S> *managedObject = (ManagedObject<T, S>*)data;
