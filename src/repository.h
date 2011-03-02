@@ -27,6 +27,7 @@ protected:
 	static Handle<Value> GetCommit(const Arguments&);
 	static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> GetTag(const Arguments&);
+	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
@@ -38,6 +39,8 @@ protected:
 
 	Index *index_;
 	char *path_;
+
+	git_odb *odb_;
 };
 
 #endif // GITTEH_REPO_H

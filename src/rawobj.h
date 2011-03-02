@@ -14,11 +14,8 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments& args);
-	static Handle<Value> TypeGetter(Local<String> property, const AccessorInfo& info);
-	static Handle<Value> DataGetter(Local<String> property, const AccessorInfo& info);
 
-	git_rawobj obj_;
+	git_rawobj *obj_;
 };
 
 #endif	// GITTEH_RAWOBJ_H
-

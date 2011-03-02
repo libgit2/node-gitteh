@@ -5,6 +5,7 @@
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
+#include "rawobj.h"
 
 using namespace std;
 
@@ -22,6 +23,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
+	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
@@ -46,9 +48,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	args.This()->Set(String::New("path"), String::New(repo->path_), ReadOnly);
 
-	repo->Wrap(args.This());
-	repo->MakeWeak();
+	repo->odb_ = git_repository_database(repo->repo_);
 
+	repo->Wrap(args.This());
 	return args.This();
 }
 
@@ -116,6 +118,24 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 
 	Tag *tagObj = repo->wrapTag(tag);
 	return scope.Close(tagObj->handle_);
+}
+
+Handle<Value> Repository::GetRawObject(const Arguments& args) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, oid);
+
+	git_rawobj obj;
+	if(git_odb_read(&obj, repo->odb_, &oid) == GIT_ENOTFOUND) {
+		return Null();
+	}
+
+	Local<Value> arg = External::New(&obj);
+	Persistent<Object> result(RawObject::constructor_template->GetFunction()->NewInstance(1, &arg));
+	return scope.Close(result);
 }
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
