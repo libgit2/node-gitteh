@@ -128,6 +128,9 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 
 	Handle<Value> constructorArgs[2] = { External::New(walker), External::New(repo) };
 	Handle<Object> instance = RevWalker::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
+	
+	RevWalker *walkerObject = ObjectWrap::Unwrap<RevWalker>(instance);
+	return scope.Close(walkerObject->handle_);
 }
 
 Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {

@@ -18,6 +18,8 @@ public:
 	Tree *wrapTree(git_tree*);
 	Tag *wrapTag(git_tag*);
 	Commit *wrapCommit(git_commit*);
+	
+	git_repository *repo_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
@@ -30,7 +32,6 @@ protected:
 
 	void close();
 
-	git_repository *repo_;
 	ObjectStore<Commit, git_commit> commitStore_;
 	ObjectStore<Tree, git_tree> treeStore_;
 	ObjectStore<Tag, git_tag> tagStore_;

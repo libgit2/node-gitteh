@@ -19,6 +19,7 @@ protected:
 	static Handle<Value> Push(const Arguments&);
 	static Handle<Value> Hide(const Arguments&);
 	static Handle<Value> Next(const Arguments&);
+	static Handle<Value> Sort(const Arguments&);
 
 	git_revwalk *walker_;
 };

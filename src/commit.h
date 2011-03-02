@@ -20,6 +20,7 @@ public:
 	~Commit();
 
 	Repository *repository_;
+	git_commit *commit_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
@@ -27,7 +28,6 @@ protected:
 	static Handle<Value> GetParent(const Arguments&);
 	static Handle<Value> IndexedParentGetter(uint32_t, const AccessorInfo&);
 
-	git_commit *commit_;
 	int parentCount_;
 };
 

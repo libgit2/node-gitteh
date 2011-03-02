@@ -1,9 +1,15 @@
 #include "rev_walker.h"
+#include "commit.h"
 
 Persistent<FunctionTemplate> RevWalker::constructor_template;
 
 void RevWalker::Init(Handle<Object> target) {
 	HandleScope scope;
+
+	target->Set(String::New("SORT_NONE"), Integer::New(GIT_SORT_NONE));
+	target->Set(String::New("SORT_TOPOLOGICAL"), Integer::New(GIT_SORT_TOPOLOGICAL));
+	target->Set(String::New("SORT_TIME"), Integer::New(GIT_SORT_TIME));
+	target->Set(String::New("SORT_REVERSE"), Integer::New(GIT_SORT_REVERSE));
 
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -13,6 +19,7 @@ void RevWalker::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "push", Push);
 	NODE_SET_PROTOTYPE_METHOD(t, "hide", Hide);
 	NODE_SET_PROTOTYPE_METHOD(t, "next", Next);
+	NODE_SET_PROTOTYPE_METHOD(t, "sort", Sort);
 }
 
 Handle<Value> RevWalker::New(const Arguments& args) {
@@ -40,7 +47,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 	git_commit *commit;
 	if(args[0]->IsString()) {
 		REQ_OID_ARG(0, commitOid);
-		int result = git_commit_lookup(&commit, walker->repo_, &commitOid);
+		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
 
 		if(result != GIT_SUCCESS) {
 			return ThrowException(Exception::Error(String::New("Commit not found.")));
@@ -48,7 +55,18 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 	}
 	else {
 		// Commit object.
-		return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
+		if(!args[0]->IsObject()) {
+			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		}
+
+		Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
+		if(!Commit::constructor_template->HasInstance(commitArg)) {
+			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		}
+
+		Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
+		commit = commitObject->commit_;
+		//return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
 	}
 
 	// Get the commit for this oid.
@@ -68,15 +86,26 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_commit *commit = git_revwalk_next(walker->walker_);
+	git_commit *commit;
+	git_revwalk_next(&commit, walker->walker_);
 
 	if(commit == NULL) {
 		return Null();
 	}
 
 	Commit *commitObject = walker->repo_->wrapCommit(commit);
-
 	return commitObject->handle_;
+}
+
+Handle<Value> RevWalker::Sort(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_INT_ARG(0, sorting);
+
+	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
+
+	git_revwalk_sorting(walker->walker_, sorting);
 }
 
 RevWalker::~RevWalker() {
