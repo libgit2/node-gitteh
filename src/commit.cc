@@ -51,17 +51,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	commit->parentCount_ = git_commit_parentcount(commit->commit_);
 
-/*	// Setup the parents.
-	Handle<ObjectTemplate> parentObjectTemplate = ObjectTemplate::New();
-	parentObjectTemplate->SetInternalFieldCount(1);
-	parentObjectTemplate->SetIndexedPropertyHandler(IndexedParentGetter);
-
-	Handle<Object> parentsObject = parentObjectTemplate->NewInstance();
-	parentsObject->SetInternalField(0, args.This());
-	parentsObject->Set(String::New("length"), Integer::New(commit->parentCount_));
-
-	args.This()->Set(String::New("parents"), parentsObject, ReadOnly);*/
-
 	args.This()->Set(String::New("parentCount"), Integer::New(commit->parentCount_), ReadOnly);
 
 	commit->Wrap(args.This());
