@@ -174,5 +174,6 @@ module.exports.TEST_TAG = {
 		email: "sam.c.day@gmail.com"
 	},
 	targetId: module.exports.FIFTH_COMMIT.id,
-	targetType: "commit"
+	targetType: "commit",
+	rawBody: "object 38042ca303189a2e6955b92d53aab7d642cc82c2\ntype commit\ntag test_tag\ntagger Sam Day <sam.c.day@gmail.com> 1299041008 +1000\n\nMy test tag.\n"
 };

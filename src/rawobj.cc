@@ -22,7 +22,13 @@ Handle<Value> RawObject::New(const Arguments& args) {
 
 	Buffer *buf = Buffer::New(obj->obj_->len);
 	memcpy(Buffer::Data(buf), obj->obj_->data, obj->obj_->len);
-	args.This()->Set(String::New("data"), buf->handle_);
+
+	Local<Object> globalObj = Context::GetCurrent()->Global();
+	Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
+	Handle<Value> constructorArgs[3] = { buf->handle_, Integer::New(obj->obj_->len), Integer::New(0) };
+	Local<Object> actualBuffer = bufferConstructor->NewInstance(3, constructorArgs);
+
+	args.This()->Set(String::New("data"), actualBuffer);
 
 	args.This()->Set(String::New("type"), String::New(git_object_type2string(obj->obj_->type)), ReadOnly);
 

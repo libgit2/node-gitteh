@@ -22,6 +22,18 @@ vows.describe("RawObj").addBatch({
 		"*type* is immutable": function(obj) {
 			obj.type = "foo";
 			assert.equal(obj.type, "tag");
+		},
+		
+		"*data* is a Buffer": function(obj) {
+			assert.instanceOf(obj.data, Buffer);
+		},
+		
+		"*data* is correct length": function(obj) {
+			assert.equal(obj.data.length, fixtureValues.TEST_TAG.rawBody.length);
+		},
+		
+		"*data* is correct content": function(obj) {
+			assert.equal(obj.data.toString(), fixtureValues.TEST_TAG.rawBody);
 		}
 	}
 }).export(module);

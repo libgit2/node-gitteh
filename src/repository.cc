@@ -1,7 +1,6 @@
 #include "repository.h"
 #include "commit.h"
 #include "tree.h"
-#include "odb.h"
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
@@ -19,7 +18,6 @@ void Repository::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Repository"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "getObjectDatabase", GetODB);
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
@@ -54,6 +52,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	return args.This();
 }
 
+#if 0
 Handle<Value> Repository::GetODB(const Arguments& args) {
 	HandleScope scope;
 
@@ -64,6 +63,7 @@ Handle<Value> Repository::GetODB(const Arguments& args) {
 	Persistent<Object> result(ObjectDatabase::constructor_template->GetFunction()->NewInstance(1, &arg));
 	return scope.Close(result);
 }
+#endif
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
