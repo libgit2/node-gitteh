@@ -3,6 +3,7 @@
 #include "tree.h"
 #include "odb.h"
 #include "index.h"
+#include "tag.h"
 
 using namespace std;
 
@@ -24,6 +25,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getObjectDatabase", GetODB);
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
+	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
@@ -100,6 +102,26 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 	return scope.Close(treeObject->handle_);
 }
 
+Handle<Value> Repository::GetTag(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, tagOid);
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_tag *tag;
+	int res = git_tag_lookup(&tag, repo->repo_, &tagOid);
+
+	if(res != GIT_SUCCESS) {
+		return scope.Close(Null());
+	}
+
+	Tag *tagObj = repo->wrapTag(tag);
+	return scope.Close(tagObj->handle_);
+
+}
+
 Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
 	HandleScope scope;
 
@@ -147,4 +169,13 @@ Tree *Repository::wrapTree(git_tree *tree) {
 	}
 
 	return treeObject;
+}
+
+Tag *Repository::wrapTag(git_tag *tag) {
+	Tag *tagObject;
+	if(tagStore_.getObjectFor(tag, &tagObject)) {
+
+	}
+
+	return tagObject;
 }

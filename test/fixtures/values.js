@@ -164,3 +164,15 @@ module.exports.FIFTH_TREE = {
 		}
 	]
 };
+
+module.exports.TEST_TAG = {
+	id: "dfa48f906451815913215afb4ef58321c33824e7",
+	name: "test_tag",
+	message: "My test tag.\n",
+	tagger: {
+		name: "Sam Day",
+		email: "sam.c.day@gmail.com"
+	},
+	targetId: module.exports.FIFTH_COMMIT.id,
+	targetType: "commit"
+};

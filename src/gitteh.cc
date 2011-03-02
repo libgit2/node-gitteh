@@ -8,6 +8,7 @@
 #include "repository.h"
 #include "index.h"
 #include "index_entry.h"
+#include "tag.h"
 
 extern "C" void
 init(Handle<Object> target) {
@@ -20,4 +21,5 @@ init(Handle<Object> target) {
 	TreeEntry::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
+	Tag::Init(target);
 }
