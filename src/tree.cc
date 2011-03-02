@@ -24,15 +24,27 @@ Handle<Value> Tree::New(const Arguments& args) {
 
 	args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(git_tree_id(tree->tree_))), ReadOnly);
 
-	Handle<ObjectTemplate> entriesObjectTemplate = ObjectTemplate::New();
+	/*Handle<ObjectTemplate> entriesObjectTemplate = ObjectTemplate::New();
 	entriesObjectTemplate->SetInternalFieldCount(1);
-	entriesObjectTemplate->SetIndexedPropertyHandler(EntryIndexedHandler);
+	//entriesObjectTemplate->SetIndexedPropertyHandler(EntryIndexedHandler);
 	//entriesObjectTemplate->SetNamedPropertyHandler(EntryNamedHandler);
 
 	Handle<Object> entriesObject = entriesObjectTemplate->NewInstance();
 	entriesObject->SetInternalField(0, args.This());
 	args.This()->Set(String::New("entries"), entriesObject);
-	entriesObject->Set(String::New("length"), Persistent<Integer>::New(Integer::New(tree->entryCount_)));
+	entriesObject->Set(String::New("length"), Persistent<Integer>::New(Integer::New(tree->entryCount_)));*/
+
+	Handle<Array> entriesArray = Array::New(tree->entryCount_);
+
+	git_tree_entry *entry;
+	TreeEntry *treeEntryObject;
+	for(int i = 0; i < tree->entryCount_; i++) {
+		entry = git_tree_entry_byindex(tree->tree_, i);
+		treeEntryObject = tree->wrapEntry(entry);
+		entriesArray->Set(i, Local<Object>::New(treeEntryObject->handle_));
+	}
+
+	args.This()->Set(String::New("entries"), entriesArray);
 
 	tree->Wrap(args.This());
 	return args.This();

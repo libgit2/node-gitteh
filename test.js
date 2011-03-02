@@ -6,6 +6,11 @@ var startTime = Date.now();
 //var repo = new gitteh.Repository(require("path").join(__dirname, "test", "fixtures", "gitrepo"));
 var repo = new gitteh.Repository(require("path").join(__dirname, ".git"));
 
+console.log(["meh", 1, null, undefined]);
+console.log(repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832"));
+
+//var tree = repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832");
+/*
 var commitId = require("fs").readFileSync(require("path").join(__dirname, ".git","refs","heads","master"), "utf8").trim().replace("\r", "").replace("\n", "");
 var myCommit = repo.getCommit(commitId);
 console.log(myCommit.tree.entries);
@@ -38,3 +43,5 @@ for(var i = 0; i < repo.index.entries.length; i ++)
 
 profiler.gc();
 console.log("gc done.");
+
+console.log(repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832"));

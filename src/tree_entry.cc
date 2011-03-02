@@ -27,3 +27,6 @@ Handle<Value> TreeEntry::New(const Arguments& args) {
 	entry->Wrap(args.This());
 	return args.This();
 }
+
+TreeEntry::~TreeEntry() {
+}

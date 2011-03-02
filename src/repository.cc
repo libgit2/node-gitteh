@@ -87,12 +87,12 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_OID_ARG(0, commitOid);
+	REQ_OID_ARG(0, treeOid);
 
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	git_tree *tree;
-	if(git_tree_lookup(&tree, repo->repo_, &commitOid) != GIT_SUCCESS) {
+	if(git_tree_lookup(&tree, repo->repo_, &treeOid) != GIT_SUCCESS) {
 		return scope.Close(Null());
 	}
 

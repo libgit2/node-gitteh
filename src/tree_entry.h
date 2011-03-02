@@ -8,6 +8,8 @@ class TreeEntry : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object> target);
+	~TreeEntry();
+
 	Tree *tree_;
 
 protected:
