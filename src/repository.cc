@@ -7,11 +7,6 @@
 
 using namespace std;
 
-static void StubWeakCallback(Persistent<Value> val, void *data) {
-	// TODO: should we actually be doing anything here? node's ObjectWrap deletes the object, but as far as I can tell, the dtor
-	// for my weak ref'd stuff is getting called, which means memory is being freed... Unless I'm completely retarded?
-}
-
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 void Repository::Init(Handle<Object> target) {
