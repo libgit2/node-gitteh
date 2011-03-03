@@ -1,5 +1,6 @@
 #include "tree.h"
 #include "tree_entry.h"
+#include "git_error.h"
 
 Persistent<FunctionTemplate> Tree::constructor_template;
 
@@ -99,7 +100,7 @@ Handle<Value> Tree::Save(const Arguments& args) {
 
 	int result = git_object_write((git_object *)tree->tree_);
 	if(result != GIT_SUCCESS) {
-		return ThrowException(Exception::Error(String::New("Error saving tree.")));
+		return ThrowException(ThrowGitError(String::New("Error saving tree."), result));
 	}
 
 	const git_oid *treeOid = git_tree_id(tree->tree_);

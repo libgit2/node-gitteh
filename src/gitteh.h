@@ -1,4 +1,5 @@
 #ifndef GITTEH_H
+#define GITTEH_H
 
 #include <v8.h>
 #include <node.h>
@@ -56,5 +57,15 @@ using namespace node;
   (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
   (NAME)->Set(String::New("email"), String::New((SRC)->email));
 
+
+static inline Handle<Value> ThrowGitError(Handle<String> message, int gitErrorCode) {
+	HandleScope scope;
+
+	Handle<Object> error = Handle<Object>::Cast(Exception::Error(message));
+	error->Set(String::New("gitError"), Integer::New(gitErrorCode));
+	error->Set(String::New("gitErrorStr"), String::New(git_strerror(gitErrorCode)));
+
+	return scope.Close(error);
+}
 
 #endif // GITTEH_H
