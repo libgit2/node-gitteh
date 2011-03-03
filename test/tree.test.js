@@ -99,6 +99,52 @@ vows.describe("Tree").addBatch({
 		}
 	}*/
 	
+	"Loading a non-existent tree": {
+		topic: function() {
+			return repo.getTree(helpers.getSHA1("foo"));
+		},
+		
+		"gives us null": function(tree) {
+			assert.isNull(tree);
+		}
+	},
+	
+	"Loading a tree that is actually a commit": {
+		topic: function() {
+			return repo.getTree(fixtureValues.FIRST_COMMIT.id);
+		},
+		
+		"gives us null": function(tree) {
+			assert.isNull(tree);
+		}
+	},
+	
+	"Looking up a non-existant tree entry": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			return tree.getByName("foo.bar.i.dont.exist");
+		},
+		
+		"gives us null": function(entry) {
+			assert.isNull(entry);
+		}
+	},
+	
+	"Looking up an entry out of bounds": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			
+			return function() {
+				return tree.entries[fixtureValues.FIRST_TREE.entries.length];
+			};
+		},
+		
+		"gives us undefined": function(fn) {
+			assert.doesNotThrow(fn, Error);
+			assert.isUndefined(fn());
+		}
+	},
+	
 	"Creating a new Tree": {
 		topic: function() {
 			return repo.createTree();
@@ -111,6 +157,12 @@ vows.describe("Tree").addBatch({
 		"with correct identity": function(tree) {
 			assert.isNull(tree.id);
 			assert.length(tree.entries, 0);
+		},
+		
+		"- adding an invalid entry": function(tree) {
+			assert.throws(function() {
+				tree.addEntry();
+			}, Error);
 		},
 		
 		"- adding an entry": {
@@ -143,6 +195,20 @@ vows.describe("Tree").addBatch({
 					assert.isTrue(tree === repo.getTree("f05af273ba36fe5176e5eaab349661a56b3d27a0"));
 				}
 			}
+		}
+	},
+	
+	"Creating a new Tree and trying to save it with no entries": {
+		topic: function() {
+			var tree = repo.createTree();
+			
+			return function() {
+				tree.save();
+			};
+		},
+		
+		"throws an Error": function(fn) {
+			assert.throws(fn, Error);
 		}
 	}
 }).export(module);

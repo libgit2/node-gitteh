@@ -16,6 +16,7 @@ void Tree::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getByName", GetByName);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
+	NODE_SET_PROTOTYPE_METHOD(t, "removeEntry", RemoveEntry);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 }
