@@ -177,3 +177,5 @@ module.exports.TEST_TAG = {
 	targetType: "commit",
 	rawBody: "object 38042ca303189a2e6955b92d53aab7d642cc82c2\ntype commit\ntag test_tag\ntagger Sam Day <sam.c.day@gmail.com> 1299041008 +1000\n\nMy test tag.\n"
 };
+
+module.exports.EMPTY_BLOB = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391";

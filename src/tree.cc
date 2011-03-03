@@ -12,6 +12,10 @@ void Tree::Init(Handle<Object> target) {
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getByName", GetByName);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
@@ -24,26 +28,22 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-	args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(git_tree_id(tree->tree_))), ReadOnly);
-
-	/*Handle<ObjectTemplate> entriesObjectTemplate = ObjectTemplate::New();
-	entriesObjectTemplate->SetInternalFieldCount(1);
-	//entriesObjectTemplate->SetIndexedPropertyHandler(EntryIndexedHandler);
-	//entriesObjectTemplate->SetNamedPropertyHandler(EntryNamedHandler);
-
-	Handle<Object> entriesObject = entriesObjectTemplate->NewInstance();
-	entriesObject->SetInternalField(0, args.This());
-	args.This()->Set(String::New("entries"), entriesObject);
-	entriesObject->Set(String::New("length"), Persistent<Integer>::New(Integer::New(tree->entryCount_)));*/
-
 	Handle<Array> entriesArray = Array::New(tree->entryCount_);
 
-	git_tree_entry *entry;
-	TreeEntry *treeEntryObject;
-	for(int i = 0; i < tree->entryCount_; i++) {
-		entry = git_tree_entry_byindex(tree->tree_, i);
-		treeEntryObject = tree->wrapEntry(entry);
-		entriesArray->Set(i, Local<Object>::New(treeEntryObject->handle_));
+	const git_oid *treeOid = git_tree_id(tree->tree_);
+	if(treeOid) {
+		args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
+
+		git_tree_entry *entry;
+		TreeEntry *treeEntryObject;
+		for(int i = 0; i < tree->entryCount_; i++) {
+			entry = git_tree_entry_byindex(tree->tree_, i);
+			treeEntryObject = tree->wrapEntry(entry);
+			entriesArray->Set(i, Local<Object>::New(treeEntryObject->handle_));
+		}
+	}
+	else {
+		args.This()->Set(String::New("id"), Null(), ReadOnly);
 	}
 
 	args.This()->Set(String::New("entries"), entriesArray);
@@ -67,6 +67,45 @@ Handle<Value> Tree::GetByName(const Arguments& args) {
 
 	TreeEntry *treeEntryObject = tree->wrapEntry(entry);
 	return scope.Close(treeEntryObject->handle_);
+}
+
+Handle<Value> Tree::AddEntry(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(3);
+	REQ_OID_ARG(0, idArg);
+	REQ_STR_ARG(1, filenameArg);
+	REQ_INT_ARG(2, modeArg);
+
+	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
+
+	git_tree_entry *entry;
+	int res = git_tree_add_entry(&entry, tree->tree_, &idArg, *filenameArg, modeArg);
+	if(res != GIT_SUCCESS) {
+		return ThrowException(Exception::Error(String::New("Error creating tree entry.")));
+	}
+
+	TreeEntry *treeEntryObject;
+	treeEntryObject = tree->wrapEntry(entry);
+	Local<Array>::Cast(args.This()->Get(String::New("entries")))->Set(tree->entryCount_++, Local<Object>::New(treeEntryObject->handle_));
+
+	return Undefined();
+}
+
+Handle<Value> Tree::Save(const Arguments& args) {
+	HandleScope scope;
+
+	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
+
+	int result = git_object_write((git_object *)tree->tree_);
+	if(result != GIT_SUCCESS) {
+		return ThrowException(Exception::Error(String::New("Error saving tree.")));
+	}
+
+	const git_oid *treeOid = git_tree_id(tree->tree_);
+	args.This()->ForceSet(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
+
+	return Undefined();
 }
 
 TreeEntry *Tree::wrapEntry(git_tree_entry *entry) {

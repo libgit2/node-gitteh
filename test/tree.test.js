@@ -76,7 +76,7 @@ var createTreeTestContext = function(treeFixture) {
 }
 
 vows.describe("Tree").addBatch({
-	"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
+	/*"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
 	"Second tree": createTreeTestContext(fixtureValues.SECOND_TREE),
 	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),
 	"Fourth tree": createTreeTestContext(fixtureValues.FOURTH_TREE),
@@ -96,6 +96,53 @@ vows.describe("Tree").addBatch({
 		
 		"identical to getting it via index": function(entry) {
 			assert.isTrue(entry === this.context.tree.entries[0]);
+		}
+	}*/
+	
+	"Creating a new Tree": {
+		topic: function() {
+			return repo.createTree();
+		},
+		
+		"gives us a new Tree": function(tree) {
+			assert.isTrue(!!tree);
+		},
+		
+		"with correct identity": function(tree) {
+			assert.isNull(tree.id);
+			assert.length(tree.entries, 0);
+		},
+		
+		"- adding an entry": {
+			topic: function(tree) {
+				tree.addEntry(fixtureValues.EMPTY_BLOB, "test", helpers.fromOctal(100644));
+				return tree;
+			},
+			
+			"adds to tree *entries* correctly": function(tree) {
+				assert.length(tree.entries, 1);
+			},
+			
+			"entry has correct values": function(tree) {
+				assert.equal(tree.entries[0].id, fixtureValues.EMPTY_BLOB);
+				assert.equal(tree.entries[0].attributes, helpers.fromOctal(100644));
+				assert.equal(tree.entries[0].filename, "test");
+			},
+			
+			"- saving": {
+				topic: function(tree) {
+					tree.save();
+					return tree;
+				},
+				
+				"updates id correctly": function(tree) {
+					assert.equal(tree.id, "f05af273ba36fe5176e5eaab349661a56b3d27a0");
+				},
+				
+				"this tree is now available from Repository": function(tree) {
+					assert.isTrue(tree === repo.getTree("f05af273ba36fe5176e5eaab349661a56b3d27a0"));
+				}
+			}
 		}
 	}
 }).export(module);

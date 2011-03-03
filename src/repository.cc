@@ -24,6 +24,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
+	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
@@ -53,19 +54,6 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repo->Wrap(args.This());
 	return args.This();
 }
-
-#if 0
-Handle<Value> Repository::GetODB(const Arguments& args) {
-	HandleScope scope;
-
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-	git_odb *odb = git_repository_database(repo->repo_);
-
-	Local<Value> arg = External::New(odb);
-	Persistent<Object> result(ObjectDatabase::constructor_template->GetFunction()->NewInstance(1, &arg));
-	return scope.Close(result);
-}
-#endif
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
@@ -174,6 +162,22 @@ Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
 	return repo->index_->handle_;
 }
 
+Handle<Value> Repository::CreateTree(const Arguments& args) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_tree *tree;
+	int res = git_tree_new(&tree, repo->repo_);
+	if(res != GIT_SUCCESS) {
+		// TODO: error handling.
+		return Null();
+	}
+
+	Tree *treeObject = repo->wrapTree(tree);
+	return treeObject->handle_;
+}
+
 Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 
@@ -186,8 +190,6 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 		// TODO: error handling.
 		return Null();
 	}
-
-	std::cout << "Blah." << commit <<"\n";
 
 	Commit *commitObject = repo->wrapCommit(commit);
 	return scope.Close(commitObject->handle_);

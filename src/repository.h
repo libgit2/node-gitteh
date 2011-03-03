@@ -31,6 +31,7 @@ protected:
 	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
+	static Handle<Value> CreateTree(const Arguments&);
 	static Handle<Value> CreateCommit(const Arguments&);
 
 	void close();
