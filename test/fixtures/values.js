@@ -171,7 +171,8 @@ module.exports.TEST_TAG = {
 	message: "My test tag.\n",
 	tagger: {
 		name: "Sam Day",
-		email: "sam.c.day@gmail.com"
+		email: "sam.c.day@gmail.com",
+		time: "Wed Mar 2 2011 14:43:28 2011 +1000"
 	},
 	targetId: module.exports.FIFTH_COMMIT.id,
 	targetType: "commit",

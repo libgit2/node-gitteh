@@ -41,6 +41,7 @@ var createTagTestContext = function(tagFixture) {
 		"has correct *tagger*": function(tag) {
 			assert.equal(tag.tagger.name, tagFixture.tagger.name);
 			assert.equal(tag.tagger.email, tagFixture.tagger.email);
+			assert.equal(tag.tagger.time.getTime(), new Date(tagFixture.tagger.time).getTime());
 		},
 		
 		"has correct *targetId*": function(tag) {

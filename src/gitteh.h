@@ -55,7 +55,8 @@ using namespace node;
 #define CREATE_PERSON_OBJ(NAME, SRC)									\
   Local<Object> NAME = Object::New();									\
   (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
-  (NAME)->Set(String::New("email"), String::New((SRC)->email));
+  (NAME)->Set(String::New("email"), String::New((SRC)->email));			\
+  (NAME)->Set(String::New("time"), Date::New(static_cast<double>((SRC)->when.time)*1000));
 
 namespace gitteh {
 
