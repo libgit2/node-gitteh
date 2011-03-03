@@ -2,8 +2,11 @@
 #define GITTEH_INDEX_H
 
 #include "gitteh.h"
-#include "index_entry.h"
 #include "object_store.h"
+
+namespace gitteh {
+
+class IndexEntry;
 
 class Index : public ObjectWrap {
 public:
@@ -20,5 +23,6 @@ protected:
 	unsigned int entryCount_;
 };
 
+} // namespace gitteh
 
 #endif // GITTEH_INDEX_H

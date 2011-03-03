@@ -1,4 +1,7 @@
 #include "index.h"
+#include "index_entry.h"
+
+namespace gitteh {
 
 Persistent<FunctionTemplate> Index::constructor_template;
 
@@ -54,3 +57,5 @@ Handle<Value> Index::EntriesGetter(uint32_t i, const AccessorInfo& info) {
 
 	return scope.Close(entryObject->handle_);
 }
+
+} // namespace gitteh

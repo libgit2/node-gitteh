@@ -1,5 +1,7 @@
 #include "tree_entry.h"
 
+namespace gitteh {
+
 Persistent<FunctionTemplate> TreeEntry::constructor_template;
 
 void TreeEntry::Init(Handle<Object> target) {
@@ -30,3 +32,5 @@ Handle<Value> TreeEntry::New(const Arguments& args) {
 
 TreeEntry::~TreeEntry() {
 }
+
+} // namespace gitteh

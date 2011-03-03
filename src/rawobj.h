@@ -2,7 +2,8 @@
 #define GITTEH_RAWOBJ_H
 
 #include "gitteh.h"
-#include <node_buffer.h>
+
+namespace gitteh {
 
 #define RAWOBJ_TYPE_SYMBOL String::NewSymbol("type")
 #define RAWOBJ_DATA_SYMBOL String::NewSymbol("data")
@@ -17,5 +18,7 @@ protected:
 
 	git_rawobj *obj_;
 };
+
+} // namespace gitteh
 
 #endif	// GITTEH_RAWOBJ_H

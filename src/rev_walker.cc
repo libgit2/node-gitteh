@@ -1,5 +1,8 @@
 #include "rev_walker.h"
 #include "commit.h"
+#include "repository.h"
+
+namespace gitteh {
 
 Persistent<FunctionTemplate> RevWalker::constructor_template;
 
@@ -152,3 +155,5 @@ Handle<Value> RevWalker::Reset(const Arguments& args) {
 RevWalker::~RevWalker() {
 	git_revwalk_free(walker_);
 }
+
+} // namespace gitteh

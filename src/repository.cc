@@ -6,7 +6,7 @@
 #include "rev_walker.h"
 #include "rawobj.h"
 
-using namespace std;
+namespace gitteh {
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
@@ -233,3 +233,5 @@ Tag *Repository::wrapTag(git_tag *tag) {
 
 	return tagObject;
 }
+
+} // namespace gitteh

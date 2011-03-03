@@ -1,5 +1,7 @@
 #include "index_entry.h"
 
+namespace gitteh {
+
 Persistent<FunctionTemplate> IndexEntry::constructor_template;
 
 void IndexEntry::Init(Handle<Object>) {
@@ -25,3 +27,5 @@ Handle<Value> IndexEntry::New(const Arguments& args) {
 	entry->Wrap(args.This());
 	return args.This();
 }
+
+} // namespace gitteh

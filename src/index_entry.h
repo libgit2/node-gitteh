@@ -3,6 +3,8 @@
 
 #include "gitteh.h"
 
+namespace gitteh {
+
 class IndexEntry : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
@@ -13,5 +15,7 @@ protected:
 
 	git_index_entry *entry_;
 };
+
+} // namespace gitteh
 
 #endif // GITTEH_INDEX_ENTRY_H

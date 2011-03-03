@@ -1,4 +1,7 @@
 #include "rawobj.h"
+#include <node_buffer.h>
+
+namespace gitteh {
 
 Persistent<FunctionTemplate> RawObject::constructor_template;
 
@@ -35,3 +38,5 @@ Handle<Value> RawObject::New(const Arguments& args) {
 	obj->Wrap(args.This());
 	return args.This();
 }
+
+} // namespace gitteh

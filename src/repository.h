@@ -4,10 +4,12 @@
 #include "gitteh.h"
 #include "object_store.h"
 
-class Commit;
+namespace gitteh {
+
 class Tree;
-class Index;
 class Tag;
+class Commit;
+class Index;
 
 class Repository : public ObjectWrap {
 public:
@@ -45,5 +47,7 @@ protected:
 
 	git_odb *odb_;
 };
+
+} // namespace gitteh
 
 #endif // GITTEH_REPO_H

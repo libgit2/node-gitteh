@@ -57,6 +57,7 @@ using namespace node;
   (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
   (NAME)->Set(String::New("email"), String::New((SRC)->email));
 
+namespace gitteh {
 
 static inline Handle<Value> ThrowGitError(Handle<String> message, int gitErrorCode) {
 	HandleScope scope;
@@ -68,4 +69,5 @@ static inline Handle<Value> ThrowGitError(Handle<String> message, int gitErrorCo
 	return scope.Close(error);
 }
 
+} // namespace gitteh
 #endif // GITTEH_H

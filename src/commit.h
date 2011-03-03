@@ -2,8 +2,6 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
-#include "repository.h"
-#include "tree.h"
 
 #define COMMIT_ID_SYMBOL String::NewSymbol("id")
 #define COMMIT_MESSAGE_SHORT_SYMBOL String::NewSymbol("messageShort")
@@ -12,6 +10,10 @@
 #define COMMIT_AUTHOR_SYMBOL String::NewSymbol("author")
 #define COMMIT_COMMITTER_SYMBOL String::NewSymbol("committer")
 #define COMMIT_TREE_SYMBOL String::NewSymbol("tree")
+
+namespace gitteh {
+
+class Repository;
 
 class Commit : public ObjectWrap {
 public:
@@ -33,5 +35,7 @@ protected:
 
 	int parentCount_;
 };
+
+} // namespace gitteh
 
 #endif // GITTEH_COMMIT_H

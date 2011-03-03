@@ -1,6 +1,7 @@
 #include "tree.h"
 #include "tree_entry.h"
-#include "git_error.h"
+
+namespace gitteh {
 
 Persistent<FunctionTemplate> Tree::constructor_template;
 
@@ -122,3 +123,5 @@ TreeEntry *Tree::wrapEntry(git_tree_entry *entry) {
 
 Tree::~Tree() {
 }
+
+} // namespace gitteh

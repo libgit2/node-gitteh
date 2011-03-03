@@ -4,6 +4,8 @@
 #include "gitteh.h"
 #include <map>
 
+namespace gitteh {
+
 // Oh man, what a mess this is. Being a C++ retard I hacked this up in the only
 // way I knew how, repeated proddings at the syntax until the compiler finally
 // gave up and realized I wasn't going to stop throwing ridiculous nonsensical
@@ -92,5 +94,7 @@ public:
 	S *ref;
 	Persistent<Object> handle;
 };
+
+} // namespace gitteh
 
 #endif	// GITTEH_OBJ_STORE_H

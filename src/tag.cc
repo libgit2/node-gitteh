@@ -1,5 +1,7 @@
 #include "tag.h"
 
+namespace gitteh {
+
 Persistent<FunctionTemplate> Tag::constructor_template;
 
 void Tag::Init(Handle<Object>) {
@@ -37,3 +39,5 @@ Handle<Value> Tag::New(const Arguments& args) {
 	tag->Wrap(args.This());
 	return args.This();
 }
+
+} // namespace gitteh

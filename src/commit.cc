@@ -1,5 +1,9 @@
 #include "commit.h"
+#include "repository.h"
+#include "tree.h"
 #include <time.h>
+
+namespace gitteh {
 
 Persistent<FunctionTemplate> Commit::constructor_template;
 
@@ -129,3 +133,5 @@ Commit::~Commit() {
 	// TODO: don't think we ever need to free commits as they're handled by the repo, even newly created ones
 	// (I think), probably need to look into this.
 }
+
+} // namespace gitteh

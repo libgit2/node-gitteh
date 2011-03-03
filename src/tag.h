@@ -3,6 +3,8 @@
 
 #include "gitteh.h"
 
+namespace gitteh {
+
 class Tag : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
@@ -13,5 +15,7 @@ protected:
 
 	git_tag *tag_;
 };
+
+} // namespace gitteh
 
 #endif	// GITTEH_TAG_H

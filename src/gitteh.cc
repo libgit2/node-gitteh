@@ -10,6 +10,8 @@
 #include "tag.h"
 #include "rev_walker.h"
 
+namespace gitteh {
+
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
@@ -23,3 +25,5 @@ init(Handle<Object> target) {
 	Tag::Init(target);
 	RevWalker::Init(target);
 }
+
+} // namespace gitteh

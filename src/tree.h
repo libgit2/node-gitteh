@@ -2,10 +2,12 @@
 #define GITTEH_TREE_H
 
 #include "gitteh.h"
-#include "repository.h"
 #include "object_store.h"
 
+namespace gitteh {
+
 class TreeEntry;
+class Repository;
 
 #define TREE_ID_SYMBOL String::NewSymbol("id")
 #define TREE_LENGTH_SYMBOL String::NewSymbol("length")
@@ -32,5 +34,7 @@ protected:
 	size_t entryCount_;
 	ObjectStore<TreeEntry, git_tree_entry> entryStore_;
 };
+
+} // namespace gitteh
 
 #endif	// GITTEH_TREE_H

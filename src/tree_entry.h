@@ -2,7 +2,10 @@
 #define GITTEH_TREE_ENTRY_H
 
 #include "gitteh.h"
-#include "tree.h"
+
+namespace gitteh {
+
+class Tree;
 
 class TreeEntry : public ObjectWrap {
 public:
@@ -17,5 +20,7 @@ protected:
 
 	git_tree_entry *entry_;
 };
+
+} // namespace gitteh
 
 #endif // GITTEH_TREE_ENTRY_H

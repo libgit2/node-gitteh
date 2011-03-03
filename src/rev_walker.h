@@ -2,7 +2,10 @@
 #define GITTEH_REV_WALKER_H
 
 #include "gitteh.h"
-#include "repository.h"
+
+namespace gitteh {
+
+class Repository;
 
 class RevWalker : public ObjectWrap {
 public:
@@ -24,6 +27,8 @@ protected:
 
 	git_revwalk *walker_;
 };
+
+} // namespace gitteh
 
 #endif // GITTEH_REV_WALKER_H
 
