@@ -72,7 +72,6 @@ Handle<Value> Commit::Save(const Arguments& args) {
 
 	int result = git_object_write((git_object *)commit->commit_);
 	if(result != GIT_SUCCESS) {
-		std::cout << "error. " << result << "\n";
 		return ThrowException(Exception::Error(String::New("Failed to save commit object.")));
 	}
 
@@ -88,7 +87,7 @@ void Commit::syncWithUnderlying(Handle<Object> jsObj) {
 
 	if(commitId) {
 		const char* oidStr = git_oid_allocfmt(commitId);
-		std::cout << "haha.\n" << oidStr <<"\n";
+
 		jsObj->Set(String::New("id"), String::New(oidStr), ReadOnly);
 		const char* message = git_commit_message(commit_);
 		jsObj->Set(String::New("message"), String::New(message));
