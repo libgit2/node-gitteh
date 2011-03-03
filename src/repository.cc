@@ -24,6 +24,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
+	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
+
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
 	target->Set(String::New("Repository"), t->GetFunction());
@@ -170,6 +172,25 @@ Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
 	}
 
 	return repo->index_->handle_;
+}
+
+Handle<Value> Repository::CreateCommit(const Arguments& args) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_commit *commit;
+	int result = git_commit_new(&commit, repo->repo_);
+
+	if(result != GIT_SUCCESS) {
+		// TODO: error handling.
+		return Null();
+	}
+
+	std::cout << "Blah." << commit <<"\n";
+
+	Commit *commitObject = repo->wrapCommit(commit);
+	return scope.Close(commitObject->handle_);
 }
 
 Repository::~Repository() {

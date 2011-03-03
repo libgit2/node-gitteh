@@ -31,6 +31,8 @@ protected:
 	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
+	static Handle<Value> CreateCommit(const Arguments&);
+
 	void close();
 
 	ObjectStore<Commit, git_commit> commitStore_;

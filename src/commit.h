@@ -27,6 +27,10 @@ protected:
 	static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> GetParent(const Arguments&);
 
+	static Handle<Value> Save(const Arguments&);
+
+	void syncWithUnderlying(Handle<Object>);
+
 	int parentCount_;
 };
 

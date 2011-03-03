@@ -97,12 +97,35 @@ var createCommitTests = function(commitFixture) {
 };
 
 vows.describe("Commit").addBatch({
-	"First commit": createCommitTests(fixtureValues.FIRST_COMMIT),
+	/*"First commit": createCommitTests(fixtureValues.FIRST_COMMIT),
 	"Second commit": createCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit": createCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit": createCommitTests(fixtureValues.FOURTH_COMMIT),
-	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT)
+	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT)*/
 
+	"Creating a mew commit": {
+		topic: function() {
+			return repo.createCommit();
+		},
+		
+		"gives us an identity Commit": function(commit) {
+			assert.isTrue(!!commit);
+			assert.isNull(commit.id);
+			assert.isNull(commit.message);
+			assert.isNull(commit.author);
+			assert.isNull(commit.committer);
+			assert.isNull(commit.getTree());
+		},
+		
+		"id is immutable": function(commit) {
+			commit.id = "foo";
+			assert.isNull(commit.id);
+		},
+		
+		"saving the Commit": function(commit) {
+			commit.save();
+		}
+	}
 		/*
 		"tree": {
 			topic: function(commit) {
