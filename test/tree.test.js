@@ -76,7 +76,7 @@ var createTreeTestContext = function(treeFixture) {
 }
 
 vows.describe("Tree").addBatch({
-	/*"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
+	"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
 	"Second tree": createTreeTestContext(fixtureValues.SECOND_TREE),
 	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),
 	"Fourth tree": createTreeTestContext(fixtureValues.FOURTH_TREE),
@@ -97,7 +97,7 @@ vows.describe("Tree").addBatch({
 		"identical to getting it via index": function(entry) {
 			assert.isTrue(entry === this.context.tree.entries[0]);
 		}
-	}*/
+	},
 	
 	"Loading a non-existent tree": {
 		topic: function() {
@@ -193,6 +193,31 @@ vows.describe("Tree").addBatch({
 				
 				"this tree is now available from Repository": function(tree) {
 					assert.isTrue(tree === repo.getTree("f05af273ba36fe5176e5eaab349661a56b3d27a0"));
+				},
+				
+				"- then deleting entry again": {
+					topic: function(tree) {
+						this.context.tree = tree;
+						return function() {
+							tree.removeEntry(0);
+						};
+					},
+					
+					"works correctly": function(fn) {
+						assert.doesNotThrow(fn, Error);
+					},
+					
+					"results in an empty tree": function(fn) {
+						assert.length(this.context.tree.entries, 0);
+					},
+
+					"which cannot be saved": function() {
+						var t = this;
+
+						assert.throws(function() {
+							t.context.tree.save();
+						}, Error);
+					}
 				}
 			}
 		}
@@ -206,7 +231,7 @@ vows.describe("Tree").addBatch({
 				tree.save();
 			};
 		},
-		
+
 		"throws an Error": function(fn) {
 			assert.throws(fn, Error);
 		}

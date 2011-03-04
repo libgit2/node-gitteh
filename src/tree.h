@@ -27,12 +27,19 @@ protected:
 	static Handle<Value> GetByName(const Arguments&);
 
 	static Handle<Value> AddEntry(const Arguments&);
+	static Handle<Value> RemoveEntry(const Arguments&);
+
+	static Handle<Value> EntryLengthGetter(Local<String>, const AccessorInfo&);
+	static Handle<Value> SetEntryHandler(uint32_t, Local<Value>, const AccessorInfo&);
+	static Handle<Boolean> DeleteEntryHandler(uint32_t, const AccessorInfo&);
 
 	static Handle<Value> Save(const Arguments&);
 
 	git_tree *tree_;
 	size_t entryCount_;
 	ObjectStore<TreeEntry, git_tree_entry> entryStore_;
+
+	bool unlock_;
 };
 
 } // namespace gitteh

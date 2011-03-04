@@ -1,13 +1,16 @@
-var gitteh = require("./build/default/gitteh"),
-	profiler = require("profiler");
+var gitteh = require("./build/default/gitteh");
 
 var startTime = Date.now();
 
 //var repo = new gitteh.Repository(require("path").join(__dirname, "test", "fixtures", "gitrepo"));
 var repo = new gitteh.Repository(require("path").join(__dirname, ".git"));
 
-console.log(["meh", 1, null, undefined]);
-console.log(repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832"));
+var tree = repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832");
+
+console.log(tree.entries);
+console.log(tree.entries.length);
+console.log(tree.entries instanceof Array);
+console.log(tree.blah.length);
 
 //var tree = repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832");
 /*
@@ -41,7 +44,7 @@ for(var i = 0; i < repo.index.entries.length; i ++)
 //repo = null;
 
 
-profiler.gc();
-console.log("gc done.");
+//profiler.gc();
+//console.log("gc done.");
 
-console.log(repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832"));
+//console.log(repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832"));

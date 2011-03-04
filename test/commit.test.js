@@ -97,11 +97,11 @@ var createCommitTests = function(commitFixture) {
 };
 
 vows.describe("Commit").addBatch({
-	/*"First commit": createCommitTests(fixtureValues.FIRST_COMMIT),
+	"First commit": createCommitTests(fixtureValues.FIRST_COMMIT),
 	"Second commit": createCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit": createCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit": createCommitTests(fixtureValues.FOURTH_COMMIT),
-	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT)*/
+	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT),
 
 	"Creating a mew commit": {
 		topic: function() {
@@ -126,40 +126,4 @@ vows.describe("Commit").addBatch({
 			commit.save();
 		}
 	}
-		/*
-		"tree": {
-			topic: function(commit) {
-				this.context.commit = commit;
-				return commit.tree;
-			},
-			
-			"is correct tree": function(tree) {
-				assert.equal(tree.id, fixtureValues.FIRST_COMMIT_TREE.id);
-			},
-
-			"gives us same object if requested again": function(wtf, tree) {
-				assert.isTrue(tree === this.context.commit.tree);
-			},
-			
-			"entries": {
-				"is correct length": function(tree) {
-					assert.equal(tree.length, fixtureValues.FIRST_COMMIT_TREE.entries.length);
-				},
-				
-				"- first entry": {
-					topic: function(tree) {
-						return tree[0];
-					},
-					
-					"has correct name": function(entry) {
-						assert.equal(entry.filename, fixtureValues.FIRST_COMMIT_TREE.entries[0].filename);
-					},
-					
-					"has correct attributes": function(entry) {
-						assert.equal(entry.attributes, fixtureValues.FIRST_COMMIT_TREE.entries[0].attributes);
-					},
-				}
-			}
-		}
-	}*/
 }).export(module);

@@ -5,6 +5,9 @@ namespace gitteh {
 
 Persistent<FunctionTemplate> Tree::constructor_template;
 
+// TODO: I think I'm going about this all wrong. I'm trying to lock down the tree entries array, but rather I should just intercept
+// when things happen to it and update the backing git_tree instead.
+
 void Tree::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -31,7 +34,22 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-	Handle<Array> entriesArray = Array::New(tree->entryCount_);
+	Handle<ObjectTemplate> entryWrapperTemplate = ObjectTemplate::New();
+	entryWrapperTemplate->SetInternalFieldCount(1);
+	entryWrapperTemplate->SetIndexedPropertyHandler(0, SetEntryHandler, 0, DeleteEntryHandler);
+	entryWrapperTemplate->SetAccessor(String::New("length"), EntryLengthGetter);
+
+	Handle<Object> entriesArray = entryWrapperTemplate->NewInstance();
+	entriesArray->SetPointerInInternalField(0, tree);
+	entriesArray->SetPrototype(Array::New()->GetPrototype());
+
+	Handle<Array> blah = Array::New();
+	blah->Set(0, String::New("weee"));
+	args.This()->Set(String::New("blah"), blah);
+
+	args.This()->Set(String::New("entries"), entriesArray, ReadOnly);
+
+	tree->unlock_ = true;
 
 	const git_oid *treeOid = git_tree_id(tree->tree_);
 	if(treeOid) {
@@ -49,10 +67,47 @@ Handle<Value> Tree::New(const Arguments& args) {
 		args.This()->Set(String::New("id"), Null(), ReadOnly);
 	}
 
-	args.This()->Set(String::New("entries"), entriesArray);
+	tree->unlock_ = false;
+
+	args.This()->Set(String::New("entries"), entriesArray, ReadOnly);
 
 	tree->Wrap(args.This());
 	return args.This();
+}
+
+Handle<Boolean> Tree::DeleteEntryHandler(uint32_t index, const AccessorInfo &info) {
+	HandleScope scope;
+
+	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
+
+	if(tree->unlock_ == true) {
+		// This basically allows the set through.
+		return scope.Close(Handle<Boolean>());
+	}
+
+	// This doesn't.
+	return scope.Close(Boolean::New(false));
+}
+
+Handle<Value> Tree::SetEntryHandler(uint32_t index, Local< Value > value, const AccessorInfo &info) {
+	HandleScope scope;
+
+	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
+
+	if(tree->unlock_ == true) {
+		// This basically allows the set through.
+		return scope.Close(Handle<Value>());
+	}
+
+	// This doesn't.
+	return scope.Close(value);
+}
+
+Handle<Value> Tree::EntryLengthGetter(Local<String> property, const AccessorInfo& info) {
+	HandleScope scope;
+	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
+
+	return scope.Close(Integer::New(tree->entryCount_));
 }
 
 Handle<Value> Tree::GetByName(const Arguments& args) {
@@ -85,12 +140,38 @@ Handle<Value> Tree::AddEntry(const Arguments& args) {
 	git_tree_entry *entry;
 	int res = git_tree_add_entry(&entry, tree->tree_, &idArg, *filenameArg, modeArg);
 	if(res != GIT_SUCCESS) {
-		return ThrowException(Exception::Error(String::New("Error creating tree entry.")));
+		THROW_GIT_ERROR("Error creating tree entry.", res);
 	}
 
 	TreeEntry *treeEntryObject;
 	treeEntryObject = tree->wrapEntry(entry);
-	Local<Array>::Cast(args.This()->Get(String::New("entries")))->Set(tree->entryCount_++, Local<Object>::New(treeEntryObject->handle_));
+
+	tree->unlock_ = true;
+	Local<Object>::Cast(args.This()->Get(String::New("entries")))->Set(tree->entryCount_++, Local<Object>::New(treeEntryObject->handle_));
+	tree->unlock_ = false;
+
+	return Undefined();
+}
+
+Handle<Value> Tree::RemoveEntry(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_INT_ARG(0, indexArg);
+
+	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
+	if(indexArg >= tree->entryCount_) {
+		return ThrowException(Exception::Error(String::New("Index out of bounds.")));
+	}
+
+	int res = git_tree_remove_entry_byindex(tree->tree_, indexArg);
+	if(res != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't delete tree entry", res);
+	}
+
+	tree->unlock_ = true;
+	Handle<Object>::Cast(args.This()->Get(String::New("entries")))->Delete(indexArg);
+	tree->unlock_ = false;
 
 	return Undefined();
 }
