@@ -33,6 +33,9 @@ protected:
 	static Handle<Value> SetEntryHandler(uint32_t, Local<Value>, const AccessorInfo&);
 	static Handle<Boolean> DeleteEntryHandler(uint32_t, const AccessorInfo&);
 
+	static Handle<Value> NamedPropertyGetter(Local<String>, const AccessorInfo&);
+	static Handle<Integer> NamedPropertyQuery(Local<String>, const AccessorInfo&);
+
 	static Handle<Value> Save(const Arguments&);
 
 	git_tree *tree_;

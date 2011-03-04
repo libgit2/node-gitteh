@@ -1,13 +1,18 @@
 #include "tree.h"
 #include "tree_entry.h"
 
+#define LENGTH_PROPERTY String::NewSymbol("length")
+
 namespace gitteh {
 
 Persistent<FunctionTemplate> Tree::constructor_template;
 
+Persistent<ObjectTemplate> entriesWrapperTemplate;
+
 // TODO: I think I'm going about this all wrong. I'm trying to lock down the tree entries array, but rather I should just intercept
 // when things happen to it and update the backing git_tree instead.
-
+// This might be hard though, given that libgit2's support for manipulating tree entries is somewhat limited (can't insert entries anywhere but end of list for example).
+// One approach I could take is to just git_tree_clear_entries() when the Tree is saved. Seems a waste though.
 void Tree::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -22,6 +27,11 @@ void Tree::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "removeEntry", RemoveEntry);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	entriesWrapperTemplate = Persistent<ObjectTemplate>::New(ObjectTemplate::New());
+	entriesWrapperTemplate->SetInternalFieldCount(1);
+	entriesWrapperTemplate->SetIndexedPropertyHandler(0, SetEntryHandler, 0, DeleteEntryHandler);
+	entriesWrapperTemplate->SetNamedPropertyHandler(NamedPropertyGetter, 0, NamedPropertyQuery);
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
@@ -34,18 +44,10 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-	Handle<ObjectTemplate> entryWrapperTemplate = ObjectTemplate::New();
-	entryWrapperTemplate->SetInternalFieldCount(1);
-	entryWrapperTemplate->SetIndexedPropertyHandler(0, SetEntryHandler, 0, DeleteEntryHandler);
-	entryWrapperTemplate->SetAccessor(String::New("length"), EntryLengthGetter);
-
-	Handle<Object> entriesArray = entryWrapperTemplate->NewInstance();
+	Handle<Object> entriesArray = entriesWrapperTemplate->NewInstance();
 	entriesArray->SetPointerInInternalField(0, tree);
 	entriesArray->SetPrototype(Array::New()->GetPrototype());
-
-	Handle<Array> blah = Array::New();
-	blah->Set(0, String::New("weee"));
-	args.This()->Set(String::New("blah"), blah);
+	Handle<Object>::Cast(entriesArray->GetPrototype())->ForceDelete(String::New("length"));
 
 	args.This()->Set(String::New("entries"), entriesArray, ReadOnly);
 
@@ -82,6 +84,9 @@ Handle<Boolean> Tree::DeleteEntryHandler(uint32_t index, const AccessorInfo &inf
 
 	if(tree->unlock_ == true) {
 		// This basically allows the set through.
+		std::cout << "kk.\n";
+		//info.Holder()->ForceDelete(Integer::New(index));
+		//return scope.Close(Boolean::New(true));
 		return scope.Close(Handle<Boolean>());
 	}
 
@@ -103,11 +108,28 @@ Handle<Value> Tree::SetEntryHandler(uint32_t index, Local< Value > value, const 
 	return scope.Close(value);
 }
 
-Handle<Value> Tree::EntryLengthGetter(Local<String> property, const AccessorInfo& info) {
+Handle<Value> Tree::NamedPropertyGetter(Local<String> property, const AccessorInfo& info) {
 	HandleScope scope;
-	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
 
-	return scope.Close(Integer::New(tree->entryCount_));
+	if(property == LENGTH_PROPERTY) {
+		Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
+
+		return scope.Close(Integer::New(tree->entryCount_));
+	}
+
+	return scope.Close(Handle<Value>());
+}
+
+Handle<Integer> Tree::NamedPropertyQuery(Local<String> property, const AccessorInfo&) {
+	HandleScope scope;
+
+	std::cout << "....\n";
+	if(property->Equals(LENGTH_PROPERTY)) {
+		std::cout << "....\n";
+		return scope.Close(Integer::New(DontEnum));
+	}
+
+	return scope.Close(Handle<Integer>());
 }
 
 Handle<Value> Tree::GetByName(const Arguments& args) {
@@ -170,7 +192,11 @@ Handle<Value> Tree::RemoveEntry(const Arguments& args) {
 	}
 
 	tree->unlock_ = true;
-	Handle<Object>::Cast(args.This()->Get(String::New("entries")))->Delete(indexArg);
+	//Handle<Object>::Cast(args.This()->Get(String::New("entries")))->Delete(indexArg);
+	Handle<Object> entriesObject = Handle<Object>::Cast(args.This()->Get(String::New("entries")));
+	Handle<Function> spliceFn = Handle<Function>::Cast(entriesObject->Get(String::New("splice")));
+	Handle<Value> spliceArgs[2] = { Integer::New(indexArg), Integer::New(1) };
+	spliceFn->Call(entriesObject, 2, spliceArgs);
 	tree->unlock_ = false;
 
 	return Undefined();

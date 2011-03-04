@@ -7,10 +7,26 @@ var repo = new gitteh.Repository(require("path").join(__dirname, ".git"));
 
 var tree = repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832");
 
-console.log(tree.entries);
+
+tree.entries.length = 0;
+delete tree.entries.length;
 console.log(tree.entries.length);
-console.log(tree.entries instanceof Array);
-console.log(tree.blah.length);
+console.log(tree);
+
+tree.entries = null;
+tree.entries[0] = null;
+tree.entries[0].id = false;
+delete tree.entries[1];
+
+
+tree.removeEntry(0);
+tree.removeEntry(0);
+tree.removeEntry(0);
+tree.removeEntry(0);
+tree.removeEntry(0);
+//tree.removeEntry();
+
+console.log(tree.entries);
 
 //var tree = repo.getTree("8fb604142d77fca47ba5802fa7a29401282b3832");
 /*
