@@ -29,9 +29,7 @@ class ManagedObject;
 template <class T, class S>
 class ObjectStore {
 public:
-	inline
-	bool
-	getObjectFor (S *ref, T **dest) {
+	inline bool getObjectFor (S *ref, T **dest) {
 		HandleScope scope;
 
 		ManagedObject<T, S> *managedObject;
@@ -61,6 +59,20 @@ public:
 		return newlyCreated;
 	}
 
+	inline void deleteObjectFor(S* ref) {
+		ManagedObject<T, S> *managedObject;
+
+		managedObject = objects[(int)ref];
+		if(!managedObject) return;
+
+		managedObject->handle.ClearWeak();
+		managedObject->handle.Dispose();
+
+		typename std::map<int, ManagedObject<T,S>* >::iterator it;
+		it = objects.find((int)ref);
+		objects.erase(it);
+	}
+
 	inline ~ObjectStore() {
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
@@ -69,6 +81,7 @@ public:
 		while(it != end) {
 			managedObject = it->second;
 			managedObject->handle.ClearWeak();
+			managedObject->handle.Dispose();
 			++it;
 		}
 	}

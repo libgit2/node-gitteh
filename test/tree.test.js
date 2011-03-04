@@ -27,15 +27,15 @@ var createTreeTestContext = function(treeFixture) {
 	// Run assertions on the contents of tree.
 	var createEntriesChecks = function(entriesFixture, path) {
 		var entriesContext = {
-			topic: function(tree) {
+			/*topic: function(tree) {
 				return tree.entries;
-			},
+			},*/
 			
-			"has correct number of entries": function(entries) {
-				assert.length(entries, entriesFixture.length);
+			"has correct number of entries": function(tree) {
+				assert.length(tree.entryCount, entriesFixture.length);
 			}
 		};
-		
+		/*
 		context[(path == "") ? "- root entries" : ("- tree " + path)] = entriesContext;
 
 		for(var i = 0; i < entriesFixture.length; i++) {
@@ -65,7 +65,7 @@ var createTreeTestContext = function(treeFixture) {
 				
 				return theContext;				
 			})(i);
-		}
+		}*/
 		
 		
 	};
@@ -76,6 +76,21 @@ var createTreeTestContext = function(treeFixture) {
 }
 
 vows.describe("Tree").addBatch({
+	"Basic tree tests": {
+		topic: repo.getTree(fixtureValues.FIRST_TREE.id),
+		
+		"id is immutable": function(tree) {
+			tree.id = "foo";
+			assert.equal(tree.id, fixtureValues.FIRST_TREE.id);
+		},
+		
+		"entryCount is immutable": function(tree) {
+			tree.entryCount = 666;
+			assert.equal(tree.entryCount, fixtureValues.FIRST_TREE.entries.length);
+		}
+	},
+	
+	
 	"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
 	"Second tree": createTreeTestContext(fixtureValues.SECOND_TREE),
 	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),
@@ -86,7 +101,7 @@ vows.describe("Tree").addBatch({
 		topic: function() {
 			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
 			this.context.tree = tree;
-			return tree.getByName(fixtureValues.FIRST_TREE.entries[0].filename);
+			return tree.getEntry(fixtureValues.FIRST_TREE.entries[0].filename);
 		},
 		
 		"gives us the correct entry": function(entry) {
@@ -95,7 +110,7 @@ vows.describe("Tree").addBatch({
 		},
 		
 		"identical to getting it via index": function(entry) {
-			assert.isTrue(entry === this.context.tree.entries[0]);
+			assert.isTrue(entry === this.context.tree.getEntry(0));
 		}
 	},
 	
@@ -122,7 +137,7 @@ vows.describe("Tree").addBatch({
 	"Looking up a non-existant tree entry": {
 		topic: function() {
 			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
-			return tree.getByName("foo.bar.i.dont.exist");
+			return tree.getEntry("foo.bar.i.dont.exist");
 		},
 		
 		"gives us null": function(entry) {
@@ -135,13 +150,13 @@ vows.describe("Tree").addBatch({
 			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
 			
 			return function() {
-				return tree.entries[fixtureValues.FIRST_TREE.entries.length];
+				return tree.getEntry(fixtureValues.FIRST_TREE.entries.length);
 			};
 		},
 		
 		"gives us undefined": function(fn) {
 			assert.doesNotThrow(fn, Error);
-			assert.isUndefined(fn());
+			assert.isNull(fn());
 		}
 	},
 	
@@ -156,10 +171,10 @@ vows.describe("Tree").addBatch({
 		
 		"with correct identity": function(tree) {
 			assert.isNull(tree.id);
-			assert.length(tree.entries, 0);
+			assert.equal(tree.entryCount, 0);
 		},
 		
-		"- adding an invalid entry": function(tree) {
+		"adding an invalid entry throws an error": function(tree) {
 			assert.throws(function() {
 				tree.addEntry();
 			}, Error);
@@ -167,22 +182,39 @@ vows.describe("Tree").addBatch({
 		
 		"- adding an entry": {
 			topic: function(tree) {
-				tree.addEntry(fixtureValues.EMPTY_BLOB, "test", helpers.fromOctal(100644));
-				return tree;
+				var t = this;
+				this.context.tree = tree;
+				return function() {
+					t.context.entry = tree.addEntry(fixtureValues.EMPTY_BLOB, "test", helpers.fromOctal(100644));
+					return t.context.entry;
+				};
 			},
 			
-			"adds to tree *entries* correctly": function(tree) {
-				assert.length(tree.entries, 1);
+			"executes correctly": function(fn) {
+				assert.doesNotThrow(fn, Error);
 			},
 			
-			"entry has correct values": function(tree) {
-				assert.equal(tree.entries[0].id, fixtureValues.EMPTY_BLOB);
-				assert.equal(tree.entries[0].attributes, helpers.fromOctal(100644));
-				assert.equal(tree.entries[0].filename, "test");
+			"returns the new entry": function() {
+				var newEntry = this.context.entry;
+				assert.isObject(newEntry);
+				assert.equal(newEntry.id, fixtureValues.EMPTY_BLOB);
+				assert.equal(newEntry.filename, "test");
+				assert.equal(newEntry.attributes, helpers.fromOctal(100644));
+			},
+			
+			"adds to tree *entries* correctly": function() {
+				assert.equal(this.context.tree.entryCount, 1);
+			},
+			
+			"entry has correct values": function() {
+				var entry = this.context.tree.getEntry(0);
+				assert.equal(entry.id, fixtureValues.EMPTY_BLOB);
+				assert.equal(entry.attributes, helpers.fromOctal(100644));
+				assert.equal(entry.filename, "test");
 			},
 			
 			"- saving": {
-				topic: function(tree) {
+				topic: function(fn, tree) {
 					tree.save();
 					return tree;
 				},
@@ -208,7 +240,7 @@ vows.describe("Tree").addBatch({
 					},
 					
 					"results in an empty tree": function(fn) {
-						assert.length(this.context.tree.entries, 0);
+						assert.equal(this.context.tree.entryCount, 0);
 					},
 
 					"which cannot be saved": function() {
@@ -234,6 +266,82 @@ vows.describe("Tree").addBatch({
 
 		"throws an Error": function(fn) {
 			assert.throws(fn, Error);
+		}
+	},
+	
+	"Deleting an entry via out of bounds index": {
+		topic: function() {
+			var tree = repo.createTree();
+			
+			return function() {
+				tree.removeEntry(-1);
+			};
+		},
+		
+		"throws an error": function(fn) {
+			assert.throws(fn, Error);
+		}
+	},
+	
+	"Deleting a non-existent entry": {
+		topic: function() {
+			var tree = repo.createTree();
+			
+			return function() {
+				tree.removeEntry("foo.i.dont.exist");
+			};
+		},
+		
+		"throws an error": function(fn) {
+			assert.throws(fn, Error);
+		}
+	},
+	
+	"Editing an entry": {
+		topic: function() {
+			var tree = this.context.tree = repo.createTree();
+			tree.addEntry(fixtureValues.EMPTY_BLOB, "test", helpers.fromOctal(100644));
+
+			var entry = tree.getEntry(0);
+
+			return function() {
+				entry.id = fixtureValues.FIRST_TREE.entries[0].id;
+				entry.name = "hello";
+				entry.attributes = 666;
+				
+				tree.save();
+			};
+		},
+
+		"works correctly": function(fn) {
+			fn();
+			assert.doesNotThrow(fn, Error);
+		},
+		
+		"tree id is correct": function() {
+			assert.equal(this.context.tree.id, "dfad82c5d5f5d4f589f449df594ad4321d8d8468");
+		}
+	},
+	
+	"Clearing tree entries": {
+		topic: function() {
+			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			
+			return function() {
+				tree.clear();
+			};
+		},
+		
+		"executes correctly": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		},
+		
+		"results in an empty tree": function() {
+			assert.equal(this.context.tree.entryCount, 0);
+		},
+		
+		"still has same id though": function() {
+			assert.equal(this.context.tree.id, fixtureValues.FIRST_TREE.id);
 		}
 	}
 }).export(module);

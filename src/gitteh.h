@@ -58,6 +58,10 @@ using namespace node;
   (NAME)->Set(String::New("email"), String::New((SRC)->email));			\
   (NAME)->Set(String::New("time"), Date::New(static_cast<double>((SRC)->when.time)*1000));
 
+
+#define THROW_ERROR(errorStr) 											\
+	return ThrowException(Exception::Error(String::New(errorStr)));
+
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
 	return ThrowException(ThrowGitError(String::New(errorStr), errorCode));
 

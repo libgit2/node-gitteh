@@ -1,13 +1,19 @@
 #include "tree.h"
 #include "tree_entry.h"
 
-#define LENGTH_PROPERTY String::NewSymbol("length")
+#define ID_PROPERTY String::NewSymbol("id")
+#define LENGTH_PROPERTY String::NewSymbol("entryCount")
+
+#define UPDATE_ENTRY_COUNT()							\
+	args.This()->ForceSet(LENGTH_PROPERTY, Integer::New(tree->entryCount_));
+
+#define RETURN_WRAP_TREE_ENTRY()							\
+	TreeEntry *treeEntryObject = tree->wrapEntry(entry);	\
+	return scope.Close(treeEntryObject->handle_);
 
 namespace gitteh {
 
 Persistent<FunctionTemplate> Tree::constructor_template;
-
-Persistent<ObjectTemplate> entriesWrapperTemplate;
 
 // TODO: I think I'm going about this all wrong. I'm trying to lock down the tree entries array, but rather I should just intercept
 // when things happen to it and update the backing git_tree instead.
@@ -21,17 +27,11 @@ void Tree::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Tree"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "getByName", GetByName);
-
+	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
 	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
 	NODE_SET_PROTOTYPE_METHOD(t, "removeEntry", RemoveEntry);
-
+	NODE_SET_PROTOTYPE_METHOD(t, "clear", Clear);
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
-
-	entriesWrapperTemplate = Persistent<ObjectTemplate>::New(ObjectTemplate::New());
-	entriesWrapperTemplate->SetInternalFieldCount(1);
-	entriesWrapperTemplate->SetIndexedPropertyHandler(0, SetEntryHandler, 0, DeleteEntryHandler);
-	entriesWrapperTemplate->SetNamedPropertyHandler(NamedPropertyGetter, 0, NamedPropertyQuery);
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
@@ -44,109 +44,42 @@ Handle<Value> Tree::New(const Arguments& args) {
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-	Handle<Object> entriesArray = entriesWrapperTemplate->NewInstance();
-	entriesArray->SetPointerInInternalField(0, tree);
-	entriesArray->SetPrototype(Array::New()->GetPrototype());
-	Handle<Object>::Cast(entriesArray->GetPrototype())->ForceDelete(String::New("length"));
-
-	args.This()->Set(String::New("entries"), entriesArray, ReadOnly);
-
-	tree->unlock_ = true;
-
 	const git_oid *treeOid = git_tree_id(tree->tree_);
 	if(treeOid) {
-		args.This()->Set(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
-
-		git_tree_entry *entry;
-		TreeEntry *treeEntryObject;
-		for(int i = 0; i < tree->entryCount_; i++) {
-			entry = git_tree_entry_byindex(tree->tree_, i);
-			treeEntryObject = tree->wrapEntry(entry);
-			entriesArray->Set(i, Local<Object>::New(treeEntryObject->handle_));
-		}
+		args.This()->Set(ID_PROPERTY, String::New(git_oid_allocfmt(treeOid)), ReadOnly);
 	}
 	else {
-		args.This()->Set(String::New("id"), Null(), ReadOnly);
+		args.This()->Set(ID_PROPERTY, Null(), ReadOnly);
 	}
 
-	tree->unlock_ = false;
-
-	args.This()->Set(String::New("entries"), entriesArray, ReadOnly);
+	args.This()->Set(LENGTH_PROPERTY, Integer::New(tree->entryCount_), ReadOnly);
 
 	tree->Wrap(args.This());
 	return args.This();
 }
 
-Handle<Boolean> Tree::DeleteEntryHandler(uint32_t index, const AccessorInfo &info) {
-	HandleScope scope;
-
-	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
-
-	if(tree->unlock_ == true) {
-		// This basically allows the set through.
-		std::cout << "kk.\n";
-		//info.Holder()->ForceDelete(Integer::New(index));
-		//return scope.Close(Boolean::New(true));
-		return scope.Close(Handle<Boolean>());
-	}
-
-	// This doesn't.
-	return scope.Close(Boolean::New(false));
-}
-
-Handle<Value> Tree::SetEntryHandler(uint32_t index, Local< Value > value, const AccessorInfo &info) {
-	HandleScope scope;
-
-	Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
-
-	if(tree->unlock_ == true) {
-		// This basically allows the set through.
-		return scope.Close(Handle<Value>());
-	}
-
-	// This doesn't.
-	return scope.Close(value);
-}
-
-Handle<Value> Tree::NamedPropertyGetter(Local<String> property, const AccessorInfo& info) {
-	HandleScope scope;
-
-	if(property == LENGTH_PROPERTY) {
-		Tree *tree = static_cast<Tree*>(info.This()->GetPointerFromInternalField(0));
-
-		return scope.Close(Integer::New(tree->entryCount_));
-	}
-
-	return scope.Close(Handle<Value>());
-}
-
-Handle<Integer> Tree::NamedPropertyQuery(Local<String> property, const AccessorInfo&) {
-	HandleScope scope;
-
-	std::cout << "....\n";
-	if(property->Equals(LENGTH_PROPERTY)) {
-		std::cout << "....\n";
-		return scope.Close(Integer::New(DontEnum));
-	}
-
-	return scope.Close(Handle<Integer>());
-}
-
-Handle<Value> Tree::GetByName(const Arguments& args) {
+Handle<Value> Tree::GetEntry(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_STR_ARG(0, propertyName);
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
-	git_tree_entry *entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*propertyName));
+	git_tree_entry *entry;
+
+	if(args[0]->IsString()) {
+		REQ_STR_ARG(0, propertyName);
+		entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*propertyName));
+	}
+	else {
+		REQ_INT_ARG(0, indexArg);
+		entry = git_tree_entry_byindex(tree->tree_, indexArg);
+	}
 
 	if(entry == NULL) {
 		return scope.Close(Null());
 	}
 
-	TreeEntry *treeEntryObject = tree->wrapEntry(entry);
-	return scope.Close(treeEntryObject->handle_);
+	RETURN_WRAP_TREE_ENTRY();
 }
 
 Handle<Value> Tree::AddEntry(const Arguments& args) {
@@ -165,14 +98,10 @@ Handle<Value> Tree::AddEntry(const Arguments& args) {
 		THROW_GIT_ERROR("Error creating tree entry.", res);
 	}
 
-	TreeEntry *treeEntryObject;
-	treeEntryObject = tree->wrapEntry(entry);
+	tree->entryCount_++;
+	UPDATE_ENTRY_COUNT();
 
-	tree->unlock_ = true;
-	Local<Object>::Cast(args.This()->Get(String::New("entries")))->Set(tree->entryCount_++, Local<Object>::New(treeEntryObject->handle_));
-	tree->unlock_ = false;
-
-	return Undefined();
+	RETURN_WRAP_TREE_ENTRY();
 }
 
 Handle<Value> Tree::RemoveEntry(const Arguments& args) {
@@ -182,24 +111,56 @@ Handle<Value> Tree::RemoveEntry(const Arguments& args) {
 	REQ_INT_ARG(0, indexArg);
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
-	if(indexArg >= tree->entryCount_) {
-		return ThrowException(Exception::Error(String::New("Index out of bounds.")));
+	int res;
+
+	if(args[0]->IsString()) {
+		REQ_STR_ARG(0, propertyName);
+
+		git_tree_entry *entry = git_tree_entry_byname(tree->tree_, *propertyName);
+		if(!entry) {
+			THROW_ERROR("Entry with that name not found.");
+		}
+
+		tree->entryStore_.deleteObjectFor(entry);
+
+		res = git_tree_remove_entry_byname(tree->tree_, *propertyName);
+	}
+	else {
+		REQ_INT_ARG(0, indexArg);
+
+		git_tree_entry *entry = git_tree_entry_byindex(tree->tree_, indexArg);
+
+		if(!entry) {
+			THROW_ERROR("Entry with that index not found.");
+		}
+
+		// Delete the entry from objectstore.
+		tree->entryStore_.deleteObjectFor(entry);
+
+		res = git_tree_remove_entry_byindex(tree->tree_, indexArg);
 	}
 
-	int res = git_tree_remove_entry_byindex(tree->tree_, indexArg);
 	if(res != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Couldn't delete tree entry", res);
 	}
 
-	tree->unlock_ = true;
-	//Handle<Object>::Cast(args.This()->Get(String::New("entries")))->Delete(indexArg);
-	Handle<Object> entriesObject = Handle<Object>::Cast(args.This()->Get(String::New("entries")));
-	Handle<Function> spliceFn = Handle<Function>::Cast(entriesObject->Get(String::New("splice")));
-	Handle<Value> spliceArgs[2] = { Integer::New(indexArg), Integer::New(1) };
-	spliceFn->Call(entriesObject, 2, spliceArgs);
-	tree->unlock_ = false;
+	tree->entryCount_--;
+	UPDATE_ENTRY_COUNT();
 
-	return Undefined();
+	return scope.Close(True());
+}
+
+Handle<Value> Tree::Clear(const Arguments& args) {
+	HandleScope scope;
+
+	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
+
+	git_tree_clear_entries(tree->tree_);
+
+	tree->entryCount_ = 0;
+	UPDATE_ENTRY_COUNT();
+
+	return scope.Close(Undefined());
 }
 
 Handle<Value> Tree::Save(const Arguments& args) {

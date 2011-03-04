@@ -62,7 +62,6 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	REQ_OID_ARG(0, commitOid);
 
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-	const char* oidStr = git_oid_allocfmt(&commitOid);
 
 	git_commit* commit;
 	if(git_commit_lookup(&commit, repo->repo_, &commitOid) != GIT_SUCCESS) {

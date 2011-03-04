@@ -18,6 +18,8 @@ public:
 protected:
 	static Handle<Value> New(const Arguments& args);
 
+	static Handle<Value> SetterHandler(Local<String>, Local<Value>, const AccessorInfo&);
+
 	git_tree_entry *entry_;
 };
 
