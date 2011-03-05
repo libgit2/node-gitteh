@@ -10,6 +10,12 @@ Why not? Libgit2 is pretty much the de-facto standard for working with a Git rep
 
 ## How?
 
+You need to [install libgit2](http://libgit2.github.com/#install) first.
+
+Installation can be done via npm.
+
+	npm install gitteh
+
 Documentation can be found at [http://samcday.github.com/node-gitteh](http://samcday.github.com/node-gitteh).
 
 ## Can I has halp?
