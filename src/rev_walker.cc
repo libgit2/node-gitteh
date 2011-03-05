@@ -52,10 +52,9 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 	if(args[0]->IsString()) {
 		REQ_OID_ARG(0, commitOid);
 		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
+		if(result != GIT_SUCCESS)
+			THROW_GIT_ERROR("Commit not found.", result);
 
-		if(result != GIT_SUCCESS) {
-			return ThrowException(Exception::Error(String::New("Commit not found.")));
-		}
 	}
 	else {
 		// Commit object.
@@ -74,9 +73,11 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 	}
 
 	// Get the commit for this oid.
-	git_revwalk_push(walker->walker_, commit);
+	int res = git_revwalk_push(walker->walker_, commit);
+	if(res != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
-	return Undefined();
+	return scope.Close(Undefined());
 }
 
 Handle<Value> RevWalker::Hide(const Arguments& args) {
@@ -108,12 +109,13 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 
 		Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
 		commit = commitObject->commit_;
-		//return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
 	}
 	
-	git_revwalk_hide(walker->walker_, commit);
+	int res = git_revwalk_hide(walker->walker_, commit);
+	if(res != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't hide commit.", res);
 
-	return Undefined();
+	return scope.Close(Undefined());
 }
 
 Handle<Value> RevWalker::Next(const Arguments& args) {
@@ -129,7 +131,7 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 	}
 
 	Commit *commitObject = walker->repo_->wrapCommit(commit);
-	return commitObject->handle_;
+	return scope.Close(commitObject->handle_);
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {
@@ -140,7 +142,9 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_revwalk_sorting(walker->walker_, sorting);
+	int result = git_revwalk_sorting(walker->walker_, sorting);
+	if(result != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't sort rev walker.", result);
 }
 
 Handle<Value> RevWalker::Reset(const Arguments& args) {
@@ -149,7 +153,7 @@ Handle<Value> RevWalker::Reset(const Arguments& args) {
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 	git_revwalk_reset(walker->walker_);
 
-	return Undefined();
+	return scope.Close(Undefined());
 }
 
 RevWalker::~RevWalker() {

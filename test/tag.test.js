@@ -57,5 +57,51 @@ var createTagTestContext = function(tagFixture) {
 };
 
 vows.describe("Tag").addBatch({
-	"Tag *test_tag*": createTagTestContext(fixtureValues.TEST_TAG)
+	"Tag *test_tag*": createTagTestContext(fixtureValues.TEST_TAG),
+	
+	"Creating a new tag": {
+		topic: function() {
+			return repo.createTag();
+		},
+
+		"tag is in identity state": function(tag) {
+			assert.isNull(tag.id);
+			assert.isNull(tag.name);
+			assert.isNull(tag.message);
+			assert.isNull(tag.tagger);
+			assert.isNull(tag.targetId);
+			assert.isNull(tag.targetType);
+		},
+		
+		"saving identity results in an error": function(tag) {
+			assert.throws(function() {
+				tag.save();
+			}, Error);
+		},
+		
+		"setting valid data and saving works": function(tag) {
+			tag.name = "Test Tag";
+			tag.message = "Test tag.";
+			tag.tagger = {
+				name: "Sam Day",
+				email: "sam.c.day@gmail.com",
+				time: new Date()
+			};
+			tag.targetId = fixtureValues.FIRST_COMMIT.id;
+			
+			tag.save();
+		},
+		
+		"tag has correct id": function(tag) {
+			assert.equal(tag.id, "b76986bf57110b466b2f77ef662ea37f9d5eab80");
+		},
+		
+		"tag type is correct": function(tag) {
+			assert.equal(tag.targetType, "commit");
+		},
+
+		"tag is reachable from repo": function(tag) {
+			assert.isTrue(tag === repo.getTag(tag.id));
+		}
+	}
 }).export(module);

@@ -1,5 +1,7 @@
 var gitteh = require("./build/default/gitteh");
 
+console.log(gitteh.error);
+
 var startTime = Date.now();
 
 //var repo = new gitteh.Repository(require("path").join(__dirname, "test", "fixtures", "gitrepo"));

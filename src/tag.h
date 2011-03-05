@@ -5,13 +5,19 @@
 
 namespace gitteh {
 
+class Repository;
+
 class Tag : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
+	Repository *repository_;
+
 protected:
 	static Handle<Value> New(const Arguments&);
+
+	static Handle<Value> Save(const Arguments&);
 
 	git_tag *tag_;
 };

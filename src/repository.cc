@@ -24,8 +24,11 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
+	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
@@ -100,10 +103,8 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 
 	git_tag *tag;
 	int res = git_tag_lookup(&tag, repo->repo_, &tagOid);
-
-	if(res != GIT_SUCCESS) {
-		return scope.Close(Null());
-	}
+	if(res != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't get tag.", res);
 
 	Tag *tagObj = repo->wrapTag(tag);
 	return scope.Close(tagObj->handle_);
@@ -133,7 +134,10 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	git_revwalk *walker;
-	git_revwalk_new(&walker, repo->repo_);
+	int res = git_revwalk_new(&walker, repo->repo_);
+	if(res != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't create revision walker", res);
+	}
 
 	Handle<Value> constructorArgs[2] = { External::New(walker), External::New(repo) };
 	Handle<Object> instance = RevWalker::constructor_template->GetFunction()->NewInstance(2, constructorArgs);
@@ -161,6 +165,19 @@ Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
 	return repo->index_->handle_;
 }
 
+Handle<Value> Repository::CreateTag(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_tag *tag;
+	int res = git_tag_new(&tag, repo->repo_);
+	if(res != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't create new tag.", res);
+
+	Tag *tagObject = repo->wrapTag(tag);
+	return scope.Close(tagObject->handle_);
+}
+
 Handle<Value> Repository::CreateTree(const Arguments& args) {
 	HandleScope scope;
 
@@ -168,10 +185,8 @@ Handle<Value> Repository::CreateTree(const Arguments& args) {
 
 	git_tree *tree;
 	int res = git_tree_new(&tree, repo->repo_);
-	if(res != GIT_SUCCESS) {
-		// TODO: error handling.
-		return Null();
-	}
+	if(res != GIT_SUCCESS)
+		THROW_GIT_ERROR("Couldn't create tree.", res);
 
 	Tree *treeObject = repo->wrapTree(tree);
 	return treeObject->handle_;
@@ -192,6 +207,16 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 
 	Commit *commitObject = repo->wrapCommit(commit);
 	return scope.Close(commitObject->handle_);
+}
+
+Handle<Value> Repository::Exists(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, objOid);
+
+	return Boolean::New(git_odb_exists(repo->odb_, &objOid));
 }
 
 Repository::~Repository() {
@@ -227,7 +252,7 @@ Tree *Repository::wrapTree(git_tree *tree) {
 Tag *Repository::wrapTag(git_tag *tag) {
 	Tag *tagObject;
 	if(tagStore_.getObjectFor(tag, &tagObject)) {
-
+		tagObject->repository_ = this;
 	}
 
 	return tagObject;

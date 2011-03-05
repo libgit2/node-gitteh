@@ -9,6 +9,7 @@
 #include "index_entry.h"
 #include "tag.h"
 #include "rev_walker.h"
+#include "error.h"
 
 namespace gitteh {
 
@@ -24,6 +25,8 @@ init(Handle<Object> target) {
 	IndexEntry::Init(target);
 	Tag::Init(target);
 	RevWalker::Init(target);
+
+	ErrorInit(target);
 }
 
 } // namespace gitteh
