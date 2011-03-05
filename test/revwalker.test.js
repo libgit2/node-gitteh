@@ -1,6 +1,6 @@
 var vows = require("vows"),
 	assert = require("assert"),
-	gitteh = require("../build/default/gitteh"),
+	gitteh = require("gitteh"),
 	path = require("path"),
 	fixtureValues = require("./fixtures/values");
 
