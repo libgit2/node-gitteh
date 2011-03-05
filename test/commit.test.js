@@ -29,17 +29,13 @@ var createCommitTests = function(commitFixture) {
 			assert.equal(commit.id, commitFixture.id);
 		},
 		
+		"commit id cannot be deleted": function(commit) {
+			delete commit.id;
+			assert.equal(commit.id, commitFixture.id);
+		},
+		
 		"has correct message": function(commit) {
 			assert.equal(commit.message, commitFixture.message);
-		},
-		
-		"has correct short message": function(commit) {
-			assert.equal(commit.shortMessage, commitFixture.shortMessage);
-		},
-		
-		"short message is immutable": function(commit) {
-			commit.shortMessage = "blah blah blah";
-			assert.equal(commit.shortMessage, commitFixture.shortMessage);
 		},
 
 		"has correct author": function(commit) {
@@ -81,6 +77,11 @@ var createCommitTests = function(commitFixture) {
 		
 		context["parent length is immutable"] = function(commit) {
 			commit.parentCount = -1;
+			assert.equal(commit.parentCount, commitFixture.parents.length);
+		};
+		
+		context["parent length cannot be deleted"] = function(commit) {
+			delete commit.parentCount;
 			assert.equal(commit.parentCount, commitFixture.parents.length);
 		};
 

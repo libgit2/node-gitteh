@@ -3,7 +3,6 @@ module.exports.REPO_PATH = require("path").join(__dirname, "gitrepo");
 module.exports.FIRST_COMMIT = {
 	id: "ca1f3314acd24c4551da8c26adaf562272db1d19",
 	message: "First commit.\n",
-	shortMessage: "First commit.",
 	authorName: "Sam Day",
 	authorEmail: "sam.c.day@gmail.com",
 	committerName: "Sam Day",
@@ -16,7 +15,6 @@ module.exports.FIRST_COMMIT = {
 module.exports.SECOND_COMMIT = {
 	id: "91ef0fd7ea773461d4d57dc1e5675a9bc83d6081",
 	message: "Second commit, woohoo\\!\n",
-	shortMessage: "Second commit, woohoo\\!",
 	authorName: "Sam Day",
 	authorEmail: "sam.c.day@gmail.com",
 	committerName: "Sam Day",
@@ -29,7 +27,6 @@ module.exports.SECOND_COMMIT = {
 module.exports.THIRD_COMMIT = {
 	id: "46d47fb28223a7f29df5d2072eb05e380985a477",
 	message: "Third commit.\nThis one spans\na few lines.\n",
-	shortMessage: "Third commit.",
 	authorName: "Sam Day",
 	authorEmail: "sam.c.day@gmail.com",
 	committerName: "Sam Day",
@@ -42,7 +39,6 @@ module.exports.THIRD_COMMIT = {
 module.exports.FOURTH_COMMIT = {
 	id: "bae21d9853dc927b3784420144afd9082d768024",
 	message: "Fourth commit.\n",
-	shortMessage: "Fourth commit.",
 	authorName: "Sam Day",
 	authorEmail: "sam.c.day@gmail.com",
 	committerName: "Sam Day",
@@ -55,7 +51,6 @@ module.exports.FOURTH_COMMIT = {
 module.exports.FIFTH_COMMIT = {
 	id: "38042ca303189a2e6955b92d53aab7d642cc82c2",
 	message: "Merge branch 'test'\n",
-	shortMessage: "Merge branch 'test'",
 	authorName: "Sam Day",
 	authorEmail: "sam.c.day@gmail.com",
 	committerName: "Sam Day",
