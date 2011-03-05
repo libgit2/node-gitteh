@@ -51,7 +51,7 @@ var createCommitTests = function(commitFixture) {
 		},
 
 		"has correct time": function(commit) {
-			assert.equal(commit.time.getTime(), commitFixture.time.getTime());
+			assert.equal(commit.committer.time.getTime(), commitFixture.time.getTime());
 		},
 
 		"has correct tree": function(commit) {
@@ -104,7 +104,7 @@ vows.describe("Commit").addBatch({
 	"Fourth commit": createCommitTests(fixtureValues.FOURTH_COMMIT),
 	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT),
 
-	"Creating a mew commit": {
+	"Creating a new commit": {
 		topic: function() {
 			return repo.createCommit();
 		},
@@ -123,8 +123,52 @@ vows.describe("Commit").addBatch({
 			assert.isNull(commit.id);
 		},
 		
-		"saving the Commit": function(commit) {
-			commit.save();
+		"saving the Commit gives us an error": function(commit) {
+			assert.throws(function() { commit.save(); }, Error);
+		},
+		
+		"- setting valid data and saving": {
+			topic: function(commit) {
+				commit.message = "Test commit from Gitteh.";
+				commit.author = commit.committer = {
+					name: "Sam Day",
+					email: "sam.c.day@gmail.com",
+					time: new Date()
+				};
+				commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
+
+				return function() {
+					commit.save();
+				};
+			},
+			
+			"save works": function(fn) {
+				assert.doesNotThrow(fn, Error);
+			},
+			
+			"commit object is not redundant": function() {
+				var commit = this.context.topics[1];
+				assert.isTrue(commit === repo.getCommit(commit.id));
+			}
+		}
+	},
+	
+	"Creating a Commit and adding a parent by id": {
+		topic: function() {
+			var commit = repo.createCommit();
+			return commit;
+		},
+		
+		"works": function(commit) {
+			assert.doesNotThrow(function() {
+				commit.addParent(fixtureValues.FIRST_COMMIT.id);
+			}, Error);
+			
+			assert.equal(commit.parentCount, 1);
+		},
+		
+		"adds correctly": function(commit) {
+			assert.isTrue(commit.getParent(0) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
 		}
 	}
 }).export(module);

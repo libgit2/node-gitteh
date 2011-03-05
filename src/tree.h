@@ -20,6 +20,7 @@ public:
 
 	TreeEntry *wrapEntry(git_tree_entry*);
 
+	git_tree *tree_;
 	Repository *repository_;
 
 protected:
@@ -31,7 +32,6 @@ protected:
 	static Handle<Value> Clear(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	git_tree *tree_;
 	size_t entryCount_;
 	ObjectStore<TreeEntry, git_tree_entry> entryStore_;
 };

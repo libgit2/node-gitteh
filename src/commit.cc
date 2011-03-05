@@ -81,9 +81,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 		const char* message = git_commit_message(commit->commit_);
 		jsObj->Set(MESSAGE_PROPERTY, String::New(message));
 
-		time_t time = git_commit_time(commit->commit_);
-		jsObj->Set(TIME_PROPERTY, Date::New(static_cast<double>(time)*1000));
-
 		const git_signature *author;
 		author = git_commit_author(commit->commit_);
 		if(author) {
@@ -105,8 +102,7 @@ Handle<Value> Commit::New(const Arguments& args) {
 	else {
 		// This is a new commit.
 		jsObj->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, String::New(""));
-		jsObj->Set(TIME_PROPERTY, Date::New(static_cast<double>(time(NULL))*1000));
+		jsObj->Set(MESSAGE_PROPERTY, Null());
 		jsObj->Set(AUTHOR_PROPERTY, Null());
 		jsObj->Set(COMMITTER_PROPERTY, Null());
 		commit->parentCount_ = 0;
@@ -135,7 +131,25 @@ Handle<Value> Commit::SetTree(const Arguments& args) {
 	HandleScope scope;
 	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
 
-	// TODO:
+	git_tree *tree;
+	if(args[0]->IsString()) {
+		git_oid treeId;
+		int res = git_oid_mkstr(&treeId, *String::Utf8Value(args[0]));
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Id is invalid", res);
+		}
+
+		res = git_tree_lookup(&tree, commit->repository_->repo_, &treeId);
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Error locating tree", res);
+		}
+	}
+	else if(Tree::constructor_template->HasInstance(args[0])) {
+		Tree *treeObj = ObjectWrap::Unwrap<Tree>(Handle<Object>::Cast(args[0]));
+		tree = treeObj->tree_;
+	}
+
+	git_commit_set_tree(commit->commit_, tree);
 }
 
 Handle<Value> Commit::GetParent(const Arguments& args) {
@@ -158,7 +172,34 @@ Handle<Value> Commit::AddParent(const Arguments& args) {
 	HandleScope scope;
 	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
 
-	// TODO:
+	REQ_ARGS(1);
+
+	git_commit *parentCommit;
+	if(args[0]->IsString()) {
+		git_oid commitId;
+		int res = git_oid_mkstr(&commitId, *String::Utf8Value(args[0]));
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Id is invalid", res);
+		}
+
+		res = git_commit_lookup(&parentCommit, commit->repository_->repo_, &commitId);
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Error locating commit", res);
+		}
+	}
+	else if(constructor_template->HasInstance(args[0])) {
+		Commit *otherCommit = ObjectWrap::Unwrap<Commit>(Handle<Object>::Cast(args[0]));
+		parentCommit = otherCommit->commit_;
+	}
+	else {
+		THROW_ERROR("Invalid argument.");
+	}
+
+	git_commit_add_parent(commit->commit_, parentCommit);
+
+	args.This()->ForceSet(String::New("parentCount"), Integer::New(commit->parentCount_++), (PropertyAttribute)(ReadOnly | DontDelete));
+
+	return scope.Close(Undefined());
 }
 
 Handle<Value> Commit::Save(const Arguments& args) {
@@ -183,6 +224,10 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	if(result != GIT_SUCCESS) {
 		return ThrowException(Exception::Error(String::New("Failed to save commit object.")));
 	}
+
+	const git_oid *commitId = git_commit_id(commit->commit_);
+	const char* oidStr = git_oid_allocfmt(commitId);
+	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	return True();
 }
