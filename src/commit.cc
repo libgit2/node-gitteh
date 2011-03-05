@@ -197,7 +197,7 @@ Handle<Value> Commit::AddParent(const Arguments& args) {
 
 	git_commit_add_parent(commit->commit_, parentCommit);
 
-	args.This()->ForceSet(String::New("parentCount"), Integer::New(commit->parentCount_++), (PropertyAttribute)(ReadOnly | DontDelete));
+	args.This()->ForceSet(String::New("parentCount"), Integer::New(++commit->parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	return scope.Close(Undefined());
 }
