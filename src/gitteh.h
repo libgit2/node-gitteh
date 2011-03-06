@@ -18,7 +18,7 @@ using namespace node;
 #define CHECK_PROPERTY(PROPNAME)											\
 	if(args.This()->Get(PROPNAME)->IsUndefined() ||							\
 				args.This()->Get(PROPNAME)->IsNull())						\
-		THROW_ERROR("Commit property " #PROPNAME " is required.");
+		THROW_ERROR("Property " #PROPNAME " is required.");
 
 #define GET_SIGNATURE_PROPERTY(PROPNAME, VAR)								\
 	if(!args.This()->Get(PROPNAME)->IsObject()) 							\

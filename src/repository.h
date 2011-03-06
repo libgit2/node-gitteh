@@ -10,6 +10,7 @@ class Tree;
 class Tag;
 class Commit;
 class Index;
+class RawObject;
 
 class Repository : public ObjectWrap {
 public:
@@ -20,8 +21,10 @@ public:
 	Tree *wrapTree(git_tree*);
 	Tag *wrapTag(git_tag*);
 	Commit *wrapCommit(git_commit*);
+	RawObject *wrapRawObject(git_rawobj*);
 	
 	git_repository *repo_;
+	git_odb *odb_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
@@ -34,7 +37,8 @@ protected:
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
 	static Handle<Value> Exists(const Arguments&);
-	
+
+	static Handle<Value> CreateRawObject(const Arguments&);
 	static Handle<Value> CreateTag(const Arguments&);
 	static Handle<Value> CreateTree(const Arguments&);
 	static Handle<Value> CreateCommit(const Arguments&);
@@ -44,11 +48,10 @@ protected:
 	ObjectStore<Commit, git_commit> commitStore_;
 	ObjectStore<Tree, git_tree> treeStore_;
 	ObjectStore<Tag, git_tag> tagStore_;
+	ObjectStore<RawObject, git_rawobj> rawObjectStore_;
 
 	Index *index_;
 	char *path_;
-
-	git_odb *odb_;
 };
 
 } // namespace gitteh

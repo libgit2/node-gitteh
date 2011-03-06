@@ -24,6 +24,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 
+	NODE_SET_PROTOTYPE_METHOD(t, "createRawObject", CreateRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
@@ -119,13 +120,27 @@ Handle<Value> Repository::GetRawObject(const Arguments& args) {
 	REQ_OID_ARG(0, oid);
 
 	git_rawobj obj;
-	if(git_odb_read(&obj, repo->odb_, &oid) == GIT_ENOTFOUND) {
-		return Null();
+	int res = git_odb_read(&obj, repo->odb_, &oid);
+	if(res != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't load raw object.", res);
 	}
 
-	Local<Value> arg = External::New(&obj);
+	/*Local<Value> arg = External::New(&obj);
 	Persistent<Object> result(RawObject::constructor_template->GetFunction()->NewInstance(1, &arg));
-	return scope.Close(result);
+	return scope.Close(result);*/
+
+	RawObject *objObj = repo->wrapRawObject(&obj);
+	return scope.Close(objObj->handle_);
+}
+
+Handle<Value> Repository::CreateRawObject(const Arguments& args) {
+	HandleScope scope;
+
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	git_rawobj rawObj;
+	RawObject *rawObjObj = repo->wrapRawObject(&rawObj);
+	return scope.Close(rawObjObj->handle_);
 }
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
@@ -256,6 +271,15 @@ Tag *Repository::wrapTag(git_tag *tag) {
 	}
 
 	return tagObject;
+}
+
+RawObject *Repository::wrapRawObject(git_rawobj *obj) {
+	RawObject *rawObject;
+	if(rawObjectStore_.getObjectFor(obj, &rawObject)) {
+		rawObject->repository_ = this;
+	}
+
+	return rawObject;
 }
 
 } // namespace gitteh

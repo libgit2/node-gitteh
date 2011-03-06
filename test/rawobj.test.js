@@ -19,11 +19,6 @@ vows.describe("RawObj").addBatch({
 			assert.equal(obj.type, "tag");
 		},
 		
-		"*type* is immutable": function(obj) {
-			obj.type = "foo";
-			assert.equal(obj.type, "tag");
-		},
-		
 		"*data* is a Buffer": function(obj) {
 			assert.instanceOf(obj.data, Buffer);
 		},
@@ -34,6 +29,16 @@ vows.describe("RawObj").addBatch({
 		
 		"*data* is correct content": function(obj) {
 			assert.equal(obj.data.toString(), fixtureValues.TEST_TAG.rawBody);
+		}
+	},
+	
+	"Creating a new raw object": {
+		topic: repo.createRawObject(),
+		
+		"gives us an identity raw object": function(rawobj) {
+			assert.isNull(rawobj.id);
+			assert.equal(rawobj.type, "");
+			assert.isNull(rawobj.data);
 		}
 	}
 }).export(module);
