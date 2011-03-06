@@ -7,6 +7,8 @@ var gitteh = require("gitteh"),
 var headCommit = fs.readFileSync(path.join(
 		__dirname, "..", ".git", "refs", "heads", "master"), "utf8");
 
+var startTime = Date.now();
+
 // Load up the node-gitteh repository. This will only work if you cloned the 
 // repo of course.
 // You can point this to anywhere that is housing a git repo, even a bare one.
@@ -47,3 +49,5 @@ while(commit = walker.next()) {
 	
 	console.log("\n    " + commit.message + "\n");
 }
+
+console.log((Date.now() - startTime) + "ms");
