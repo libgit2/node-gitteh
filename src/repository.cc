@@ -5,6 +5,7 @@
 #include "tag.h"
 #include "rev_walker.h"
 #include "rawobj.h"
+#include "ref.h"
 
 namespace gitteh {
 
@@ -22,8 +23,9 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
-	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
+	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
 
+	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRawObject", CreateRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
@@ -229,6 +231,22 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	return scope.Close(commitObject->handle_);
 }
 
+Handle<Value> Repository::GetReference(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_STR_ARG(0, referenceName);
+
+	git_reference *reference;
+	int result = git_reference_lookup(&reference, repo->repo_, *referenceName);
+	if(result != GIT_SUCCESS)
+		THROW_GIT_ERROR("Failed to load ref.", result);
+
+	Reference *refObj = repo->wrapReference(reference);
+	return scope.Close(refObj->handle_);
+}
+
 Handle<Value> Repository::Exists(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -276,6 +294,13 @@ Tag *Repository::wrapTag(git_tag *tag) {
 	}
 
 	return tagObject;
+}
+
+Reference *Repository::wrapReference(git_reference *ref) {
+	Reference *refObj;
+	if(refStore_.getObjectFor(ref, &refObj)) {
+		refObj->repository_ = this;
+	}
 }
 
 } // namespace gitteh

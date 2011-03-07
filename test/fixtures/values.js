@@ -175,3 +175,5 @@ module.exports.TEST_TAG = {
 };
 
 module.exports.EMPTY_BLOB = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391";
+
+module.exports.LATEST_COMMIT = module.exports.FIFTH_COMMIT;
