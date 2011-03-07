@@ -46,6 +46,8 @@ protected:
 	static Handle<Value> CreateTree(const Arguments&);
 	static Handle<Value> CreateCommit(const Arguments&);
 	static Handle<Value> CreateWalker(const Arguments&);
+	static Handle<Value> CreateSymbolicRef(const Arguments&);
+	static Handle<Value> CreateOidRef(const Arguments&);
 
 	void close();
 
