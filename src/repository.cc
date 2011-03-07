@@ -119,18 +119,15 @@ Handle<Value> Repository::GetRawObject(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, oid);
 
-	git_rawobj obj;
-	int res = git_odb_read(&obj, repo->odb_, &oid);
+	git_rawobj *obj = new git_rawobj;
+	int res = git_odb_read(obj, repo->odb_, &oid);
 	if(res != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Couldn't load raw object.", res);
 	}
 
-	/*Local<Value> arg = External::New(&obj);
+	Local<Value> arg = External::New(obj);
 	Persistent<Object> result(RawObject::constructor_template->GetFunction()->NewInstance(1, &arg));
-	return scope.Close(result);*/
-
-	RawObject *objObj = repo->wrapRawObject(&obj);
-	return scope.Close(objObj->handle_);
+	return scope.Close(result);
 }
 
 Handle<Value> Repository::CreateRawObject(const Arguments& args) {
@@ -138,9 +135,17 @@ Handle<Value> Repository::CreateRawObject(const Arguments& args) {
 
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	git_rawobj rawObj;
-	RawObject *rawObjObj = repo->wrapRawObject(&rawObj);
-	return scope.Close(rawObjObj->handle_);
+	// Initialize a new rawobj.
+	git_rawobj *rawObj = new git_rawobj;
+	rawObj->len = 0;
+	rawObj->type = GIT_OBJ_BAD;
+
+	Handle<Value> constructorArgs[1] = { External::New(rawObj) };
+	Handle<Object> jsObject = RawObject::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
+
+	RawObject *rawObjObj = ObjectWrap::Unwrap<RawObject>(jsObject);
+	rawObjObj->repository_ = repo;
+	return scope.Close(jsObject);
 }
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
@@ -271,15 +276,6 @@ Tag *Repository::wrapTag(git_tag *tag) {
 	}
 
 	return tagObject;
-}
-
-RawObject *Repository::wrapRawObject(git_rawobj *obj) {
-	RawObject *rawObject;
-	if(rawObjectStore_.getObjectFor(obj, &rawObject)) {
-		rawObject->repository_ = this;
-	}
-
-	return rawObject;
 }
 
 } // namespace gitteh

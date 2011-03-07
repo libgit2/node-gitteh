@@ -15,6 +15,8 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object> target);
 
+	~RawObject();
+
 	Repository *repository_;
 
 protected:

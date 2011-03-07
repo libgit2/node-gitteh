@@ -32,7 +32,7 @@ Handle<Value> RawObject::New(const Arguments& args) {
 
 	obj->obj_ = static_cast<git_rawobj*>(theObj->Value());
 
-	if(obj->obj_->type) {
+	if(obj->obj_->type != GIT_OBJ_BAD) {
 		git_oid objId;
 		int res = git_rawobj_hash(&objId, obj->obj_);
 		if(res != GIT_SUCCESS)
@@ -92,13 +92,12 @@ Handle<Value> RawObject::Save(const Arguments& args) {
 	if(res != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't save raw object.", res);
 
-	git_oid objId;
-	res = git_rawobj_hash(&objId, obj->obj_);
-	if(res != GIT_SUCCESS)
-		THROW_GIT_ERROR("Failed to get rawobj id after save.", res);
+	const char* oidStr = git_oid_allocfmt(&newId);
+	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+}
 
-	const char* oidStr = git_oid_allocfmt(&objId);
-	args.This()->Set(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+RawObject::~RawObject() {
+	delete obj_;
 }
 
 } // namespace gitteh
