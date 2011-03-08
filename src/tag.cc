@@ -105,7 +105,7 @@ Handle<Value> Tag::Save(const Arguments& args) {
 		THROW_GIT_ERROR("Target id is invalid.", res);
 
 	git_object *targetObj;
-	res = git_repository_lookup(&targetObj, tag->repository_->repo_, &targetId, GIT_OBJ_ANY);
+	res = git_object_lookup(&targetObj, tag->repository_->repo_, &targetId, GIT_OBJ_ANY);
 	if(res != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't get target object.", res);
 
