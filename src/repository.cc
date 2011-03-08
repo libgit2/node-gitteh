@@ -31,7 +31,25 @@
 #include "rawobj.h"
 #include "ref.h"
 
+#define GET_REQUEST_DATA()													\
+	object_get_request *requestData =										\
+		static_cast<object_get_request*>(req->data);
+
+#define REQUEST_CLEANUP()													\
+    requestData->callback.Dispose();										\
+ 	ev_unref(EV_DEFAULT_UC);												\
+ 	requestData->repo->Unref();												\
+	return 0;
+
 namespace gitteh {
+
+struct object_get_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	void *object;
+	git_oid oid;
+	int error;
+};
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
@@ -87,20 +105,81 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, commitOid);
 
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-
-	git_commit* commit;
-	if(git_commit_lookup(&commit, repo->repo_, &commitOid) != GIT_SUCCESS) {
-		// TODO: error code handling.
-		return scope.Close(Null());
+	if(args.Length() == 2) {
+		REQ_FUN_ARG(1, callbackArg);
+	
+		object_get_request *request = new object_get_request();
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->repo = repo;
+		
+		// TODO: should just get the oid into this struct in the first place.
+		// Write up some macros.
+		git_oid_cpy(&request->oid, &commitOid);
+		
+		repo->Ref();
+		
+		eio_custom(EIO_GetCommit, EIO_PRI_DEFAULT, EIO_AfterGetCommit, request);
+		ev_ref(EV_DEFAULT_UC);
+		
+		return scope.Close(Undefined());
 	}
+	else {
+		Commit *commitObject;
+		git_commit *commit;
+		int res = repo->getCommit(&commitOid, &commit);
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get commit", res);
+		}
 
-	Commit *commitObject = repo->wrapCommit(commit);
-	return scope.Close(commitObject->handle_);
+		commitObject = repo->wrapCommit(commit);
+		return scope.Close(commitObject->handle_);
+	}
+}
+
+int Repository::EIO_GetCommit(eio_req *req) {
+	GET_REQUEST_DATA();
+
+ 	git_commit* commit;
+ 	int result = requestData->error = requestData->repo->getCommit(&requestData->oid, &commit);
+	if(result == GIT_SUCCESS) {
+		requestData->object = commit;
+	}
+	
+	return 0;
+}
+
+int Repository::EIO_AfterGetCommit(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA();
+	 	
+ 	Handle<Value> *callbackArgs;
+ 	int argCount = 0;
+ 	if(requestData->error) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't get commit."), requestData->error);
+ 		callbackArgs = &error;
+ 		argCount = 1;
+	}
+	else {
+		Commit *commitObject = requestData->repo->wrapCommit(static_cast<git_commit*>(requestData->object));
+		callbackArgs = new Handle<Value>[2];
+		callbackArgs[0] = Null();
+		callbackArgs[1] = commitObject->handle_;
+		argCount = 2;
+	}
+	
+    TryCatch tryCatch;
+	requestData->callback->Call(Context::GetCurrent()->Global(), argCount, callbackArgs);
+ 	if(tryCatch.HasCaught()) {
+       FatalException(tryCatch);
+    }
+    
+    REQUEST_CLEANUP();
+    return 0;
 }
 
 Handle<Value> Repository::GetTree(const Arguments& args) {
@@ -281,6 +360,10 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	return Boolean::New(git_odb_exists(repo->odb_, &objOid));
 }
 
+Repository::Repository() {
+	CREATE_MUTEX(gitLock_);
+}
+
 Repository::~Repository() {
 	close();
 }
@@ -292,8 +375,19 @@ void Repository::close() {
 	}
 }
 
+int Repository::getCommit(git_oid *id, git_commit **cmt) {
+	int result;
+	
+	LOCK_MUTEX(gitLock_);
+	result = git_commit_lookup(cmt, repo_, id);
+	UNLOCK_MUTEX(gitLock_);
+	
+	return result;
+}
+
 Commit *Repository::wrapCommit(git_commit *commit) {
 	Commit *commitObject;
+	
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;

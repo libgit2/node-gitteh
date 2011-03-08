@@ -15,13 +15,18 @@ class Reference;
 
 class Repository : public ObjectWrap {
 public:
+	Repository();
 	~Repository();
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
 	Tree *wrapTree(git_tree*);
+	
 	Tag *wrapTag(git_tag*);
+	
+	int getCommit(git_oid*, git_commit**);
 	Commit *wrapCommit(git_commit*);
+	
 	Reference *wrapReference(git_reference*);
 	
 	git_repository *repo_;
@@ -35,7 +40,6 @@ protected:
 	static Handle<Value> GetTag(const Arguments&);
 	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
-
 
 	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
 
@@ -56,6 +60,18 @@ protected:
 
 	Index *index_;
 	char *path_;
+private:
+	static int EIO_GetCommit(eio_req*);
+	static int EIO_AfterGetCommit(eio_req*);
+	
+	// For now, I'm using one lock for anything that calls a git_* api function.
+	// I could probably have different locks for different sections of libgit2,
+	// as I'm sure working on the index file or working on a specific ref isn't
+	// going to step on the toes of a simultaneous call to get a tree entry for
+	// example. However for now I want this thing to *just work*, I'll worry 
+	// about making it a speed demon later. Ideally libgit2 will become thread
+	// safe internally, then I can remove all this shit!
+	gitteh_lock gitLock_;
 };
 
 } // namespace gitteh

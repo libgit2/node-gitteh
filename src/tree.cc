@@ -194,7 +194,7 @@ Handle<Value> Tree::Save(const Arguments& args) {
 
 	int result = git_object_write((git_object *)tree->tree_);
 	if(result != GIT_SUCCESS) {
-		return ThrowException(ThrowGitError(String::New("Error saving tree."), result));
+		return ThrowException(CreateGitError(String::New("Error saving tree."), result));
 	}
 
 	const git_oid *treeOid = git_tree_id(tree->tree_);

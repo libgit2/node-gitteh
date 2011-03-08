@@ -35,6 +35,7 @@ public:
 		ManagedObject<T, S> *managedObject;
 		bool newlyCreated = false;
 
+		LOCK_MUTEX(objectsLock);
 		if(!objects[(int)ref]) {
 			Handle<Value> constructorArgs[1] = { External::New(ref) };
 			Handle<Object> jsObject = T::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
@@ -53,6 +54,7 @@ public:
 		else {
 			managedObject = objects[(int)ref];
 		}
+		UNLOCK_MUTEX(objectsLock);
 
 		//return scope.Close(managedObject->object->handle_);
 		*dest = managedObject->object;
@@ -73,6 +75,10 @@ public:
 		objects.erase(it);
 	}
 
+	inline ObjectStore() {
+		CREATE_MUTEX(objectsLock);
+	}
+	
 	inline ~ObjectStore() {
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
@@ -97,6 +103,7 @@ private:
 	}
 
 	std::map<int, ManagedObject<T, S>*> objects;
+	gitteh_lock objectsLock;	
 };
 
 template <class T, class S>

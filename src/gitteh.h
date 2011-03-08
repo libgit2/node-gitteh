@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string.h>
 
+#include "thread.h"
+
 using namespace v8;
 using namespace node;
 
@@ -63,6 +65,12 @@ using namespace node;
                   String::New("Argument " #I " must be an integer")));  \
   VAR = args[I]->Int32Value();
 
+#define REQ_FUN_ARG(I, VAR)                                             \
+  if (args.Length() <= (I) || !args[I]->IsFunction())                   \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be a function")));  \
+  Local<Function> VAR = Local<Function>::Cast(args[I]);
+
 #define REQ_DOUBLE_ARG(I, VAR)                                          \
   double VAR;                                                           \
   if (args.Length() <= (I) || !args[I]->IsNumber())                     \
@@ -96,12 +104,12 @@ using namespace node;
 	return ThrowException(Exception::Error(String::New(errorStr)));
 
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
-	return ThrowException(ThrowGitError(String::New(errorStr), errorCode));
-
+	return ThrowException(CreateGitError(String::New(errorStr), errorCode));
+	
 
 namespace gitteh {
 
-static inline Handle<Value> ThrowGitError(Handle<String> message, int gitErrorCode) {
+static inline Handle<Value> CreateGitError(Handle<String> message, int gitErrorCode) {
 	HandleScope scope;
 
 	Handle<Object> error = Handle<Object>::Cast(Exception::Error(message));
