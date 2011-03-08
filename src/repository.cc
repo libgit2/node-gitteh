@@ -257,11 +257,11 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 	REQ_STR_ARG(0, nameArg);
 	REQ_STR_ARG(1, targetArg);
 
-	if(!nameArg->Length()) {
+	if(!nameArg.length()) {
 		THROW_ERROR("Please provide a name.");
 	}
 
-	if(!targetArg->Length()) {
+	if(!targetArg.length()) {
 		THROW_ERROR("Please provide a target for the symbolic ref.");
 	}
 
@@ -284,7 +284,7 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 	REQ_STR_ARG(0, nameArg);
 	REQ_OID_ARG(1, oidArg);
 
-	if(!nameArg->Length()) {
+	if(!nameArg.length()) {
 		THROW_ERROR("Please provide a name.");
 	}
 
@@ -352,6 +352,8 @@ Reference *Repository::wrapReference(git_reference *ref) {
 	if(refStore_.getObjectFor(ref, &refObj)) {
 		refObj->repository_ = this;
 	}
+	
+	return refObj;
 }
 
 } // namespace gitteh

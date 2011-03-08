@@ -34,5 +34,25 @@ vows.describe("References").addBatch({
 				assert.equal(ref.target, fixtureValues.LATEST_COMMIT.id);
 			}
 		}
+	},
+	
+	"Creating a symbolic ref": {
+		topic: repo.createSymbolicReference("heads/test", "heads/master"),
+		
+		"gives us a reference": function(ref) {
+			assert.isTrue(!!ref);
+		},
+		
+		"with correct name": function(ref) {
+			assert(ref.name, "heads/test");
+		},
+		
+		"and correct type": function(ref) {
+			assert(ref.type, gitteh.GIT_REF_SYMBOLIC);
+		},
+		
+		"ref is reachable from repository": function(ref) {
+			assert.isTrue(ref === repo.getReference("heads/test"));
+		}
 	}
 }).export(module);
