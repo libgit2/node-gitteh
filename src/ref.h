@@ -9,6 +9,8 @@ class Repository;
 
 class Reference : public ObjectWrap {
 public:
+	Reference();
+
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
@@ -20,8 +22,11 @@ protected:
 	static Handle<Value> Rename(const Arguments&);
 	static Handle<Value> Delete(const Arguments&);
 	static Handle<Value> Resolve(const Arguments&);
+	static Handle<Value> SetTarget(const Arguments&);
 
 	git_reference *ref_;
+	git_rtype type_;
+	bool deleted_;
 };
 
 } // namespace gitteh
