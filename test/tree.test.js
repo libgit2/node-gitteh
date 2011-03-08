@@ -36,7 +36,7 @@ var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 var createTreeTestContext = function(treeFixture) {
 	var context = {
 		topic: function() {
-			return repo.getTree(treeFixture.id);
+			repo.getTree(treeFixture.id, this.callback);
 		},
 		
 		"gives us a Tree": function(tree) {
@@ -140,25 +140,29 @@ vows.describe("Tree").addBatch({
 	
 	"Loading a non-existent tree": {
 		topic: function() {
-			return repo.getTree(helpers.getSHA1("foo"));
+			return function() {
+				repo.getTree(helpers.getSHA1("foo"));
+			};
 		},
 		
-		"gives us null": function(tree) {
-			assert.isNull(tree);
+		"throws an error": function(fn) {
+			assert.throws(fn, Error);
 		}
 	},
 	
 	"Loading a tree that is actually a commit": {
 		topic: function() {
-			return repo.getTree(fixtureValues.FIRST_COMMIT.id);
+			return function() {
+				repo.getTree(fixtureValues.FIRST_COMMIT.id);
+			};
 		},
 		
-		"gives us null": function(tree) {
-			assert.isNull(tree);
+		"throws an error": function(tree) {
+			assert.throws(tree, Error);
 		}
 	},
 	
-	"Looking up a non-existant tree entry": {
+	"Looking up a non-existent tree entry": {
 		topic: function() {
 			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
 			return tree.getEntry("foo.bar.i.dont.exist");
@@ -186,7 +190,7 @@ vows.describe("Tree").addBatch({
 	
 	"Creating a new Tree": {
 		topic: function() {
-			return repo.createTree();
+			repo.createTree(this.callback);
 		},
 		
 		"gives us a new Tree": function(tree) {

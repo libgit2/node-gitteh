@@ -32,7 +32,7 @@ var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 vows.describe("RawObj").addBatch({
 	"Opening a raw object": {
 		topic: function() {
-			return repo.getRawObject(fixtureValues.TEST_TAG.id);
+			repo.getRawObject(fixtureValues.TEST_TAG.id, this.callback);
 		},
 		
 		"gives us an object": function(obj) {
@@ -65,7 +65,9 @@ vows.describe("RawObj").addBatch({
 	},
 	
 	"Creating a new raw object": {
-		topic: repo.createRawObject(),
+		topic: function() {
+			repo.createRawObject(this.callback);
+		},
 		
 		"gives us an identity raw object": function(rawobj) {
 			assert.isNull(rawobj.id);

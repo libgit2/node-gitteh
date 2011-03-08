@@ -77,7 +77,7 @@ Handle<Value> Reference::New(const Arguments& args) {
 				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
 
-	return scope.Close(args.This());
+	return args.This();
 }
 
 Handle<Value> Reference::Rename(const Arguments& args) {
@@ -104,7 +104,6 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 
 Handle<Value> Reference::Resolve(const Arguments &args) {
 	HandleScope scope;
-
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
 
 	git_reference *resolvedRef;

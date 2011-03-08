@@ -33,7 +33,7 @@ var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 var createCommitTests = function(commitFixture) {
 	var context = {
 		topic: function() {
-			return repo.getCommit(commitFixture.id);
+			repo.getCommit(commitFixture.id, this.callback);
 		},
 		
 		"exists": function(commit) {
@@ -130,7 +130,7 @@ vows.describe("Commit").addBatch({
 
 	"Creating a new commit": {
 		topic: function() {
-			return repo.createCommit();
+			repo.createCommit(this.callback);
 		},
 		
 		"gives us an identity Commit": function(commit) {
@@ -179,8 +179,7 @@ vows.describe("Commit").addBatch({
 	
 	"Creating a Commit and adding a parent by id": {
 		topic: function() {
-			var commit = repo.createCommit();
-			return commit;
+			repo.createCommit(this.callback);
 		},
 		
 		"works": function(commit) {

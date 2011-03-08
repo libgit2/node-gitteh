@@ -33,8 +33,7 @@ var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 var createTagTestContext = function(tagFixture) {
 	var context = {
 		topic: function() {
-			var tag = repo.getTag(tagFixture.id);
-			return tag;
+			repo.getTag(tagFixture.id, this.callback);
 		},
 		
 		"tag exists": function(tag) {
@@ -85,7 +84,7 @@ vows.describe("Tag").addBatch({
 	
 	"Creating a new tag": {
 		topic: function() {
-			return repo.createTag();
+			repo.createTag(this.callback);
 		},
 
 		"tag is in identity state": function(tag) {

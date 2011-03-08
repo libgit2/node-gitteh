@@ -23,6 +23,11 @@ namespace gitteh {
 // was already wrapped before V8 GC went and trashed the object) will then
 // re-create the JS object. Woot.
 
+// Restating what is probably obvious to those who know what they're doing (not
+// me): there's no need to make any of this thread safe, nor will there ever be.
+// This is because any wrapping/v8 object instantiation should only be done in 
+// the main thread.
+
 template <class T, class S>
 class ManagedObject;
 
@@ -35,7 +40,6 @@ public:
 		ManagedObject<T, S> *managedObject;
 		bool newlyCreated = false;
 
-		LOCK_MUTEX(objectsLock);
 		if(!objects[(int)ref]) {
 			Handle<Value> constructorArgs[1] = { External::New(ref) };
 			Handle<Object> jsObject = T::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
@@ -54,7 +58,6 @@ public:
 		else {
 			managedObject = objects[(int)ref];
 		}
-		UNLOCK_MUTEX(objectsLock);
 
 		//return scope.Close(managedObject->object->handle_);
 		*dest = managedObject->object;
@@ -75,10 +78,6 @@ public:
 		objects.erase(it);
 	}
 
-	inline ObjectStore() {
-		CREATE_MUTEX(objectsLock);
-	}
-	
 	inline ~ObjectStore() {
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
@@ -103,7 +102,6 @@ private:
 	}
 
 	std::map<int, ManagedObject<T, S>*> objects;
-	gitteh_lock objectsLock;	
 };
 
 template <class T, class S>

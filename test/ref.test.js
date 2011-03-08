@@ -31,16 +31,18 @@
 var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 vows.describe("References").addBatch({
 	"Getting HEAD ref": {
-		topic: repo.getReference("HEAD"),
+		topic: function() {
+			repo.getReference("HEAD", this.callback);
+		},
 		
 		"gives us a reference": function(ref) {
 			assert.isTrue(!!ref);
 		},
-		
+
 		"name is correct": function(ref) {
 			assert.equal(ref.name, "HEAD");
 		},
-		
+
 		"- then resolving it": {
 			topic: function(ref) {
 				return ref.resolve();
