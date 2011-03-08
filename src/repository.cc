@@ -148,6 +148,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
+	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidRef);
+	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
@@ -469,6 +471,55 @@ int Repository::EIO_GetReference(eio_req *req) {
 	}
 
 	return 0;
+}
+
+Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_STR_ARG(0, nameArg);
+	REQ_STR_ARG(1, targetArg);
+
+	if(!nameArg.length()) {
+		THROW_ERROR("Please provide a name.");
+	}
+
+	if(!targetArg.length()) {
+		THROW_ERROR("Please provide a target for the symbolic ref.");
+	}
+
+	git_reference *ref;
+	int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg);
+
+	if(res != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't create reference.", res);
+	}
+
+	Reference *refObj = repo->wrapReference(ref);
+	return scope.Close(refObj->handle_);
+}
+
+Handle<Value> Repository::CreateOidRef(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(2);
+	REQ_STR_ARG(0, nameArg);
+	REQ_OID_ARG(1, oidArg);
+
+	if(!nameArg.length()) {
+		THROW_ERROR("Please provide a name.");
+	}
+
+	git_reference *ref;
+	int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
+	if(res != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't create reference.", res);
+	}
+
+	Reference *refObj = repo->wrapReference(ref);
+	return scope.Close(refObj->handle_);
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {
