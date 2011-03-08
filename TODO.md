@@ -8,3 +8,6 @@
 * Revisit index support, expand and add tests.
 * Possibly implement custom backend support, allowing JS callbacks to provide a custom git backend.
 * Suss out libgit2's ref support. It's not documented at all in their Doxygen atm, but there are mentions of it in rugged, and I can see it in the source code of libgit2.
+
+
+* Check for memory leaks

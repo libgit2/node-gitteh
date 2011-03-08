@@ -1,5 +1,7 @@
 # Gitteh
 
+These bindings are still under heavy development, proceed with caution!
+
 ## What?
 
 Native bindings to libgit2. The bindings aren't quite 1:1 functions though. I wrapped most of the functionality up into neat object boundaries. That is, creating a commit is done from a Repository, then managing that commit is done from a Commit object.
