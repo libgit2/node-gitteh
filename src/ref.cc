@@ -33,6 +33,10 @@ namespace gitteh {
 
 Persistent<FunctionTemplate> Reference::constructor_template;
 
+Reference::Reference() {
+	deleted_ = false;
+}
+
 void Reference::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -44,6 +48,7 @@ void Reference::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "rename", Rename);
 	NODE_SET_PROTOTYPE_METHOD(t, "delete", Delete);
 	NODE_SET_PROTOTYPE_METHOD(t, "resolve", Resolve);
+	NODE_SET_PROTOTYPE_METHOD(t, "setTarget", SetTarget);
 
 	NODE_DEFINE_CONSTANT(target, GIT_REF_OID);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_SYMBOLIC);
@@ -57,22 +62,21 @@ Handle<Value> Reference::New(const Arguments& args) {
 
 	Reference *ref = new Reference();
 	ref->ref_ = static_cast<git_reference*>(refArg->Value());
+	ref->type_ = git_reference_type(ref->ref_);
 	ref->Wrap(args.This());
-
-	git_rtype type = git_reference_type(ref->ref_);
 
 	args.This()->Set(NAME_PROPERTY, String::New(git_reference_name(ref->ref_)),
 			(PropertyAttribute)(ReadOnly | DontDelete));
 
-	args.This()->Set(TYPE_PROPERTY, Integer::New(type),
+	args.This()->Set(TYPE_PROPERTY, Integer::New(ref->type_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
 
-	if(type == GIT_REF_OID) {
+	if(ref->type_ == GIT_REF_OID) {
 		const char *oidStr = git_oid_allocfmt(git_reference_oid(ref->ref_));
 		args.This()->Set(TARGET_PROPERTY, String::New(oidStr),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
-	else if(type == GIT_REF_SYMBOLIC) {
+	else if(ref->type_ == GIT_REF_SYMBOLIC) {
 		args.This()->Set(TARGET_PROPERTY, String::New(git_reference_target(ref->ref_)),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
@@ -82,30 +86,46 @@ Handle<Value> Reference::New(const Arguments& args) {
 
 Handle<Value> Reference::Rename(const Arguments& args) {
 	HandleScope scope;
-
+	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
+	if(ref->deleted_) {
+		THROW_ERROR("This ref has been deleted!");
+	}
+	
 	REQ_ARGS(1);
 	REQ_STR_ARG(0, newNameArg);
-
-	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
 
 	int result = git_reference_rename(ref->ref_, *newNameArg);
 	if(result != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't rename ref.", result);
 
+	args.This()->ForceSet(NAME_PROPERTY, String::New(git_reference_name(ref->ref_)),
+			(PropertyAttribute)(ReadOnly | DontDelete));
+			
 	return scope.Close(Undefined());
 }
 
 Handle<Value> Reference::Delete(const Arguments &args) {
 	HandleScope scope;
+	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
+	if(ref->deleted_) {
+		THROW_ERROR("This ref has already been deleted!");
+	}
 
-// TODO:
-	return scope.Close(Undefined());
+	int result = git_reference_delete(ref->ref_);
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't delete ref.", result);
+	}
+
+	ref->deleted_ = true;
+	return scope.Close(True());
 }
 
 Handle<Value> Reference::Resolve(const Arguments &args) {
 	HandleScope scope;
-
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
+	if(ref->deleted_) {
+		THROW_ERROR("This ref has been deleted!");
+	}
 
 	git_reference *resolvedRef;
 	int result = git_reference_resolve(&resolvedRef, ref->ref_);
@@ -114,6 +134,37 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 
 	Reference *resolvedRefObj = ref->repository_->wrapReference(resolvedRef);
 	return scope.Close(resolvedRefObj->handle_);
+}
+
+Handle<Value> Reference::SetTarget(const Arguments &args) {
+	HandleScope scope;
+	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
+	if(ref->deleted_) {
+		THROW_ERROR("This ref has been deleted!");
+	}
+	
+	REQ_ARGS(1);
+	
+	int result = GIT_ERROR;
+	
+	if(ref->type_ == GIT_REF_OID) {
+		REQ_OID_ARG(0, oidArg);
+		result = git_reference_set_oid(ref->ref_, &oidArg);
+	}
+	else if(ref->type_ == GIT_REF_SYMBOLIC) {
+		REQ_STR_ARG(0, targetArg);
+		result = git_reference_set_target(ref->ref_, *targetArg);
+	}
+	
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't set target.", result);
+	}
+	else {
+		args.This()->ForceSet(TARGET_PROPERTY, args[0],
+				(PropertyAttribute)(ReadOnly | DontDelete));
+	}
+	
+	return scope.Close(True());
 }
 
 } // namespace gitteh
