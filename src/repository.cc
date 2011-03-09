@@ -277,7 +277,7 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	REQ_ARGS(1);
+	REQ_ARGS(2);
 	REQ_STR_ARG(0, nameArg);
 	REQ_STR_ARG(1, targetArg);
 
