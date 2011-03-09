@@ -14,14 +14,14 @@
 // so I can swap them out or write compiler/platform specific variants later.
 
 typedef pthread_mutex_t gitteh_lock;
-#define CREATE_MUTEX(lock)													\
-	lock = PTHREAD_MUTEX_INITIALIZER
+#define CREATE_MUTEX(LOCK)													\
+	LOCK = PTHREAD_MUTEX_INITIALIZER;
 
-#define LOCK_MUTEX(lock)													\
-	pthread_mutex_lock(&lock);
+#define LOCK_MUTEX(LOCK)													\
+	pthread_mutex_lock(&LOCK);
 	
-#define UNLOCK_MUTEX(lock)													\
-	pthread_mutex_unlock(&lock)
+#define UNLOCK_MUTEX(LOCK)													\
+	pthread_mutex_unlock(&LOCK)
 	
 
 #endif // GITTEH_THREAD_H

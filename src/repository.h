@@ -12,6 +12,7 @@ class Commit;
 class Index;
 class RawObject;
 class Reference;
+class RevWalker;
 
 class Repository : public ObjectWrap {
 public:
@@ -21,17 +22,24 @@ public:
 	static void Init(Handle<Object>);
 
 	int createTree(git_tree**);
-	int getTree(git_oid*, git_tree**);
-	Tree *wrapTree(git_tree*);
-	int createTag(git_tag**);
-	int getTag(git_oid*, git_tag**);
-	Tag *wrapTag(git_tag*);
 	int createCommit(git_commit**);
+	int createTag(git_tag**);
+	int createRawObject(git_rawobj**);
+	int createRevWalker(git_revwalk**);
+
+	int getTree(git_oid*, git_tree**);
+	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
-	Commit *wrapCommit(git_commit*);
 	int getReference(char*, git_reference**);
-	Reference *wrapReference(git_reference*);
 	int getRawObject(git_oid*, git_rawobj**);
+	Tree *wrapTree(git_tree*);
+	Reference *wrapReference(git_reference*);
+	Commit *wrapCommit(git_commit*);
+	Tag *wrapTag(git_tag*);
+	RawObject *wrapRawObject(git_rawobj*);
+	RevWalker *wrapRevWalker(git_revwalk*);
+
+	git_commit* getParentCommit(git_commit*, int);
 
 	git_repository *repo_;
 	git_odb *odb_;
@@ -70,22 +78,29 @@ private:
 	static int EIO_GetCommit(eio_req*);
 	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
+	static int EIO_ReturnCreatedCommit(eio_req*);
 	
 	static int EIO_GetTree(eio_req*);
 	static int EIO_CreateTree(eio_req*);
 	static int EIO_ReturnTree(eio_req*);
+	static int EIO_ReturnCreatedTree(eio_req*);
 	
 	static int EIO_GetTag(eio_req*);
 	static int EIO_CreateTag(eio_req*);
 	static int EIO_ReturnTag(eio_req*);
+	static int EIO_ReturnCreatedTag(eio_req*);
 	
 	static int EIO_GetRawObject(eio_req*);
 	static int EIO_CreateRawObject(eio_req*);
 	static int EIO_ReturnRawObject(eio_req*);
+	static int EIO_ReturnCreatedRawObject(eio_req*);
 	
 	static int EIO_GetReference(eio_req*);
 	static int EIO_ReturnReference(eio_req*);
 	
+	static int EIO_CreateRevWalker(eio_req*);
+	static int EIO_ReturnCreatedRevWalker(eio_req*);
+
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,
 	// as I'm sure working on the index file or working on a specific ref isn't

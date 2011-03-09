@@ -36,6 +36,13 @@
 
 namespace gitteh {
 
+struct get_parent_request {
+	Persistent<Function> callback;
+	Commit *commit;
+	int index;
+	git_commit *parent;
+};
+
 Persistent<FunctionTemplate> Commit::constructor_template;
 
 void Commit::Init(Handle<Object> target) {
@@ -149,15 +156,62 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
 
 	REQ_ARGS(1);
-	REQ_INT_ARG(0, index);
+	REQ_INT_ARG(0, indexArg);
 
-	if(index >= commit->parentCount_) {
-		return ThrowException(Exception::Error(String::New("Parent commit index is out of bounds.")));
+	if(indexArg >= commit->parentCount_) {
+		THROW_ERROR("Parent commit index is out of bounds.");
 	}
 
-	git_commit *parent = git_commit_parent(commit->commit_, index);
-	Commit *parentObject = commit->repository_->wrapCommit(parent);
-	return scope.Close(parentObject->handle_);
+	if(args.Length() > 1) {
+		get_parent_request *request = new get_parent_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->commit = commit;
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->index = indexArg;
+
+		eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, request);
+		commit->Ref();
+		ev_ref(EV_DEFAULT_UC);
+	}
+	else {
+		git_commit *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
+		Commit *parentObject = commit->repository_->wrapCommit(parent);
+		return scope.Close(parentObject->handle_);
+	}
+}
+
+int Commit::EIO_GetParent(eio_req *req) {
+	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
+
+	reqData->parent = reqData->commit->repository_->getParentCommit(
+			reqData->commit->commit_, reqData->index);
+
+	return 0;
+}
+
+int Commit::EIO_AfterGetParent(eio_req *req) {
+	HandleScope scope;
+	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->parent == NULL) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't get parent commit."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+		Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent);
+		callbackArgs[0] = Null();
+		callbackArgs[1] = object->handle_;
+	}
+
+ 	TRIGGER_CALLBACK();
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> Commit::AddParent(const Arguments& args) {

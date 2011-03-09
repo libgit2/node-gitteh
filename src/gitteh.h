@@ -17,6 +17,14 @@ using namespace node;
 #define SIG_EMAIL_PROPERTY String::NewSymbol("email")
 #define SIG_NAME_PROPERTY String::NewSymbol("name")
 
+#define TRIGGER_CALLBACK()													\
+	TryCatch tryCatch;														\
+	reqData->callback->Call(Context::GetCurrent()->Global(),				\
+			2, callbackArgs);												\
+ 	if(tryCatch.HasCaught()) {												\
+       FatalException(tryCatch);											\
+    }
+
 #define CHECK_PROPERTY(PROPNAME)											\
 	if(args.This()->Get(PROPNAME)->IsUndefined() ||							\
 				args.This()->Get(PROPNAME)->IsNull())						\

@@ -53,15 +53,14 @@ void RevWalker::Init(Handle<Object> target) {
 Handle<Value> RevWalker::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(2);
+	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theWalker);
-	REQ_EXT_ARG(1, theRepo);
 
 	RevWalker *walker = new RevWalker();
 	walker->walker_ = static_cast<git_revwalk *>(theWalker->Value());
-	walker->repo_ = static_cast<Repository *>(theRepo->Value());
 
 	walker->Wrap(args.This());
+
 	return args.This();
 }
 

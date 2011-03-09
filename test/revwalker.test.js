@@ -33,16 +33,17 @@ var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
 vows.describe("RevWalker").addBatch({
 	"RevWalker from second commit": {
 		topic: function() {
-			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TIME);
-			return walker;
+			//return repo.createWalker();
+			repo.createWalker(this.callback);
 		},
-	
+
 		"gives us a walker": function(walker) {
+			console.log("woot.");
 			assert.isTrue(!!walker);
 		},
 		
 		"pushing second commit works": function(walker) {
+			walker.sort(gitteh.SORT_TIME);
 			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
 		},
 		
@@ -59,26 +60,25 @@ vows.describe("RevWalker").addBatch({
 			
 			"commit is not redundant": function(commit) {
 				assert.isTrue(commit === repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+			},
+			
+			"calling *next()* gives us first commit.": function() {
+				var walker = this.context.walker;
+				var commit = walker.next();
+				assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
+			},
+			
+			"calling *next()* gives us null.": function() {
+				var walker = this.context.walker;
+				var commit = walker.next();
+				assert.isNull(commit);
 			}
-		},
-		
-		"calling *next()* gives us first commit.": function(walker) {
-			var commit = walker.next();
-			assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
-		},
-		
-		"calling *next()* gives us null.": function(walker) {
-			var commit = walker.next();
-			assert.isNull(commit);
 		}
 	},
-
+/*
 	"RevWalker from second commit in reverse order": {
 		topic: function() {
-			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TIME | gitteh.SORT_REVERSE);
-			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
-			return walker;
+			repo.createWalker(this.callback);
 		},
 	
 		"gives us a walker": function(walker) {
@@ -86,6 +86,8 @@ vows.describe("RevWalker").addBatch({
 		},
 
 		"calling *next()* gives us first commit.": function(walker) {
+			walker.sort(gitteh.SORT_TIME | gitteh.SORT_REVERSE);
+			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
 			var commit = walker.next();
 			assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
 		},
@@ -155,5 +157,5 @@ vows.describe("RevWalker").addBatch({
 			var commit = walker.next();
 			assert.isNull(commit);
 		}
-	}
+	}*/
 }).export(module);

@@ -25,6 +25,10 @@ protected:
 	static Handle<Value> Save(const Arguments&);
 
 	int parentCount_;
+
+private:
+	static int EIO_GetParent(eio_req*);
+	static int EIO_AfterGetParent(eio_req*);
 };
 
 } // namespace gitteh
