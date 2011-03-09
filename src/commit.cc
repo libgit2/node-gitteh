@@ -95,7 +95,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 		}
 
 		commit->parentCount_ = git_commit_parentcount(commit->commit_);
-
 		jsObj->Set(String::New("parentCount"), Integer::New(commit->parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
 	}
 	else {
@@ -183,6 +182,7 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 int Commit::EIO_GetParent(eio_req *req) {
 	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
 
+reqData->parent = NULL;
 	reqData->parent = reqData->commit->repository_->getParentCommit(
 			reqData->commit->commit_, reqData->index);
 

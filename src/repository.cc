@@ -624,10 +624,12 @@ int Repository::createCommit(git_commit **commit) {
 Commit *Repository::wrapCommit(git_commit *commit) {
 	Commit *commitObject;
 	
+	LOCK_MUTEX(gitLock_);
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;
 	}
+	UNLOCK_MUTEX(gitLock_);
 
 	return commitObject;
 }
