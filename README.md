@@ -18,7 +18,7 @@ Installation can be done via npm.
 
 	npm install gitteh
 
-Documentation can be found at [http://samcday.github.com/node-gitteh](http://samcday.github.com/node-gitteh).
+Documentation can be found at [http://libgit2.github.com/node-gitteh](http://libgit2.github.com/node-gitteh).
 
 ## Can I has halp?
 
