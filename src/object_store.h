@@ -99,6 +99,10 @@ private:
 		typename std::map<int, ManagedObject<T,S>* >::iterator it;
 		it = store->objects.find((int)managedObject->ref);
 		store->objects.erase(it);
+
+		managedObject->handle.ClearWeak();
+		managedObject->handle.Dispose();
+		managedObject->handle.Clear();
 	}
 
 	std::map<int, ManagedObject<T, S>*> objects;
