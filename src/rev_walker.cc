@@ -96,7 +96,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 	}
 
 	// Get the commit for this oid.
-	int res = git_revwalk_push(walker->walker_, commit);
+	int res = git_revwalk_push(walker->walker_, git_commit_id(commit));
 	if(res != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
@@ -134,7 +134,7 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 		commit = commitObject->commit_;
 	}
 	
-	int res = git_revwalk_hide(walker->walker_, commit);
+	int res = git_revwalk_hide(walker->walker_, git_commit_id(commit));
 	if(res != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't hide commit.", res);
 
@@ -146,11 +146,16 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_commit *commit;
-	git_revwalk_next(&commit, walker->walker_);
+	git_oid id;
+	int result = git_revwalk_next(&id, walker->walker_);
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't get next commit.", result);
+	}
 
-	if(commit == NULL) {
-		return Null();
+	git_commit *commit;
+	result = git_commit_lookup(&commit, walker->repo_->repo_, &id);
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't get next commit.", result);
 	}
 
 	Commit *commitObject = walker->repo_->wrapCommit(commit);

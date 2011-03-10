@@ -38,14 +38,6 @@
 // 6 trillion times. Instead, I write a bunch of ugly motherfucking macros that
 // I have no hope of maintaining in future. Fuck I'm rad.
 
-#define LOAD_OID_ARG(I, VAR)												\
-  if (args.Length() <= (I) || !args[I]->IsString()) 						\
-	return ThrowException(Exception::TypeError(								\
-				  String::New("Argument " #I " invalid")));					\
-  if(git_oid_mkstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
-  	return ThrowException(Exception::TypeError(								\
-  				  String::New("Argument " #I " is not an oid")));
-
 #define GET_REQUEST_DATA(REQUESTTYPE)										\
 	REQUESTTYPE *reqData =													\
 		static_cast<REQUESTTYPE*>(req->data);
@@ -206,6 +198,21 @@ struct create_symref_request {
 	String::Utf8Value *target;
 };
 
+struct open_repo_request {
+	Persistent<Function> callback;
+	int error;
+	String::Utf8Value *path;
+	git_repository *repo;
+};
+
+struct init_repo_request {
+	Persistent<Function> callback;
+	int error;
+	String::Utf8Value *path;
+	bool bare;
+	git_repository *repo;
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 void Repository::Init(Handle<Object> target) {
@@ -235,28 +242,98 @@ void Repository::Init(Handle<Object> target) {
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
 	target->Set(String::New("Repository"), t->GetFunction());
+
+	NODE_SET_METHOD(target, "openRepository", OpenRepository);
+	NODE_SET_METHOD(target, "initRepository", InitRepository);
+}
+
+Handle<Value> Repository::OpenRepository(const Arguments& args) {
+	HandleScope scope;
+	REQ_ARGS(1);
+	REQ_STR_ARG(0, pathArg);
+
+	if(HAS_CALLBACK_ARG) {
+		open_repo_request *request = new open_repo_request;
+		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+		request->path = new String::Utf8Value(args[0]);
+
+		eio_custom(EIO_OpenRepository, EIO_PRI_DEFAULT, EIO_AfterOpenRepository, request);
+		ev_ref(EV_DEFAULT_UC);
+	}
+	else {
+		git_repository* repo;
+		int result = git_repository_open(&repo, *pathArg);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't open repository.", result);
+		}
+
+		Handle<Value> constructorArgs[2] = {
+			External::New(repo),
+			args[0]
+		};
+
+		return scope.Close(Repository::constructor_template->GetFunction()
+				->NewInstance(2, constructorArgs));
+	}
+}
+
+int Repository::EIO_OpenRepository(eio_req *req) {
+	GET_REQUEST_DATA(open_repo_request);
+
+	reqData->error = git_repository_open(&reqData->repo, *reqData->path);
+
+	return 0;
+}
+
+int Repository::EIO_AfterOpenRepository(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(open_repo_request);
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+		Handle<Value> constructorArgs[2] = {
+			External::New(reqData->repo),
+			String::New(*reqData->path)
+		};
+		callbackArgs[0] = Null();
+		callbackArgs[1] = Repository::constructor_template->GetFunction()
+						->NewInstance(2, constructorArgs);
+	}
+
+ 	TRIGGER_CALLBACK();
+
+    reqData->callback.Dispose();
+ 	ev_unref(EV_DEFAULT_UC);
+ 	delete reqData->path;
+ 	delete reqData;
+	return 0;
+}
+
+Handle<Value> Repository::InitRepository(const Arguments& args) {
+	HandleScope scope;
+	REQ_ARGS(1);
 }
 
 Handle<Value> Repository::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(1);
-	REQ_STR_ARG(0, path);
+	REQ_ARGS(2);
+	REQ_EXT_ARG(0, repoArg);
+	REQ_STR_ARG(1, pathArg);
 
 	Repository *repo = new Repository();
+	repo->Wrap(args.This());
 
-	int result = git_repository_open(&repo->repo_, *path);
-	if(result != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't open repository.", result);
-	}
-
-	repo->path_ = *path;
-
-	args.This()->Set(String::New("path"), String::New(repo->path_), ReadOnly);
-
+	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
+	repo->path_ = *pathArg;
 	repo->odb_ = git_repository_database(repo->repo_);
 
-	repo->Wrap(args.This());
+	args.This()->Set(String::New("path"), String::New(repo->path_), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	// HUGE FUCKING TODO:
 	// IN MOTHER FUCKING CAPITALS.
@@ -705,17 +782,17 @@ int Repository::createCommit(git_commit **commit) {
 }
 
 Commit *Repository::wrapCommit(git_commit *commit) {
-	LOCK_MUTEX(gitLock_);
+	//LOCK_MUTEX(gitLock_);
 	Commit *commitObject;
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;
 	}
-	UNLOCK_MUTEX(gitLock_);
+	//UNLOCK_MUTEX(gitLock_);
 	return commitObject;
 }
 
-Commit *Repository::wrapCommitWithData(commit_data *data) {
+/*Commit *Repository::wrapCommitWithData(commit_data *data) {
 	//LOCK_MUTEX(gitLock_);
 	Commit *commitObject;
 	if(commitStore_.getObjectFor(data->commit, &commitObject)) {
@@ -725,7 +802,7 @@ Commit *Repository::wrapCommitWithData(commit_data *data) {
 	}
 	//UNLOCK_MUTEX(gitLock_);
 	return commitObject;
-}
+}*/
 
 int Repository::createTree(git_tree **tree) {
 	int result;
@@ -872,14 +949,15 @@ commit_data* Repository::getParentCommit(git_commit *commit, int index) {
 
 		// We don't wanna collect all the shit for a commit if it's already
 		// got a backing JS object.
-		if(!commitStore_.objectExistsFor(parent)) {
+		// ^^^ Bad idea for now.
+		//if(!commitStore_.objectExistsFor(parent)) {
 			const git_oid *commitId = git_commit_id(parent);
 			git_oid_fmt(data->id, commitId);
 			data->message = strdup(git_commit_message(parent));
 			data->author = git_signature_dup(git_commit_author(parent));
 			data->committer = git_signature_dup(git_commit_committer(parent));
 			data->parentCount = git_commit_parentcount(parent);
-		}
+		//}
 	};
 	UNLOCK_MUTEX(gitLock_);
 

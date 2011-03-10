@@ -17,6 +17,8 @@ using namespace node;
 #define SIG_EMAIL_PROPERTY String::NewSymbol("email")
 #define SIG_NAME_PROPERTY String::NewSymbol("name")
 
+#define HAS_CALLBACK_ARG args[args.Length()-1]->IsFunction()
+
 #define TRIGGER_CALLBACK()													\
 	TryCatch tryCatch;														\
 	reqData->callback->Call(Context::GetCurrent()->Global(),				\
@@ -114,6 +116,13 @@ using namespace node;
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
 	return ThrowException(CreateGitError(String::New(errorStr), errorCode));
 	
+#define LOAD_OID_ARG(I, VAR)												\
+  if (args.Length() <= (I) || !args[I]->IsString()) 						\
+	return ThrowException(Exception::TypeError(								\
+				  String::New("Argument " #I " invalid")));					\
+  if(git_oid_mkstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
+  	return ThrowException(Exception::TypeError(								\
+  				  String::New("Argument " #I " is not an oid")));
 
 namespace gitteh {
 

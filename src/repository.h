@@ -38,7 +38,6 @@ public:
 	Tree *wrapTree(git_tree*);
 	Reference *wrapReference(git_reference*);
 	Commit *wrapCommit(git_commit*);
-	Commit *wrapCommitWithData(commit_data*);
 	Tag *wrapTag(git_tag*);
 	RawObject *wrapRawObject(git_rawobj*);
 	RevWalker *wrapRevWalker(git_revwalk*);
@@ -49,6 +48,9 @@ public:
 	git_odb *odb_;
 
 protected:
+	static Handle<Value> OpenRepository(const Arguments&);
+	static Handle<Value> InitRepository(const Arguments&);
+
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetODB(const Arguments&);
 	static Handle<Value> GetCommit(const Arguments&);
@@ -79,6 +81,9 @@ protected:
 	Index *index_;
 	char *path_;
 private:
+	static int EIO_OpenRepository(eio_req*);
+	static int EIO_AfterOpenRepository(eio_req*);
+
 	static int EIO_GetCommit(eio_req*);
 	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);

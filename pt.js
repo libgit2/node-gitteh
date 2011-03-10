@@ -1,14 +1,10 @@
 var gitteh = require("./build/default/gitteh");
 var path = require("path");
-var profiler = require("profiler");
 var async = require("async");
 
 var repo = new gitteh.Repository(path.join(__dirname, ".git"));
 
-var num = 100;
-
-profiler.gc();
-//process.exit(1);
+var num = 50;
 
 //var headRef = repo.getReference("HEAD");
 //headRef = headRef.resolve();
@@ -26,10 +22,11 @@ var commitsTraversed = 0;
 var i = 0;
 var traverseParents = function(commit, workerNum, callback) {
 	var found = false;
+	var start = Date.now();
 	
 	var traverser = function(commit) {
 		if(!commit.parentCount && !found) {
-			//console.log("worker " + workerNum + " done!");
+			console.log("worker " + workerNum + " done in " + (Date.now() - start) + "!");
 			found = true;
 			callback(null, commit);
 			return;
@@ -69,9 +66,9 @@ async.parallel(fns, function() {
 	console.log("Took " + time + "ms");
 	console.log("Avg traverse: " + (time/num) +"ms");
 });
-/*
+
 (function() {
-	var num = 10000;
+	var num = 10;
 
 	var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 
@@ -104,7 +101,7 @@ async.parallel(fns, function() {
 		console.log("Took " + time + "ms");
 		console.log("Avg traverse: " + (time/num) +"ms");
 	});
-})();*/
+})();
 /*setTimeout(function() {
 	console.log("All done.");
 }, 2000);*/

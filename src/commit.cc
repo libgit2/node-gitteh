@@ -183,8 +183,8 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 			THROW_ERROR("Error getting parent.");
 		}
 
-		//Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
-		Commit *parentObject = commit->repository_->wrapCommitWithData(parent);
+		Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
+		//Commit *parentObject = commit->repository_->wrapCommitWithData(parent);
 		return scope.Close(parentObject->handle_);
 	}
 }
@@ -209,8 +209,9 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		Commit *object = reqData->commit->repository_->wrapCommitWithData(reqData->parent);
-		//object->load();
+		//Commit *object = reqData->commit->repository_->wrapCommitWithData(reqData->parent);
+		Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent->commit);
+		object->load(reqData->parent);
 		callbackArgs[0] = Null();
 		callbackArgs[1] = object->handle_;
 	}
