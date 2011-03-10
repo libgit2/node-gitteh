@@ -118,6 +118,8 @@ Handle<Value> RawObject::Save(const Arguments& args) {
 
 	const char* oidStr = git_oid_allocfmt(&newId);
 	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+
+	return Undefined();
 }
 
 RawObject::~RawObject() {

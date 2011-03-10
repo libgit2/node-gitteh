@@ -168,6 +168,8 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 	int result = git_revwalk_sorting(walker->walker_, sorting);
 	if(result != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't sort rev walker.", result);
+
+	return Undefined();
 }
 
 Handle<Value> RevWalker::Reset(const Arguments& args) {

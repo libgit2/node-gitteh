@@ -129,6 +129,8 @@ Handle<Value> Tag::Save(const Arguments& args) {
 	const git_oid *tagOid = git_tag_id(tag->tag_);
 	char *oidStr = git_oid_allocfmt(tagOid);
 	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+
+	return Undefined();
 }
 
 } // namespace gitteh

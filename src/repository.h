@@ -14,6 +14,8 @@ class RawObject;
 class Reference;
 class RevWalker;
 
+struct commit_data;
+
 class Repository : public ObjectWrap {
 public:
 	Repository();
@@ -29,17 +31,19 @@ public:
 
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
-	int getCommit(git_oid*, git_commit**);
+	int getCommit(git_oid*, commit_data**);
 	int getReference(char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
+
 	Tree *wrapTree(git_tree*);
 	Reference *wrapReference(git_reference*);
 	Commit *wrapCommit(git_commit*);
+	Commit *wrapCommitWithData(commit_data*);
 	Tag *wrapTag(git_tag*);
 	RawObject *wrapRawObject(git_rawobj*);
 	RevWalker *wrapRevWalker(git_revwalk*);
 
-	git_commit* getParentCommit(git_commit*, int);
+	commit_data* getParentCommit(git_commit*, int);
 
 	git_repository *repo_;
 	git_odb *odb_;

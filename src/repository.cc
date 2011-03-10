@@ -133,6 +133,7 @@
 		if(result == GIT_SUCCESS) {											\
 			reqData->object = object;										\
 		}																	\
+		return 0;															\
 	}
 	
 #define ASYNC_RETURN_REPO_OID_OBJECT_FN(TYPE, CLASS)						\
@@ -164,6 +165,14 @@
 	}
 
 namespace gitteh {
+
+struct get_commit_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	int error;
+	git_oid oid;
+	commit_data *data;
+};
 
 struct get_oid_object_request {
 	Persistent<Function> callback;
@@ -236,9 +245,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	Repository *repo = new Repository();
 
-	if(int result = git_repository_open(&repo->repo_, *path) != GIT_SUCCESS) {
-		Handle<Value> ex = Exception::Error(String::New("Git error."));
-		return ThrowException(ex);
+	int result = git_repository_open(&repo->repo_, *path);
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't open repository.", result);
 	}
 
 	repo->path_ = *path;
@@ -248,6 +257,27 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repo->odb_ = git_repository_database(repo->repo_);
 
 	repo->Wrap(args.This());
+
+	// HUGE FUCKING TODO:
+	// IN MOTHER FUCKING CAPITALS.
+	// FOR SOME FUCKING REASON THE REPOSITORY IS GETTING GARBAGE COLLECTED MID
+	// RUN WHEN I DO STRESS TESTS LIKE TRAVERSING COMMIT HISTORY 1000 TIMES
+	// SIMULTANEOUSLY. THIS IS FUCKING STUPID BECAUSE THE FUCKING REPO OBJECT
+	// STILL HAS A FUCKING REF IN THE FUCKING USERLAND SCRIPT, BUT CUNTS WILL BE
+	// FUCKING CUNTS RIGHT? SO ANYWAY I FOUND THIS OUT AFTER LIKE 8 HOURS OF
+	// DEBUGGING BULLSHIT FUCKING RANDOM SEGFAULTS ALL OVER THE PLACE. YEAH.
+	// AWESOME. I GOT LUCKY IN ONE OF THE SEGFAULTS AND SAW IN GDB THAT THE CUNT
+	// WAS ALL FUCKED UP. ANYWAY, I DISCOVERED THAT IF I ATTACHED THE REPO TO
+	// THE GLOBAL PROCESS OBJECT THEN REPO WOULDN'T GET REAPO'D AND AS SUCH MY
+	// HARD WORK WOULDN'T COME UNDONE LIKE A HOOKER'S BRA CLASP. THERE MUST BE
+	// SOME SORT OF WEIRD V8 OPTIMIZATION THAT LOOKS AT LOCAL VARIABLES IN A
+	// SCRIPT AND SENSES IF THE CUNTS AREN'T BEING REFERENCED ANYMORE, THEN IT
+	// MUST CONSIDER THE LOCAL JS VARIABLE "WEAK" OR SOME SHIT. ANYWAY, IT'S
+	// FUCKED AND I DON'T LIKE IT. FOR NOW I'M ADDING REF() HERE TO MAKE SURE
+	// THAT A REPO OBJECT CAN NEVER BE MOTHERFUCKING GARBAGE COLLECTED. WHEN I
+	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
+	// THIS SUCKER.
+	repo->Ref();
 	return args.This();
 }
 
@@ -277,20 +307,27 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	REQ_ARGS(1);
-	REQ_OID_ARG(0, oidArg);
 
 	if(args.Length() == 2) {
-		PREPARE_ASYNC_OID_GET(Commit);
+		//PREPARE_ASYNC_OID_GET(Commit);
+
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(get_commit_request);
+		LOAD_OID_ARG(0, request->oid);
+		REQUEST_DETACH(repo, EIO_GetCommit, EIO_ReturnCommit);
 	}
 	else {
+		REQ_OID_ARG(0, oidArg);
+
 		Commit *commitObject;
-		git_commit *commit;
-		int res = repo->getCommit(&oidArg, &commit);
+		commit_data *data;
+		int res = repo->getCommit(&oidArg, &data);
 		if(res != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't get commit", res);
 		}
 
-		commitObject = repo->wrapCommit(commit);
+		commitObject = repo->wrapCommit(data->commit);
+		commitObject->load(data);
 		return scope.Close(commitObject->handle_);
 	}
 }
@@ -507,6 +544,8 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		Reference *refObj = repo->wrapReference(ref);
 		return scope.Close(refObj->handle_);
 	}
+
+	return Undefined();
 }
 
 Handle<Value> Repository::CreateOidRef(const Arguments& args) {
@@ -545,8 +584,41 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 // ==========
 // COMMIT EIO
 // ==========
-ASYNC_GET_REPO_OID_OBJECT_FN(git_commit, Commit)
-ASYNC_RETURN_REPO_OID_OBJECT_FN(git_commit, Commit)
+//ASYNC_GET_REPO_OID_OBJECT_FN(git_commit, Commit)
+int Repository::EIO_GetCommit(eio_req *req) {
+	GET_REQUEST_DATA(get_commit_request);
+ 	commit_data* data;
+ 	int result = reqData->error = reqData->repo->getCommit(&reqData->oid, &data);
+	if(result == GIT_SUCCESS) {
+		reqData->data = data;
+	}
+	return 0;
+}
+
+int Repository::EIO_ReturnCommit(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(get_commit_request);
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error) {
+ 		Handle<Value> error = CreateGitError(String::New(
+ 				"Couldn't get commit."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+		Commit *object = reqData->repo->wrapCommit(
+				static_cast<git_commit*>(reqData->data->commit));
+		object->load(reqData->data);
+		callbackArgs[0] = Null();
+		callbackArgs[1] = object->handle_;
+	}
+
+	TRIGGER_CALLBACK();
+    REQUEST_CLEANUP();
+}
+
+//ASYNC_RETURN_REPO_OID_OBJECT_FN(git_commit, Commit)
 ASYNC_CREATE_REPO_OBJECT_FN(git_commit, Commit)
 ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_commit, Commit)
 
@@ -591,6 +663,7 @@ Repository::Repository() {
 }
 
 Repository::~Repository() {
+	std::cout << "repo dtor.\n";
 	close();
 }
 
@@ -601,13 +674,23 @@ void Repository::close() {
 	}
 }
 
-int Repository::getCommit(git_oid *id, git_commit **cmt) {
-	int result;
-	
+int Repository::getCommit(git_oid *id, commit_data **data) {
 	LOCK_MUTEX(gitLock_);
-	result = git_commit_lookup(cmt, repo_, id);
+	int result;
+	git_commit *cmt;
+	result = git_commit_lookup(&cmt, repo_, id);
+	if(result == GIT_SUCCESS) {
+		const git_oid *commitId = git_commit_id(cmt);
+
+		*data = new commit_data;
+		(*data)->commit = cmt;
+		git_oid_fmt((*data)->id, commitId);
+		(*data)->message = strdup(git_commit_message(cmt));
+		(*data)->author = git_signature_dup(git_commit_author(cmt));
+		(*data)->committer = git_signature_dup(git_commit_committer(cmt));
+		(*data)->parentCount = git_commit_parentcount(cmt);
+	};
 	UNLOCK_MUTEX(gitLock_);
-	
 	return result;
 }
 
@@ -622,13 +705,25 @@ int Repository::createCommit(git_commit **commit) {
 }
 
 Commit *Repository::wrapCommit(git_commit *commit) {
+	LOCK_MUTEX(gitLock_);
 	Commit *commitObject;
-	
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;
 	}
+	UNLOCK_MUTEX(gitLock_);
+	return commitObject;
+}
 
+Commit *Repository::wrapCommitWithData(commit_data *data) {
+	//LOCK_MUTEX(gitLock_);
+	Commit *commitObject;
+	if(commitStore_.getObjectFor(data->commit, &commitObject)) {
+		// Commit needs to know who it's daddy is.
+		commitObject->repository_ = this;
+		commitObject->load(data);
+	}
+	//UNLOCK_MUTEX(gitLock_);
 	return commitObject;
 }
 
@@ -766,14 +861,29 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	return GIT_SUCCESS;
 }
 
-git_commit* Repository::getParentCommit(git_commit* commit, int index) {
-	git_commit *result;
-
+commit_data* Repository::getParentCommit(git_commit *commit, int index) {
 	LOCK_MUTEX(gitLock_);
-	result = git_commit_parent(commit, index);
+	commit_data *data;
+	git_commit *parent;
+	parent = git_commit_parent(commit, index);
+	if(parent != NULL) {
+		data = new commit_data;
+		data->commit = parent;
+
+		// We don't wanna collect all the shit for a commit if it's already
+		// got a backing JS object.
+		if(!commitStore_.objectExistsFor(parent)) {
+			const git_oid *commitId = git_commit_id(parent);
+			git_oid_fmt(data->id, commitId);
+			data->message = strdup(git_commit_message(parent));
+			data->author = git_signature_dup(git_commit_author(parent));
+			data->committer = git_signature_dup(git_commit_committer(parent));
+			data->parentCount = git_commit_parentcount(parent);
+		}
+	};
 	UNLOCK_MUTEX(gitLock_);
 
-	return result;
+	return data;
 }
 
 } // namespace gitteh

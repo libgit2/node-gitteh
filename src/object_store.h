@@ -40,7 +40,13 @@ public:
 		ManagedObject<T, S> *managedObject;
 		bool newlyCreated = false;
 
-		if(!objects[(int)ref]) {
+		// Quick check for the managed object.
+		LOCK_MUTEX(objectsLock);
+		managedObject  = objects[(int)ref];
+		UNLOCK_MUTEX(objectsLock);
+
+		if(managedObject == NULL) {
+			// K we gotta go ahead and create.
 			Handle<Value> constructorArgs[1] = { External::New(ref) };
 			Handle<Object> jsObject = T::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
 
@@ -48,15 +54,15 @@ public:
 			managedObject->store = this;
 			managedObject->object = ObjectWrap::Unwrap<T>(jsObject);
 			managedObject->ref = ref;
+
+			LOCK_MUTEX(objectsLock);
 			objects[(int)ref] = managedObject;
+			UNLOCK_MUTEX(objectsLock);
 
 			managedObject->handle = Persistent<Object>::New(managedObject->object->handle_);
 			managedObject->handle.MakeWeak(managedObject, WeakCallback);
 
 			newlyCreated = true;
-		}
-		else {
-			managedObject = objects[(int)ref];
 		}
 
 		//return scope.Close(managedObject->object->handle_);
@@ -67,6 +73,7 @@ public:
 	inline void deleteObjectFor(S* ref) {
 		ManagedObject<T, S> *managedObject;
 
+		LOCK_MUTEX(objectsLock);
 		managedObject = objects[(int)ref];
 		if(!managedObject) return;
 
@@ -76,9 +83,28 @@ public:
 		typename std::map<int, ManagedObject<T,S>* >::iterator it;
 		it = objects.find((int)ref);
 		objects.erase(it);
+		UNLOCK_MUTEX(objectsLock);
+	}
+
+	inline bool objectExistsFor(S* ref) {
+		bool exists = false;
+		LOCK_MUTEX(objectsLock);
+		if(objects[(int)ref] != NULL) exists = true;
+		UNLOCK_MUTEX(objectsLock);
+
+		return exists;
+	}
+
+	inline ObjectStore() {
+		CREATE_MUTEX(objectsLock);
 	}
 
 	inline ~ObjectStore() {
+		// TODO: ooh, could be all sorts of fucked up deadlocks that locking the
+		// mutex in a dtor might bring about. Gonna have to make sure this is ok
+		// ... Later. Probably after another day of debugging stupid shit.
+		LOCK_MUTEX(objectsLock);
+
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
 		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
 		ManagedObject<T,S>* managedObject;
@@ -89,12 +115,16 @@ public:
 			managedObject->handle.Dispose();
 			++it;
 		}
+
+		UNLOCK_MUTEX(objectsLock);
 	}
 
 private:
 	static void WeakCallback (Persistent<Value> value, void *data) {
 		ManagedObject<T, S> *managedObject = (ManagedObject<T, S>*)data;
 		ObjectStore<T, S> *store = managedObject->store;
+
+		LOCK_MUTEX(store->objectsLock);
 
 		typename std::map<int, ManagedObject<T,S>* >::iterator it;
 		it = store->objects.find((int)managedObject->ref);
@@ -103,9 +133,12 @@ private:
 		managedObject->handle.ClearWeak();
 		managedObject->handle.Dispose();
 		managedObject->handle.Clear();
+
+		UNLOCK_MUTEX(store->objectsLock);
 	}
 
 	std::map<int, ManagedObject<T, S>*> objects;
+	gitteh_lock objectsLock;
 };
 
 template <class T, class S>

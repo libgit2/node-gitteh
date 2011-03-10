@@ -5,6 +5,15 @@
 
 namespace gitteh {
 
+struct commit_data {
+	git_commit *commit;
+	char id[40];
+	char *message;
+	git_signature *author;
+	git_signature *committer;
+	int parentCount;
+};
+
 class Repository;
 
 class Commit : public ObjectWrap {
@@ -12,6 +21,8 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 	~Commit();
+
+	void load(commit_data*);
 
 	Repository *repository_;
 	git_commit *commit_;

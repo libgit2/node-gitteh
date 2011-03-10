@@ -26,6 +26,10 @@
 #include "repository.h"
 #include "tree.h"
 #include <time.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define CLASS_NAME String::NewSymbol("Commit")
 
 #define ID_PROPERTY String::NewSymbol("id")
 #define MESSAGE_PROPERTY String::NewSymbol("message")
@@ -33,6 +37,7 @@
 #define AUTHOR_PROPERTY String::NewSymbol("author")
 #define COMMITTER_PROPERTY String::NewSymbol("committer")
 #define TREE_PROPERTY String::NewSymbol("tree")
+#define PARENTCOUNT_PROPERTY String::NewSymbol("parentCount")
 
 namespace gitteh {
 
@@ -40,7 +45,7 @@ struct get_parent_request {
 	Persistent<Function> callback;
 	Commit *commit;
 	int index;
-	git_commit *parent;
+	commit_data *parent;
 };
 
 Persistent<FunctionTemplate> Commit::constructor_template;
@@ -50,7 +55,7 @@ void Commit::Init(Handle<Object> target) {
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("Commit"));
+	constructor_template->SetClassName(CLASS_NAME);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "setTree", SetTree);
@@ -67,36 +72,33 @@ Handle<Value> Commit::New(const Arguments& args) {
 	REQ_EXT_ARG(0, theCommit);
 
 	Commit *commit = new Commit();
+	commit->Wrap(args.This());
+
 	commit->commit_ = (git_commit*)theCommit->Value();
 
-	// Setup some basic info about this commit.
-	const git_oid *commitId = git_commit_id(commit->commit_);
+	return args.This();
+}
 
-	Handle<Object> jsObj = args.This();
-	if(commitId) {
-		const char* oidStr = git_oid_allocfmt(commitId);
+void Commit::load(commit_data *data) {
+	Handle<Object> jsObj = handle_;
 
-		jsObj->Set(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
-		const char* message = git_commit_message(commit->commit_);
-		jsObj->Set(MESSAGE_PROPERTY, String::New(message));
+	if(data != NULL) {
+		jsObj->Set(ID_PROPERTY, String::New(data->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObj->Set(MESSAGE_PROPERTY, String::New(data->message));
 
-		const git_signature *author;
-		author = git_commit_author(commit->commit_);
-		if(author) {
-			CREATE_PERSON_OBJ(authorObj, author);
-			jsObj->Set(AUTHOR_PROPERTY, authorObj);
-		}
+		CREATE_PERSON_OBJ(authorObj, data->author);
+		jsObj->Set(AUTHOR_PROPERTY, authorObj);
 
-		const git_signature *committer;
-		committer = git_commit_committer(commit->commit_);
-		if(committer) {
-			CREATE_PERSON_OBJ(committerObj, committer);
-			jsObj->Set(COMMITTER_PROPERTY, committerObj);
-		}
+		CREATE_PERSON_OBJ(committerObj, data->committer);
+		jsObj->Set(COMMITTER_PROPERTY, committerObj);
 
-		commit->parentCount_ = git_commit_parentcount(commit->commit_);
+		parentCount_ = data->parentCount;
+		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(data->parentCount), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObj->Set(String::New("parentCount"), Integer::New(commit->parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
+		git_signature_free(data->author);
+		git_signature_free(data->committer);
+		free(data->message);
+		delete data;
 	}
 	else {
 		// This is a new commit.
@@ -104,12 +106,9 @@ Handle<Value> Commit::New(const Arguments& args) {
 		jsObj->Set(MESSAGE_PROPERTY, Null());
 		jsObj->Set(AUTHOR_PROPERTY, Null());
 		jsObj->Set(COMMITTER_PROPERTY, Null());
-		commit->parentCount_ = 0;
-		jsObj->Set(String::New("parentCount"), Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
+		parentCount_ = 0;
+		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
 	}
-
-	commit->Wrap(args.This());
-	return args.This();
 }
 
 Handle<Value> Commit::GetTree(const Arguments& args) {
@@ -149,6 +148,8 @@ Handle<Value> Commit::SetTree(const Arguments& args) {
 	}
 
 	git_commit_set_tree(commit->commit_, tree);
+
+	return Undefined();
 }
 
 Handle<Value> Commit::GetParent(const Arguments& args) {
@@ -169,13 +170,21 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 		request->callback = Persistent<Function>::New(callbackArg);
 		request->index = indexArg;
 
-		eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, request);
 		commit->Ref();
+		eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, request);
 		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	else {
-		git_commit *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
-		Commit *parentObject = commit->repository_->wrapCommit(parent);
+		commit_data *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
+
+		if(parent == NULL) {
+			THROW_ERROR("Error getting parent.");
+		}
+
+		//Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
+		Commit *parentObject = commit->repository_->wrapCommitWithData(parent);
 		return scope.Close(parentObject->handle_);
 	}
 }
@@ -200,7 +209,8 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent);
+		Commit *object = reqData->commit->repository_->wrapCommitWithData(reqData->parent);
+		//object->load();
 		callbackArgs[0] = Null();
 		callbackArgs[1] = object->handle_;
 	}
@@ -208,8 +218,8 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  	TRIGGER_CALLBACK();
 
 	ev_unref(EV_DEFAULT_UC);
-	reqData->callback.Dispose();
-	delete reqData;
+	//reqData->callback.Dispose();
+	//delete reqData;
 
 	return 0;
 }
