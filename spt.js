@@ -3,9 +3,9 @@ var path = require("path");
 var profiler = require("profiler");
 var async = require("async");
 
-var repo = new gitteh.Repository(path.join(__dirname, ".git"));
+var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
-var num = 100;
+var num = 1;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 

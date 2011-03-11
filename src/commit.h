@@ -2,6 +2,7 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
+#include "ts_objectwrap.h"
 
 namespace gitteh {
 
@@ -12,14 +13,16 @@ struct commit_data {
 	git_signature *author;
 	git_signature *committer;
 	int parentCount;
+	bool dataLoaded;
 };
 
 class Repository;
 
-class Commit : public ObjectWrap {
+class Commit : public ThreadSafeObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
+	Commit();
 	~Commit();
 
 	void load(commit_data*);

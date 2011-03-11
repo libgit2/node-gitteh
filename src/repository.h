@@ -16,6 +16,10 @@ class RevWalker;
 
 struct commit_data;
 
+struct wrap_commit_request {
+
+};
+
 class Repository : public ObjectWrap {
 public:
 	Repository();
@@ -31,9 +35,13 @@ public:
 
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
-	int getCommit(git_oid*, commit_data**);
+	int getCommit(git_oid*, git_commit**);
 	int getReference(char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
+
+	commit_data *getCommitData(git_commit*);
+
+	Commit *wrapCommitData(commit_data*);
 
 	Tree *wrapTree(git_tree*);
 	Reference *wrapReference(git_reference*);
@@ -42,8 +50,11 @@ public:
 	RawObject *wrapRawObject(git_rawobj*);
 	RevWalker *wrapRevWalker(git_revwalk*);
 
-	commit_data* getParentCommit(git_commit*, int);
+	git_commit* getParentCommit(git_commit*, int);
 
+	void asyncWrapCommit(git_commit*, Persistent<Function>&);
+
+	//void wrapCommitAsync(git_commit*,)
 	git_repository *repo_;
 	git_odb *odb_;
 
@@ -121,6 +132,9 @@ private:
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
 	gitteh_lock gitLock_;
+
+	static int EIO_BuildCommit(eio_req *req);
+	static int EIO_ReturnBuiltCommit(eio_req *req);
 };
 
 } // namespace gitteh

@@ -17,6 +17,9 @@ typedef pthread_mutex_t gitteh_lock;
 #define CREATE_MUTEX(LOCK)													\
 	pthread_mutex_init (&LOCK, NULL);
 
+#define DESTROY_MUTEX(LOCK)													\
+	pthread_mutex_destroy(&LOCK);
+
 #define LOCK_MUTEX(LOCK)													\
 	pthread_mutex_lock(&LOCK);
 	

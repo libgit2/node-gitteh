@@ -28,6 +28,11 @@ namespace gitteh {
 // This is because any wrapping/v8 object instantiation should only be done in 
 // the main thread.
 
+// Revision to the above statement: I've added locks to accessing the map
+// anyway. This is because I want to optimize the way I'm loading things later,
+// and only load all the relevant git object data into a struct if it hasn't
+// been loaded into an object here already.
+
 template <class T, class S>
 class ManagedObject;
 
@@ -55,12 +60,12 @@ public:
 			managedObject->object = ObjectWrap::Unwrap<T>(jsObject);
 			managedObject->ref = ref;
 
+			managedObject->handle = Persistent<Object>::New(managedObject->object->handle_);
+			managedObject->handle.MakeWeak(managedObject, WeakCallback);
+
 			LOCK_MUTEX(objectsLock);
 			objects[(int)ref] = managedObject;
 			UNLOCK_MUTEX(objectsLock);
-
-			managedObject->handle = Persistent<Object>::New(managedObject->object->handle_);
-			managedObject->handle.MakeWeak(managedObject, WeakCallback);
 
 			newlyCreated = true;
 		}

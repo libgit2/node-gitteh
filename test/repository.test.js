@@ -31,7 +31,7 @@
 vows.describe("Repository").addBatch({
 	"Opening an existing bare repository": {
 		topic: function() {
-			var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
+			var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 			this.context.repo = repo;
 			
 			return repo;

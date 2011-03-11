@@ -1,4 +1,4 @@
-var gitteh = require("./build/default/gitteh"),
+var gitteh = require("../../build/default/gitteh"),
 	path = require("path"),
 	async = require("async"),
 	fs = require("fs");
@@ -14,8 +14,7 @@ process.on("exit", function() {
 var fns = [];
 for(var i = 0; i < 100; i++) {
 	fns.push(function(i, callback) {
-		gitteh.initRepository(path + "/" + i, true, function() {
-		});
+		gitteh.initRepository(path + "/" + i, true, callback);
 	}.bind(i));
 }
 

@@ -28,7 +28,7 @@
 	path = require("path"),
 	fixtureValues = require("./fixtures/values");
 
-var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
+var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 vows.describe("References").addBatch({
 	"Getting HEAD ref": {
 		topic: function() {

@@ -28,7 +28,7 @@
 	path = require("path"),
 	fixtureValues = require("./fixtures/values");
 
-var repo = new gitteh.Repository(fixtureValues.REPO_PATH); 
+var repo = gitteh.openRepository(fixtureValues.REPO_PATH); 
 
 var createTagTestContext = function(tagFixture) {
 	var context = {

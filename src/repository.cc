@@ -163,7 +163,7 @@ struct get_commit_request {
 	Repository *repo;
 	int error;
 	git_oid oid;
-	commit_data *data;
+	git_commit *commit;
 };
 
 struct get_oid_object_request {
@@ -239,8 +239,7 @@ void Repository::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
-	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
-
+	//t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 	//target->Set(String::New("Repository"), t->GetFunction());
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
@@ -336,7 +335,24 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 		return Undefined();
 	}
 	else {
+		bool bare = false;
+		if(args.Length() > 1) {
+			bare = args[1]->BooleanValue();
+		}
 
+		git_repository* repo;
+		int result = git_repository_init(&repo, *pathArg, bare);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't init repository.", result);
+		}
+
+		Handle<Value> constructorArgs[2] = {
+			External::New(repo),
+			args[0]
+		};
+
+		return scope.Close(Repository::constructor_template->GetFunction()
+				->NewInstance(2, constructorArgs));
 	}
 }
 
@@ -425,11 +441,10 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	}
 	else {
 		git_commit *commit;
-		int result = git_commit_new(&commit, repo->repo_);
+		int result = repo->createCommit(&commit);
 	
 		if(result != GIT_SUCCESS) {
-			// TODO: error handling.
-			return Null();
+			THROW_GIT_ERROR("Couldn't create commit.", result);
 		}
 	
 		Commit *commitObject = repo->wrapCommit(commit);
@@ -452,7 +467,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_GetCommit, EIO_ReturnCommit);
 	}
 	else {
-		REQ_OID_ARG(0, oidArg);
+		/*REQ_OID_ARG(0, oidArg);
 
 		Commit *commitObject;
 		commit_data *data;
@@ -463,7 +478,10 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 
 		commitObject = repo->wrapCommit(data->commit);
 		commitObject->load(data);
-		return scope.Close(commitObject->handle_);
+		return scope.Close(commitObject->handle_);*/
+
+		// TODO:
+		return Undefined();
 	}
 }
 
@@ -723,10 +741,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 int Repository::EIO_GetCommit(eio_req *req) {
 	GET_REQUEST_DATA(get_commit_request);
  	commit_data* data;
- 	int result = reqData->error = reqData->repo->getCommit(&reqData->oid, &data);
-	if(result == GIT_SUCCESS) {
-		reqData->data = data;
-	}
+ 	int result = reqData->error = reqData->repo->getCommit(&reqData->oid, &reqData->commit);
 	return 0;
 }
 
@@ -734,23 +749,30 @@ int Repository::EIO_ReturnCommit(eio_req *req) {
 	HandleScope scope;
 	GET_REQUEST_DATA(get_commit_request);
 
+ 	ev_unref(EV_DEFAULT_UC);
+ 	reqData->repo->Unref();
+
 	Handle<Value> callbackArgs[2];
  	if(reqData->error) {
  		Handle<Value> error = CreateGitError(String::New(
  				"Couldn't get commit."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
+ 		TRIGGER_CALLBACK();
+ 	    reqData->callback.Dispose();
 	}
 	else {
-		Commit *object = reqData->repo->wrapCommit(
+		reqData->repo->asyncWrapCommit(reqData->commit, reqData->callback);
+		/*Commit *object = reqData->repo->wrapCommit(
 				static_cast<git_commit*>(reqData->data->commit));
 		object->load(reqData->data);
 		callbackArgs[0] = Null();
-		callbackArgs[1] = object->handle_;
+		callbackArgs[1] = object->handle_;*/
 	}
 
-	TRIGGER_CALLBACK();
-    REQUEST_CLEANUP();
+	//TRIGGER_CALLBACK();
+ 	delete reqData;
+	return 0;
 }
 
 //ASYNC_RETURN_REPO_OID_OBJECT_FN(git_commit, Commit)
@@ -809,22 +831,10 @@ void Repository::close() {
 	}
 }
 
-int Repository::getCommit(git_oid *id, commit_data **data) {
+int Repository::getCommit(git_oid *id, git_commit **commit) {
 	LOCK_MUTEX(gitLock_);
 	int result;
-	git_commit *cmt;
-	result = git_commit_lookup(&cmt, repo_, id);
-	if(result == GIT_SUCCESS) {
-		const git_oid *commitId = git_commit_id(cmt);
-
-		*data = new commit_data;
-		(*data)->commit = cmt;
-		git_oid_fmt((*data)->id, commitId);
-		(*data)->message = strdup(git_commit_message(cmt));
-		(*data)->author = git_signature_dup(git_commit_author(cmt));
-		(*data)->committer = git_signature_dup(git_commit_committer(cmt));
-		(*data)->parentCount = git_commit_parentcount(cmt);
-	};
+	result = git_commit_lookup(commit, repo_, id);
 	UNLOCK_MUTEX(gitLock_);
 	return result;
 }
@@ -839,14 +849,35 @@ int Repository::createCommit(git_commit **commit) {
 	return result;
 }
 
+Commit *Repository::wrapCommitData(commit_data *data) {
+	Commit *commitObject;
+
+	// If we're being asked to wrap an object that isn't already in the store,
+	// and there's no data in this commit_data, then the GC has yanked our obj
+	// from us between the time our eio thread ran and we joined the main thread
+	// again. Doh. Also of special note here is that the synchronous versions of
+	// methods that call for data to be wrapped will immediately assume that an
+	// object will definitely come back here, as it's not possible for the V8 GC
+	// to interrupt their precious duties.
+	if(!commitStore_.objectExistsFor(data->commit) && !data->dataLoaded) {
+		return NULL;
+	}
+
+	if(commitStore_.getObjectFor(data->commit, &commitObject)) {
+		// Commit needs to know who it's daddy is.
+		commitObject->repository_ = this;
+		commitObject->load(data);
+	}
+
+	return commitObject;
+}
+
 Commit *Repository::wrapCommit(git_commit *commit) {
-	//LOCK_MUTEX(gitLock_);
 	Commit *commitObject;
 	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;
 	}
-	//UNLOCK_MUTEX(gitLock_);
 	return commitObject;
 }
 
@@ -996,30 +1027,125 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	return GIT_SUCCESS;
 }
 
-commit_data* Repository::getParentCommit(git_commit *commit, int index) {
-	LOCK_MUTEX(gitLock_);
-	commit_data *data;
+git_commit* Repository::getParentCommit(git_commit *commit, int index) {
 	git_commit *parent;
-	parent = git_commit_parent(commit, index);
-	if(parent != NULL) {
-		data = new commit_data;
-		data->commit = parent;
 
-		// We don't wanna collect all the shit for a commit if it's already
-		// got a backing JS object.
-		// ^^^ Bad idea for now.
-		//if(!commitStore_.objectExistsFor(parent)) {
-			const git_oid *commitId = git_commit_id(parent);
-			git_oid_fmt(data->id, commitId);
-			data->message = strdup(git_commit_message(parent));
-			data->author = git_signature_dup(git_commit_author(parent));
-			data->committer = git_signature_dup(git_commit_committer(parent));
-			data->parentCount = git_commit_parentcount(parent);
-		//}
-	};
+	LOCK_MUTEX(gitLock_);
+	parent = git_commit_parent(commit, index);
 	UNLOCK_MUTEX(gitLock_);
 
+	return parent;
+}
+
+commit_data* Repository::getCommitData(git_commit *commit) {
+	commit_data *data = new commit_data;
+	data->commit = commit;
+
+	// We don't wanna collect all the shit for a commit if it's already
+	// got a backing JS object.
+	if(!commitStore_.objectExistsFor(commit)) {
+		LOCK_MUTEX(gitLock_);
+		const git_oid *commitId = git_commit_id(commit);
+		git_oid_fmt(data->id, commitId);
+		data->message = strdup(git_commit_message(commit));
+		data->author = git_signature_dup(git_commit_author(commit));
+		data->committer = git_signature_dup(git_commit_committer(commit));
+		data->parentCount = git_commit_parentcount(commit);
+		data->dataLoaded = true;
+		UNLOCK_MUTEX(gitLock_);
+	}
+
 	return data;
+}
+
+static inline void ReturnCommit(Commit *cmt, Persistent<Function>& callback) {
+	Handle<Value> callbackArgs[2];
+	callbackArgs[0] = Null();
+	callbackArgs[1] = cmt->handle_;
+
+	TryCatch tryCatch;
+	callback->Call(Context::GetCurrent()->Global(), 2, callbackArgs);
+
+ 	if(tryCatch.HasCaught()) {
+       FatalException(tryCatch);
+    }
+
+	callback.Dispose();
+	callback.Clear();
+}
+
+struct build_commit_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	Commit *commitObject;
+	git_commit *commit;
+	commit_data *data;
+};
+
+int Repository::EIO_BuildCommit(eio_req *req) {
+	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
+
+	if(reqData->commitObject->waitForInitialization()) {
+		// We need to build the data for commit.
+		commit_data *data = new commit_data;
+
+		LOCK_MUTEX(reqData->repo->gitLock_);
+		const git_oid *commitId = git_commit_id(reqData->commit);
+		git_oid_fmt(data->id, commitId);
+		data->message = strdup(git_commit_message(reqData->commit));
+		data->author = git_signature_dup(git_commit_author(reqData->commit));
+		data->committer = git_signature_dup(git_commit_committer(reqData->commit));
+		data->parentCount = git_commit_parentcount(reqData->commit);
+		UNLOCK_MUTEX(reqData->repo->gitLock_);
+
+		reqData->data = data;
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnBuiltCommit(eio_req *req) {
+	HandleScope scope;
+	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
+
+	if(reqData->data != NULL) {
+		reqData->commitObject->load(reqData->data);
+		reqData->commitObject->initializationDone();
+	}
+
+	reqData->commitObject->removeInitInterest();
+	ReturnCommit(reqData->commitObject, reqData->callback);
+
+	reqData->repo->Unref();
+	delete reqData;
+	ev_unref(EV_DEFAULT_UC);
+
+	return 0;
+}
+
+void Repository::asyncWrapCommit(git_commit* commit, Persistent<Function>& callback) {
+	Commit *commitObject;
+
+	if(commitStore_.getObjectFor(commit, &commitObject)) {
+		commitObject->repository_ = this;
+	}
+
+	if(commitObject->isInitialized()) {
+		ReturnCommit(commitObject, callback);
+		return;
+	}
+
+	build_commit_request *req = new build_commit_request;
+	req->callback = callback;
+	req->repo = this;
+	req->commit = commit;
+	req->commitObject = commitObject;
+	req->data = NULL;
+
+	commitObject->registerInitInterest();
+	Ref();
+	eio_custom(EIO_BuildCommit, EIO_PRI_DEFAULT, EIO_ReturnBuiltCommit, req);
+	ev_ref(EV_DEFAULT_UC);
 }
 
 } // namespace gitteh

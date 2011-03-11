@@ -45,7 +45,7 @@ struct get_parent_request {
 	Persistent<Function> callback;
 	Commit *commit;
 	int index;
-	commit_data *parent;
+	git_commit *parent;
 };
 
 Persistent<FunctionTemplate> Commit::constructor_template;
@@ -166,6 +166,7 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 	if(args.Length() > 1) {
 		get_parent_request *request = new get_parent_request;
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
 		request->commit = commit;
 		request->callback = Persistent<Function>::New(callbackArg);
 		request->index = indexArg;
@@ -177,14 +178,15 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 		return Undefined();
 	}
 	else {
-		commit_data *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
+		git_commit *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
 
 		if(parent == NULL) {
 			THROW_ERROR("Error getting parent.");
 		}
 
-		Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
-		//Commit *parentObject = commit->repository_->wrapCommitWithData(parent);
+		commit_data *data = commit->repository_->getCommitData(parent);
+		//Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
+		Commit *parentObject = commit->repository_->wrapCommitData(data);
 		return scope.Close(parentObject->handle_);
 	}
 }
@@ -192,7 +194,7 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 int Commit::EIO_GetParent(eio_req *req) {
 	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
 
-	reqData->parent = reqData->commit->repository_->getParentCommit(
+	git_commit *parent = reqData->parent = reqData->commit->repository_->getParentCommit(
 			reqData->commit->commit_, reqData->index);
 
 	return 0;
@@ -202,25 +204,45 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
 	HandleScope scope;
 	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
 
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->commit->Unref();
+
 	Handle<Value> callbackArgs[2];
  	if(reqData->parent == NULL) {
  		Handle<Value> error = Exception::Error(String::New("Couldn't get parent commit."));
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
+
+ 		TRIGGER_CALLBACK();
+
+ 		reqData->callback.Dispose();
 	}
 	else {
-		//Commit *object = reqData->commit->repository_->wrapCommitWithData(reqData->parent);
-		Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent->commit);
-		object->load(reqData->parent);
+		reqData->commit->repository_->asyncWrapCommit(reqData->parent,
+				reqData->callback);
+		/*Commit *object = reqData->commit->repository_->wrapCommitData(reqData->parent);
+		//Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent->commit);
+
+		if(object == NULL) {
+	 		Handle<Value> error = Exception::Error(String::New("Couldn't get parent commit."));
+	 		callbackArgs[0] = error;
+	 		callbackArgs[1] = Null();
+	 	 	TRIGGER_CALLBACK();
+		 	reqData->commit->Unref();
+			reqData->callback.Dispose();
+			delete reqData;
+			ev_unref(EV_DEFAULT_UC);
+			//eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, req);
+			return 0;
+		}
+
 		callbackArgs[0] = Null();
-		callbackArgs[1] = object->handle_;
+		callbackArgs[1] = object->handle_;*/
 	}
 
- 	TRIGGER_CALLBACK();
+// 	TRIGGER_CALLBACK();
 
-	ev_unref(EV_DEFAULT_UC);
-	//reqData->callback.Dispose();
-	//delete reqData;
+	delete reqData;
 
 	return 0;
 }
@@ -287,6 +309,9 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	return True();
+}
+
+Commit::Commit() : ThreadSafeObjectWrap() {
 }
 
 Commit::~Commit() {

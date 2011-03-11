@@ -31,7 +31,7 @@
 
 var DIRECTORY_ATTRIBUTE = helpers.fromOctal(40000);
 
-var repo = new gitteh.Repository(fixtureValues.REPO_PATH);
+var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 
 var createTreeTestContext = function(treeFixture) {
 	var context = {
