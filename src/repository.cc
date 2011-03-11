@@ -241,7 +241,7 @@ void Repository::Init(Handle<Object> target) {
 
 	t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
 
-	target->Set(String::New("Repository"), t->GetFunction());
+	//target->Set(String::New("Repository"), t->GetFunction());
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -259,6 +259,8 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 
 		eio_custom(EIO_OpenRepository, EIO_PRI_DEFAULT, EIO_AfterOpenRepository, request);
 		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	else {
 		git_repository* repo;
@@ -280,7 +282,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 int Repository::EIO_OpenRepository(eio_req *req) {
 	GET_REQUEST_DATA(open_repo_request);
 
-	reqData->error = git_repository_open(&reqData->repo, *reqData->path);
+	reqData->error = git_repository_open(&reqData->repo, **reqData->path);
 
 	return 0;
 }
@@ -298,7 +300,7 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
 	else {
 		Handle<Value> constructorArgs[2] = {
 			External::New(reqData->repo),
-			String::New(*reqData->path)
+			String::New(**reqData->path)
 		};
 		callbackArgs[0] = Null();
 		callbackArgs[1] = Repository::constructor_template->GetFunction()
@@ -308,15 +310,71 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
  	TRIGGER_CALLBACK();
 
     reqData->callback.Dispose();
- 	ev_unref(EV_DEFAULT_UC);
  	delete reqData->path;
  	delete reqData;
+ 	ev_unref(EV_DEFAULT_UC);
 	return 0;
 }
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
 	HandleScope scope;
 	REQ_ARGS(1);
+	REQ_STR_ARG(0, pathArg);
+
+	if(HAS_CALLBACK_ARG) {
+		init_repo_request *request = new init_repo_request;
+		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+		request->path = new String::Utf8Value(args[0]);
+
+		if(args.Length() > 2) {
+			request->bare = args[1]->BooleanValue();
+		}
+
+		eio_custom(EIO_InitRepository, EIO_PRI_DEFAULT, EIO_AfterInitRepository, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+
+	}
+}
+
+int Repository::EIO_InitRepository(eio_req *req) {
+	GET_REQUEST_DATA(init_repo_request);
+
+	reqData->error = git_repository_init(&reqData->repo, **reqData->path, reqData->bare);
+
+	return 0;
+}
+
+int Repository::EIO_AfterInitRepository(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(init_repo_request);
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't initialize new Repository."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		Handle<Value> constructorArgs[2] = {
+			External::New(reqData->repo),
+			String::New(**reqData->path)
+		};
+		callbackArgs[0] = Null();
+		callbackArgs[1] = Repository::constructor_template->GetFunction()
+						->NewInstance(2, constructorArgs);
+	}
+
+	TRIGGER_CALLBACK();
+
+	reqData->callback.Dispose();
+	delete reqData->path;
+	delete reqData;
+	ev_unref(EV_DEFAULT_UC);
+	return 0;
 }
 
 Handle<Value> Repository::New(const Arguments& args) {

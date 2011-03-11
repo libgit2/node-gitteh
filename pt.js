@@ -2,7 +2,7 @@ var gitteh = require("./build/default/gitteh");
 var path = require("path");
 var async = require("async");
 
-var repo = new gitteh.Repository(path.join(__dirname, ".git"));
+var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
 var num = 50;
 

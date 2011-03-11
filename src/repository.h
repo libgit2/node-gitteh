@@ -84,6 +84,9 @@ private:
 	static int EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
 
+	static int EIO_InitRepository(eio_req*);
+	static int EIO_AfterInitRepository(eio_req*);
+
 	static int EIO_GetCommit(eio_req*);
 	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
