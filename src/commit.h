@@ -23,7 +23,7 @@ public:
 	Commit();
 	~Commit();
 
-	void load(commit_data*);
+	void* loadInitData();
 
 	Repository *repository_;
 	git_commit *commit_;

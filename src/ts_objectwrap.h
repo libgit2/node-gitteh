@@ -48,7 +48,7 @@ public:
 		UNLOCK_MUTEX(gatekeeperLock_);
 	}
 
-	bool waitForInitialization() {
+	void waitForInitialization() {
 		bool needInitialization = false;
 		LOCK_MUTEX(gatekeeperLock_);
 		if(!initInterest_++) {
@@ -59,7 +59,10 @@ public:
 		UNLOCK_MUTEX(gatekeeperLock_);
 
 		if(needInitialization) {
-			return true;
+			void* data = loadInitData();
+			initializationDone(data);
+			return;
+			//return true;
 		}
 
 		//LOCK_MUTEX(initLock_);
@@ -100,6 +103,8 @@ public:
 			data_ = NULL;
 		}
 	}
+
+	virtual void* loadInitData() = 0;
 
 protected:
 	// This is implemented by actual object classes. Implements MUST free all

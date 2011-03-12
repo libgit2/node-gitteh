@@ -5,7 +5,7 @@ var profiler = require("profiler");
 
 var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
-var num = 10;
+var num = 100;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 
@@ -55,7 +55,7 @@ for(var i = 0; i < num; i++)
 
 var numRuns = 1;
 var timer = setInterval(function() {
-	if(numRuns == 1000) {
+	if(numRuns == 100) {
 		clearInterval(timer);
 		return;
 	}
@@ -69,7 +69,7 @@ var timer = setInterval(function() {
 		//console.log("Took " + time + "ms");
 		//console.log("Avg traverse: " + (time/num) +"ms");
 	});
-}, 20);
+}, 50);
 
 /*
 (function() {

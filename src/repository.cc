@@ -481,10 +481,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 
 		if(!commitObject->isInitialized()) {
 			commitObject->registerInitInterest();
-			if(commitObject->waitForInitialization()) {
-				commit_data *data = repo->getCommitData(commit);
-				commitObject->initializationDone(data);
-			}
+			commitObject->waitForInitialization();
 			commitObject->removeInitInterest();
 			commitObject->ensureInitDone();
 		}
@@ -1067,10 +1064,11 @@ commit_data* Repository::getCommitData(git_commit *commit) {
 	return data;
 }
 
-static inline void ReturnCommit(Commit *cmt, Persistent<Function>& callback) {
+static inline void ReturnWrappedObject(ThreadSafeObjectWrap *obj,
+		Persistent<Function>& callback) {
 	Handle<Value> callbackArgs[2];
 	callbackArgs[0] = Null();
-	callbackArgs[1] = cmt->handle_;
+	callbackArgs[1] = obj->handle_;
 
 	TryCatch tryCatch;
 	callback->Call(Context::GetCurrent()->Global(), 2, callbackArgs);
@@ -1093,10 +1091,11 @@ struct build_commit_request {
 int Repository::EIO_BuildCommit(eio_req *req) {
 	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
 
+	reqData->commitObject->waitForInitialization();/*
 	if(reqData->commitObject->waitForInitialization()) {
-		commit_data *data = reqData->repo->getCommitData(reqData->commit);
+		commit_data *data = reqData->commitObject->loadInitData();
 		reqData->commitObject->initializationDone(data);
-	}
+	}*/
 
 	return 0;
 }
@@ -1110,7 +1109,7 @@ int Repository::EIO_ReturnBuiltCommit(eio_req *req) {
 
 	reqData->commitObject->ensureInitDone();
 	reqData->commitObject->removeInitInterest();
-	ReturnCommit(reqData->commitObject, reqData->callback);
+	ReturnWrappedObject(reqData->commitObject, reqData->callback);
 
 	delete reqData;
 
@@ -1123,7 +1122,7 @@ void Repository::asyncWrapCommit(git_commit* commit, Persistent<Function>& callb
 	commitObject = wrapCommit(commit);
 
 	if(commitObject->isInitialized()) {
-		ReturnCommit(commitObject, callback);
+		ReturnWrappedObject(commitObject, callback);
 		return;
 	}
 
@@ -1137,6 +1136,14 @@ void Repository::asyncWrapCommit(git_commit* commit, Persistent<Function>& callb
 	Ref();
 	eio_custom(EIO_BuildCommit, EIO_PRI_DEFAULT, EIO_ReturnBuiltCommit, req);
 	ev_ref(EV_DEFAULT_UC);
+}
+
+void Repository::lockRepository() {
+	LOCK_MUTEX(gitLock_);
+}
+
+void Repository::unlockRepository() {
+	UNLOCK_MUTEX(gitLock_);
 }
 
 } // namespace gitteh

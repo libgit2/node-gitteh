@@ -50,6 +50,22 @@ struct get_parent_request {
 
 Persistent<FunctionTemplate> Commit::constructor_template;
 
+void* Commit::loadInitData() {
+	commit_data *data = new commit_data;
+
+	repository_->lockRepository();
+	const git_oid *commitId = git_commit_id(commit_);
+	git_oid_fmt(data->id, commitId);
+	data->message = strdup(git_commit_message(commit_));
+	data->author = git_signature_dup(git_commit_author(commit_));
+	data->committer = git_signature_dup(git_commit_committer(commit_));
+	data->parentCount = git_commit_parentcount(commit_);
+
+	repository_->unlockRepository();
+
+	return data;
+}
+
 void Commit::Init(Handle<Object> target) {
 	HandleScope scope;
 

@@ -54,7 +54,12 @@ public:
 
 	void asyncWrapCommit(git_commit*, Persistent<Function>&);
 
-	//void wrapCommitAsync(git_commit*,)
+	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
+	// on a libgit2 repository needs to be locked to one thread at a time, as
+	// libgit2 is not thread safe in the slightest.
+	void lockRepository();
+	void unlockRepository();
+
 	git_repository *repo_;
 	git_odb *odb_;
 

@@ -77,7 +77,6 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
 		if(result != GIT_SUCCESS)
 			THROW_GIT_ERROR("Commit not found.", result);
-
 	}
 	else {
 		// Commit object.

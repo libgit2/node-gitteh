@@ -8,12 +8,6 @@ var gitteh = require("../../build/default/gitteh"),
 	
 var repo = gitteh.openRepository(path.join(__dirname, "..", "..", ".git"));
 
-
-console.log(repo.createCommit(function() {
-console.log(arguments);
-}));
-return;
-
 var headRef = repo.getReference("HEAD");
 headRef = headRef.resolve();
 
@@ -30,7 +24,7 @@ var cleanupGoAgain = function() {
 };
 
 var runCheck = function(job) {
-	if(job > 10000) {
+	if(job > 100000) {
 		console.log("All done.");
 		profiler.gc();
 		return;
