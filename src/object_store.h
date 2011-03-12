@@ -116,8 +116,8 @@ public:
 
 		while(it != end) {
 			managedObject = it->second;
-			managedObject->handle.ClearWeak();
 			managedObject->handle.Dispose();
+			managedObject->handle.Clear();
 			++it;
 		}
 
@@ -127,7 +127,11 @@ public:
 private:
 	static void WeakCallback (Persistent<Value> value, void *data) {
 		ManagedObject<T, S> *managedObject = (ManagedObject<T, S>*)data;
+
+		assert(managedObject->handle.IsNearDeath());
+
 		ObjectStore<T, S> *store = managedObject->store;
+
 
 		LOCK_MUTEX(store->objectsLock);
 
@@ -135,7 +139,6 @@ private:
 		it = store->objects.find((int)managedObject->ref);
 		store->objects.erase(it);
 
-		managedObject->handle.ClearWeak();
 		managedObject->handle.Dispose();
 		managedObject->handle.Clear();
 

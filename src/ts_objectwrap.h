@@ -12,6 +12,15 @@ public:
 		CREATE_MUTEX(gatekeeperLock_);
 		initialized_ = 0;
 		initInterest_ = 0;
+		data_ = NULL;
+	}
+
+	// Shortcut, if this is a newly allocated object for a newly created Git
+	// object, then there's not going to be any threads fighting for access,
+	// we just mark it as initialized straight up, no need to even use a mutex.
+	bool forceInitialized() {
+		processInitData(NULL);
+		initialized_ = true;
 	}
 
 	bool isInitialized() {
@@ -66,20 +75,43 @@ public:
 		UNLOCK_MUTEX(initLock_);
 	}
 
-	void initializationDone() {
+	// Signalled by the thread that is building the commit data that the data
+	// is now done and JS object can be finalized.
+	void initializationDone(void *data) {
 		LOCK_MUTEX(gatekeeperLock_);
 		initialized_ = true;
+		data_ = data;
 		UNLOCK_MUTEX(gatekeeperLock_);
 
 		UNLOCK_MUTEX(initLock_);
 	}
 
+	// This should only be called from main thread. When one or more requests
+	// are waiting for the same commit to be loaded into memory, whichever one
+	// gets out of the blocking waitForInitialization() first will call this on
+	// the main thread to ensure the data that was loaded is actually put into
+	// the JS object. All the requests will call this, but only the first one
+	// will actually make anything meaningful happen.
+	void ensureInitDone() {
+		// FIXME? don't think any locking is necessary here as this is ONLY
+		// called from main thread.
+		if(data_ != NULL) {
+			processInitData(data_);
+			data_ = NULL;
+		}
+	}
+
+protected:
+	// This is implemented by actual object classes. Implements MUST free all
+	// resources allocated by the data on the heap.
+	virtual void processInitData(void *data) = 0;
 
 private:
 	bool initialized_;
 	int initInterest_;
 	gitteh_lock gatekeeperLock_;
 	gitteh_lock initLock_;
+	void *data_;
 };
 
 } // namespace gitteh

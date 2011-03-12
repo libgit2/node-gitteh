@@ -38,6 +38,10 @@
 
 namespace gitteh {
 
+/*static void gcNotif(GCType type, GCCallbackFlags flags) {
+	std::cout << "gc is happening yo.\n";
+}*/
+
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
@@ -53,6 +57,8 @@ init(Handle<Object> target) {
 	Reference::Init(target);
 
 	ErrorInit(target);
+
+	//V8::AddGCPrologueCallback(gcNotif);
 }
 
 } // namespace gitteh

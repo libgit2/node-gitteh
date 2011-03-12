@@ -146,7 +146,7 @@ vows.describe("Commit").addBatch({
 			commit.id = "foo";
 			assert.isNull(commit.id);
 		},
-		
+
 		"saving the Commit gives us an error": function(commit) {
 			assert.throws(function() { commit.save(); }, Error);
 		},

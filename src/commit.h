@@ -7,13 +7,11 @@
 namespace gitteh {
 
 struct commit_data {
-	git_commit *commit;
 	char id[40];
 	char *message;
 	git_signature *author;
 	git_signature *committer;
 	int parentCount;
-	bool dataLoaded;
 };
 
 class Repository;
@@ -37,6 +35,8 @@ protected:
 	static Handle<Value> AddParent(const Arguments&);
 	static Handle<Value> GetParent(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
+
+	void processInitData(void *data);
 
 	int parentCount_;
 

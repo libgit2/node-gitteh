@@ -79,38 +79,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 	return args.This();
 }
 
-void Commit::load(commit_data *data) {
-	Handle<Object> jsObj = handle_;
-
-	if(data != NULL) {
-		jsObj->Set(ID_PROPERTY, String::New(data->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, String::New(data->message));
-
-		CREATE_PERSON_OBJ(authorObj, data->author);
-		jsObj->Set(AUTHOR_PROPERTY, authorObj);
-
-		CREATE_PERSON_OBJ(committerObj, data->committer);
-		jsObj->Set(COMMITTER_PROPERTY, committerObj);
-
-		parentCount_ = data->parentCount;
-		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(data->parentCount), (PropertyAttribute)(ReadOnly | DontDelete));
-
-		git_signature_free(data->author);
-		git_signature_free(data->committer);
-		free(data->message);
-		delete data;
-	}
-	else {
-		// This is a new commit.
-		jsObj->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, Null());
-		jsObj->Set(AUTHOR_PROPERTY, Null());
-		jsObj->Set(COMMITTER_PROPERTY, Null());
-		parentCount_ = 0;
-		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
-}
-
 Handle<Value> Commit::GetTree(const Arguments& args) {
 	HandleScope scope;
 
@@ -309,6 +277,40 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	return True();
+}
+
+void Commit::processInitData(void *data) {
+	Handle<Object> jsObj = handle_;
+
+	if(data != NULL) {
+		commit_data *commitData = static_cast<commit_data*>(data);
+
+		jsObj->Set(ID_PROPERTY, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObj->Set(MESSAGE_PROPERTY, String::New(commitData->message));
+
+		CREATE_PERSON_OBJ(authorObj, commitData->author);
+		jsObj->Set(AUTHOR_PROPERTY, authorObj);
+
+		CREATE_PERSON_OBJ(committerObj, commitData->committer);
+		jsObj->Set(COMMITTER_PROPERTY, committerObj);
+
+		parentCount_ = commitData->parentCount;
+		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
+
+		git_signature_free(commitData->author);
+		git_signature_free(commitData->committer);
+		free(commitData->message);
+		delete commitData;
+	}
+	else {
+		// This is a new commit.
+		jsObj->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObj->Set(MESSAGE_PROPERTY, Null());
+		jsObj->Set(AUTHOR_PROPERTY, Null());
+		jsObj->Set(COMMITTER_PROPERTY, Null());
+		parentCount_ = 0;
+		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
+	}
 }
 
 Commit::Commit() : ThreadSafeObjectWrap() {
