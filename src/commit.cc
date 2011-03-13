@@ -24,6 +24,7 @@
 
 #include "commit.h"
 #include "repository.h"
+#include "object_factory.h"
 #include "tree.h"
 #include <time.h>
 #include <string.h>
@@ -168,9 +169,7 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 			THROW_ERROR("Error getting parent.");
 		}
 
-		commit_data *data = commit->repository_->getCommitData(parent);
-		//Commit *parentObject = commit->repository_->wrapCommit(parent->commit);
-		Commit *parentObject = commit->repository_->wrapCommitData(data);
+		Commit *parentObject = commit->repository_->commitFactory_->syncRequestObject(parent);
 		return scope.Close(parentObject->handle_);
 	}
 }
@@ -202,8 +201,12 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  		reqData->callback.Dispose();
 	}
 	else {
-		reqData->commit->repository_->asyncWrapCommit(reqData->parent,
-				reqData->callback);
+		/*reqData->commit->repository_->asyncWrapCommit(reqData->parent,
+				reqData->callback);*/
+
+		reqData->commit->repository_->commitFactory_->asyncRequestObject(
+				reqData->parent, reqData->callback);
+
 		/*Commit *object = reqData->commit->repository_->wrapCommitData(reqData->parent);
 		//Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent->commit);
 

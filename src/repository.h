@@ -14,14 +14,14 @@ class RawObject;
 class Reference;
 class RevWalker;
 
+template <class, class> class ObjectFactory;
+
 struct commit_data;
-
-struct wrap_commit_request {
-
-};
 
 class Repository : public ObjectWrap {
 public:
+	template<class,class> friend class ObjectFactory;
+
 	Repository();
 	~Repository();
 	static Persistent<FunctionTemplate> constructor_template;
@@ -60,6 +60,8 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
+	ObjectFactory<Commit, git_commit> *commitFactory_;
+
 	git_repository *repo_;
 	git_odb *odb_;
 
@@ -89,7 +91,7 @@ protected:
 
 	void close();
 
-	ObjectStore<Commit, git_commit> commitStore_;
+	//ObjectStore<Commit, git_commit> commitStore_;
 	ObjectStore<Tree, git_tree> treeStore_;
 	ObjectStore<Tag, git_tag> tagStore_;
 	ObjectStore<Reference, git_reference> refStore_;

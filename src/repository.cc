@@ -30,6 +30,7 @@
 #include "rev_walker.h"
 #include "rawobj.h"
 #include "ref.h"
+#include "object_factory.h"
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.
@@ -477,15 +478,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get commit", res);
 		}
 
-		Commit *commitObject = repo->wrapCommit(commit);
-
-		if(!commitObject->isInitialized()) {
-			commitObject->registerInitInterest();
-			commitObject->waitForInitialization();
-			commitObject->removeInitInterest();
-			commitObject->ensureInitDone();
-		}
-
+		Commit *commitObject = repo->commitFactory_->syncRequestObject(commit);
 		return scope.Close(commitObject->handle_);
 	}
 }
@@ -767,7 +760,8 @@ int Repository::EIO_ReturnCommit(eio_req *req) {
  	    reqData->callback.Dispose();
 	}
 	else {
-		reqData->repo->asyncWrapCommit(reqData->commit, reqData->callback);
+		//reqData->repo->asyncWrapCommit(reqData->commit, reqData->callback);
+		reqData->repo->commitFactory_->asyncRequestObject(reqData->commit, reqData->callback);
 	}
 
  	delete reqData;
@@ -850,6 +844,8 @@ ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_revwalk, RevWalker)
 
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
+
+	commitFactory_ = new ObjectFactory<Commit, git_commit>(this);
 }
 
 Repository::~Repository() {
@@ -885,10 +881,10 @@ int Repository::createCommit(git_commit **commit) {
 Commit *Repository::wrapCommit(git_commit *commit) {
 	Commit *commitObject;
 
-	if(commitStore_.getObjectFor(commit, &commitObject)) {
+/*	if(commitStore_.getObjectFor(commit, &commitObject)) {
 		// Commit needs to know who it's daddy is.
 		commitObject->repository_ = this;
-	}
+	}*/
 
 	return commitObject;
 }
@@ -1064,45 +1060,9 @@ commit_data* Repository::getCommitData(git_commit *commit) {
 	return data;
 }
 
-static inline void ReturnWrappedObject(ThreadSafeObjectWrap *obj,
-		Persistent<Function>& callback) {
-	Handle<Value> callbackArgs[2];
-	callbackArgs[0] = Null();
-	callbackArgs[1] = obj->handle_;
-
-	TryCatch tryCatch;
-	callback->Call(Context::GetCurrent()->Global(), 2, callbackArgs);
-
- 	if(tryCatch.HasCaught()) {
-       FatalException(tryCatch);
-    }
-
-	callback.Dispose();
-	callback.Clear();
-}
-
-struct build_commit_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	Commit *commitObject;
-	git_commit *commit;
-};
-
-int Repository::EIO_BuildCommit(eio_req *req) {
-	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
-
-	reqData->commitObject->waitForInitialization();/*
-	if(reqData->commitObject->waitForInitialization()) {
-		commit_data *data = reqData->commitObject->loadInitData();
-		reqData->commitObject->initializationDone(data);
-	}*/
-
-	return 0;
-}
-
 int Repository::EIO_ReturnBuiltCommit(eio_req *req) {
 	HandleScope scope;
-	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
+/*	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
 
 	ev_unref(EV_DEFAULT_UC);
 	reqData->repo->Unref();
@@ -1111,31 +1071,9 @@ int Repository::EIO_ReturnBuiltCommit(eio_req *req) {
 	reqData->commitObject->removeInitInterest();
 	ReturnWrappedObject(reqData->commitObject, reqData->callback);
 
-	delete reqData;
+	delete reqData;*/
 
 	return 0;
-}
-
-void Repository::asyncWrapCommit(git_commit* commit, Persistent<Function>& callback) {
-	Commit *commitObject;
-
-	commitObject = wrapCommit(commit);
-
-	if(commitObject->isInitialized()) {
-		ReturnWrappedObject(commitObject, callback);
-		return;
-	}
-
-	build_commit_request *req = new build_commit_request;
-	req->callback = callback;
-	req->repo = this;
-	req->commit = commit;
-	req->commitObject = commitObject;
-
-	commitObject->registerInitInterest();
-	Ref();
-	eio_custom(EIO_BuildCommit, EIO_PRI_DEFAULT, EIO_ReturnBuiltCommit, req);
-	ev_ref(EV_DEFAULT_UC);
 }
 
 void Repository::lockRepository() {

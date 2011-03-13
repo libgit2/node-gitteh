@@ -5,7 +5,7 @@ var profiler = require("profiler");
 
 var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
-var num = 100;
+var num = 1;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 
@@ -25,8 +25,7 @@ var traverseParents = function(commit, workerNum, callback) {
 		}
 
 		//console.log(workerNum + " working...");
-		//console.log(commit);
-		profiler.gc();
+		console.log(commit);
 
 		for(var i = 0; i < commit.parentCount; i++) {
 			//traverseParents(commit.getParent(i));
@@ -55,7 +54,7 @@ for(var i = 0; i < num; i++)
 
 var numRuns = 1;
 var timer = setInterval(function() {
-	if(numRuns == 100) {
+	if(numRuns == 2) {
 		clearInterval(timer);
 		return;
 	}
@@ -69,7 +68,7 @@ var timer = setInterval(function() {
 		//console.log("Took " + time + "ms");
 		//console.log("Avg traverse: " + (time/num) +"ms");
 	});
-}, 50);
+}, 100);
 
 /*
 (function() {
