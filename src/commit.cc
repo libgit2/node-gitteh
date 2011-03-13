@@ -27,7 +27,6 @@
 #include "object_factory.h"
 #include "tree.h"
 #include <time.h>
-#include <string.h>
 #include <stdlib.h>
 
 #define CLASS_NAME String::NewSymbol("Commit")
@@ -41,6 +40,14 @@
 #define PARENTCOUNT_PROPERTY String::NewSymbol("parentCount")
 
 namespace gitteh {
+
+struct commit_data {
+	char id[40];
+	std::string *message;
+	git_signature *author;
+	git_signature *committer;
+	int parentCount;
+};
 
 struct get_parent_request {
 	Persistent<Function> callback;
@@ -57,7 +64,7 @@ void* Commit::loadInitData() {
 	repository_->lockRepository();
 	const git_oid *commitId = git_commit_id(commit_);
 	git_oid_fmt(data->id, commitId);
-	data->message = strdup(git_commit_message(commit_));
+	data->message = new std::string(git_commit_message(commit_));
 	data->author = git_signature_dup(git_commit_author(commit_));
 	data->committer = git_signature_dup(git_commit_committer(commit_));
 	data->parentCount = git_commit_parentcount(commit_);
@@ -305,7 +312,7 @@ void Commit::processInitData(void *data) {
 		commit_data *commitData = static_cast<commit_data*>(data);
 
 		jsObj->Set(ID_PROPERTY, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, String::New(commitData->message));
+		jsObj->Set(MESSAGE_PROPERTY, String::New(commitData->message->c_str()));
 
 		CREATE_PERSON_OBJ(authorObj, commitData->author);
 		jsObj->Set(AUTHOR_PROPERTY, authorObj);
@@ -318,7 +325,7 @@ void Commit::processInitData(void *data) {
 
 		git_signature_free(commitData->author);
 		git_signature_free(commitData->committer);
-		free(commitData->message);
+		delete commitData->message;
 		delete commitData;
 	}
 	else {

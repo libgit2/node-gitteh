@@ -39,13 +39,8 @@ public:
 	int getReference(char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
 
-	commit_data *getCommitData(git_commit*);
-
-	Commit *wrapCommitData(commit_data*);
-
 	Tree *wrapTree(git_tree*);
 	Reference *wrapReference(git_reference*);
-	Commit *wrapCommit(git_commit*);
 	Tag *wrapTag(git_tag*);
 	RawObject *wrapRawObject(git_rawobj*);
 	RevWalker *wrapRevWalker(git_revwalk*);
@@ -124,10 +119,10 @@ private:
 	static int EIO_CreateRawObject(eio_req*);
 	static int EIO_ReturnRawObject(eio_req*);
 	static int EIO_ReturnCreatedRawObject(eio_req*);
-	
+
 	static int EIO_GetReference(eio_req*);
 	static int EIO_ReturnReference(eio_req*);
-	
+
 	static int EIO_CreateRevWalker(eio_req*);
 	static int EIO_ReturnCreatedRevWalker(eio_req*);
 
@@ -139,9 +134,6 @@ private:
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
 	gitteh_lock gitLock_;
-
-	static int EIO_BuildCommit(eio_req *req);
-	static int EIO_ReturnBuiltCommit(eio_req *req);
 };
 
 } // namespace gitteh

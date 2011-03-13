@@ -27,6 +27,12 @@ public:
 
 	}
 
+	inline T *newObject(S *gitObject) {
+		T *object = wrap(gitObject);
+		object->forceInitialized();
+		return object;
+	}
+
 	inline void asyncRequestObject(S *gitObject, Persistent<Function>& callback) {
 		T *object = wrap(gitObject);
 
@@ -89,6 +95,8 @@ private:
 		reqData->jsObject->removeInitInterest();
 		ReturnWrappedObject(reqData->jsObject, reqData->callback);
 		delete reqData;
+
+		return 0;
 	}
 
 	static inline void ReturnWrappedObject(ThreadSafeObjectWrap *obj,
@@ -104,8 +112,7 @@ private:
 	       FatalException(tryCatch);
 	    }
 
-		callback.Dispose();
-		callback.Clear();
+	 	CLEANUP_CALLBACK(callback);
 	}
 
 	Repository *repo_;

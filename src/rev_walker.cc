@@ -157,8 +157,10 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 		THROW_GIT_ERROR("Couldn't get next commit.", result);
 	}
 
-	Commit *commitObject = walker->repo_->wrapCommit(commit);
-	return scope.Close(commitObject->handle_);
+	// TODO:
+//	Commit *commitObject = walker->repo_->wrapCommit(commit);
+	//return scope.Close(commitObject->handle_);
+	return Undefined();
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {

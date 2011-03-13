@@ -6,7 +6,8 @@
 #include <git2.h>
 #include <node_object_wrap.h>
 #include <iostream>
-#include <string.h>
+#include <string>
+#include <cstring>
 
 #include "thread.h"
 
@@ -18,6 +19,10 @@ using namespace node;
 #define SIG_NAME_PROPERTY String::NewSymbol("name")
 
 #define HAS_CALLBACK_ARG args[args.Length()-1]->IsFunction()
+
+#define CLEANUP_CALLBACK(CALLBACK)											\
+	(CALLBACK).Dispose();													\
+	(CALLBACK).Clear();
 
 #define TRIGGER_CALLBACK()													\
 	TryCatch tryCatch;														\
@@ -115,7 +120,7 @@ using namespace node;
 
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
 	return ThrowException(CreateGitError(String::New(errorStr), errorCode));
-	
+
 #define LOAD_OID_ARG(I, VAR)												\
   if (args.Length() <= (I) || !args[I]->IsString()) 						\
 	return ThrowException(Exception::TypeError(								\
@@ -125,6 +130,19 @@ using namespace node;
   				  String::New("Argument " #I " is not an oid")));
 
 namespace gitteh {
+
+static inline bool LoadOidArg(const Arguments& args, int index, git_oid *id) {
+	if(args.Length() <= index || !args[index]->IsString()) {
+		return false;
+	}
+
+	if(git_oid_mkstr(id, *(String::Utf8Value(args[index]->ToString())))
+			== GIT_ENOTOID) {
+		return false;
+	}
+
+	return true;
+}
 
 static inline Handle<Value> CreateGitError(Handle<String> message, int gitErrorCode) {
 	HandleScope scope;

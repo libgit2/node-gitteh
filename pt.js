@@ -5,7 +5,7 @@ var profiler = require("profiler");
 
 var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
-var num = 1;
+var num = 5;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 

@@ -6,14 +6,6 @@
 
 namespace gitteh {
 
-struct commit_data {
-	char id[40];
-	char *message;
-	git_signature *author;
-	git_signature *committer;
-	int parentCount;
-};
-
 class Repository;
 
 class Commit : public ThreadSafeObjectWrap {
@@ -23,7 +15,6 @@ public:
 	Commit();
 	~Commit();
 
-	void* loadInitData();
 
 	Repository *repository_;
 	git_commit *commit_;
@@ -37,6 +28,7 @@ protected:
 	static Handle<Value> Save(const Arguments&);
 
 	void processInitData(void *data);
+	void* loadInitData();
 
 	int parentCount_;
 

@@ -62,7 +62,6 @@ public:
 			void* data = loadInitData();
 			initializationDone(data);
 			return;
-			//return true;
 		}
 
 		//LOCK_MUTEX(initLock_);
@@ -76,6 +75,11 @@ public:
 			usleep(1000);
 		}
 		UNLOCK_MUTEX(initLock_);
+	}
+
+	void syncInitialize(void *data) {
+		LOCK_MUTEX(gatekeeperLock_);
+		UNLOCK_MUTEX(gatekeeperLock_);
 	}
 
 	// Signalled by the thread that is building the commit data that the data
@@ -104,12 +108,11 @@ public:
 		}
 	}
 
-	virtual void* loadInitData() = 0;
-
 protected:
 	// This is implemented by actual object classes. Implements MUST free all
 	// resources allocated by the data on the heap.
 	virtual void processInitData(void *data) = 0;
+	virtual void* loadInitData() = 0;
 
 private:
 	bool initialized_;

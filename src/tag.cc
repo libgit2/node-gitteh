@@ -34,6 +34,15 @@
 
 namespace gitteh {
 
+struct tag_data {
+	char id[40];
+	std::string *name;
+	std::string *message;
+	char targetId[40];
+	std::string *targetType;
+	git_signature *tagger;
+};
+
 Persistent<FunctionTemplate> Tag::constructor_template;
 
 void Tag::Init(Handle<Object>) {
@@ -55,31 +64,6 @@ Handle<Value> Tag::New(const Arguments& args) {
 
 	Tag *tag = new Tag();
 	tag->tag_ = static_cast<git_tag*>(theTag->Value());
-
-	const git_oid *tagOid = git_tag_id(tag->tag_);
-	if(tagOid != NULL) {
-		char *oidStr = git_oid_allocfmt(tagOid);
-		args.This()->Set(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
-
-		args.This()->Set(NAME_PROPERTY, String::New(git_tag_name(tag->tag_)));
-		args.This()->Set(MESSAGE_PROPERTY, String::New(git_tag_message(tag->tag_)));
-
-		git_signature *tagger = const_cast<git_signature*>(git_tag_tagger(tag->tag_));
-		CREATE_PERSON_OBJ(taggerObj, tagger);
-		args.This()->Set(TAGGER_PROPERTY, taggerObj);
-
-		char *targetOidStr = git_oid_allocfmt(git_object_id(const_cast<git_object*>(git_tag_target(tag->tag_))));
-		args.This()->Set(TARGET_PROPERTY, String::New(targetOidStr));
-		args.This()->Set(TARGET_TYPE_PROPERTY, String::New(git_object_type2string(git_tag_type(tag->tag_))), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
-	else {
-		args.This()->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		args.This()->Set(NAME_PROPERTY, Null());
-		args.This()->Set(MESSAGE_PROPERTY, Null());
-		args.This()->Set(TAGGER_PROPERTY, Null());
-		args.This()->Set(TARGET_PROPERTY, Null());
-		args.This()->Set(TARGET_TYPE_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
 
 	tag->Wrap(args.This());
 	return args.This();
@@ -131,6 +115,60 @@ Handle<Value> Tag::Save(const Arguments& args) {
 	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
 
 	return Undefined();
+}
+
+void Tag::processInitData(void *data) {
+	Handle<Object> jsObject = handle_;
+
+	tag_data *tagData = static_cast<tag_data*>(data);
+	if(data != NULL) {
+		jsObject->Set(ID_PROPERTY, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+
+		jsObject->Set(NAME_PROPERTY, String::New(tagData->name->c_str()));
+		jsObject->Set(MESSAGE_PROPERTY, String::New(tagData->message->c_str()));
+
+		CREATE_PERSON_OBJ(taggerObj, tagData->tagger);
+		jsObject->Set(TAGGER_PROPERTY, taggerObj);
+
+		jsObject->Set(TARGET_PROPERTY, String::New(tagData->targetId, 40));
+		jsObject->Set(TARGET_TYPE_PROPERTY, String::New(tagData->targetType->c_str()), (PropertyAttribute)(ReadOnly | DontDelete));
+
+		delete tagData->targetType;
+		delete tagData->name;
+		delete tagData->message;
+		git_signature_free(tagData->tagger);
+		delete tagData;
+	}
+	else {
+		jsObject->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObject->Set(NAME_PROPERTY, Null());
+		jsObject->Set(MESSAGE_PROPERTY, Null());
+		jsObject->Set(TAGGER_PROPERTY, Null());
+		jsObject->Set(TARGET_PROPERTY, Null());
+		jsObject->Set(TARGET_TYPE_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
+	}
+}
+
+void* Tag::loadInitData() {
+	tag_data *data = new tag_data;
+
+	repository_->lockRepository();
+	const git_oid *tagOid = git_tag_id(tag_);
+	const git_oid *targetId = git_object_id(const_cast<git_object*>(git_tag_target(tag_)));
+
+	git_oid_fmt(data->id, tagOid);
+	git_oid_fmt(data->targetId, targetId);
+
+	data->name = new std::string(git_tag_name(tag_));
+	data->message = new std::string(git_tag_message(tag_));
+	data->targetType = new std::string(git_object_type2string(git_tag_type(tag_)));
+
+	const git_signature *tagger = git_tag_tagger(tag_);
+	data->tagger = git_signature_dup(tagger);
+
+	repository_->unlockRepository();
+
+	return data;
 }
 
 } // namespace gitteh

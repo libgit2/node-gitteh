@@ -65,6 +65,7 @@ Handle<Value> Tree::New(const Arguments& args) {
 	REQ_EXT_ARG(0, theTree);
 
 	Tree *tree = new Tree();
+
 	tree->tree_ = (git_tree*)theTree->Value();
 	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 

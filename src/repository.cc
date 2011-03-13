@@ -437,20 +437,17 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	if(args.Length() > 0) {
+	if(HAS_CALLBACK_ARG) {
 		PREPARE_ASYNC_CREATE(Commit);
 	}
 	else {
 		git_commit *commit;
 		int result = repo->createCommit(&commit);
-	
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't create commit.", result);
 		}
 
-		Commit *commitObject = repo->wrapCommit(commit);
-		commitObject->forceInitialized();
-		return scope.Close(commitObject->handle_);
+		return scope.Close(repo->commitFactory_->newObject(commit)->handle_);
 	}
 }
 
@@ -459,20 +456,19 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	REQ_ARGS(1);
+	REQ_OID_ARG(0, oidArg);
 
 	if(args.Length() == 2) {
-		//PREPARE_ASYNC_OID_GET(Commit);
-
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
 		CREATE_ASYNC_REQUEST(get_commit_request);
-		LOAD_OID_ARG(0, request->oid);
+		memcpy(&request->oid, &oidArg, sizeof(git_oid));
+
 		REQUEST_DETACH(repo, EIO_GetCommit, EIO_ReturnCommit);
 	}
 	else {
 		REQ_OID_ARG(0, oidArg);
 
 		git_commit *commit;
-
 		int res = repo->getCommit(&oidArg, &commit);
 		if(res != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't get commit", res);
@@ -735,7 +731,6 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 // ==========
 // COMMIT EIO
 // ==========
-//ASYNC_GET_REPO_OID_OBJECT_FN(git_commit, Commit)
 int Repository::EIO_GetCommit(eio_req *req) {
 	GET_REQUEST_DATA(get_commit_request);
  	commit_data* data;
@@ -760,7 +755,6 @@ int Repository::EIO_ReturnCommit(eio_req *req) {
  	    reqData->callback.Dispose();
 	}
 	else {
-		//reqData->repo->asyncWrapCommit(reqData->commit, reqData->callback);
 		reqData->repo->commitFactory_->asyncRequestObject(reqData->commit, reqData->callback);
 	}
 
@@ -791,11 +785,13 @@ int Repository::EIO_ReturnCreatedCommit(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		Commit *object = reqData->repo->wrapCommit(
+		/*Commit *object = reqData->repo->wrapCommit(
 				static_cast<git_commit*>(reqData->object));
 		object->forceInitialized();
 		callbackArgs[0] = Null();
-		callbackArgs[1] = object->handle_;
+		callbackArgs[1] = object->handle_;*/
+		// TODO:
+
 	}
 
 	TRIGGER_CALLBACK();
@@ -877,29 +873,6 @@ int Repository::createCommit(git_commit **commit) {
 
 	return result;
 }
-
-Commit *Repository::wrapCommit(git_commit *commit) {
-	Commit *commitObject;
-
-/*	if(commitStore_.getObjectFor(commit, &commitObject)) {
-		// Commit needs to know who it's daddy is.
-		commitObject->repository_ = this;
-	}*/
-
-	return commitObject;
-}
-
-/*Commit *Repository::wrapCommitWithData(commit_data *data) {
-	//LOCK_MUTEX(gitLock_);
-	Commit *commitObject;
-	if(commitStore_.getObjectFor(data->commit, &commitObject)) {
-		// Commit needs to know who it's daddy is.
-		commitObject->repository_ = this;
-		commitObject->load(data);
-	}
-	//UNLOCK_MUTEX(gitLock_);
-	return commitObject;
-}*/
 
 int Repository::createTree(git_tree **tree) {
 	int result;
@@ -1043,37 +1016,6 @@ git_commit* Repository::getParentCommit(git_commit *commit, int index) {
 	UNLOCK_MUTEX(gitLock_);
 
 	return parent;
-}
-
-commit_data* Repository::getCommitData(git_commit *commit) {
-	commit_data *data = new commit_data;
-
-	LOCK_MUTEX(gitLock_);
-	const git_oid *commitId = git_commit_id(commit);
-	git_oid_fmt(data->id, commitId);
-	data->message = strdup(git_commit_message(commit));
-	data->author = git_signature_dup(git_commit_author(commit));
-	data->committer = git_signature_dup(git_commit_committer(commit));
-	data->parentCount = git_commit_parentcount(commit);
-	UNLOCK_MUTEX(gitLock_);
-
-	return data;
-}
-
-int Repository::EIO_ReturnBuiltCommit(eio_req *req) {
-	HandleScope scope;
-/*	build_commit_request *reqData = static_cast<build_commit_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
-	reqData->repo->Unref();
-
-	reqData->commitObject->ensureInitDone();
-	reqData->commitObject->removeInitInterest();
-	ReturnWrappedObject(reqData->commitObject, reqData->callback);
-
-	delete reqData;*/
-
-	return 0;
 }
 
 void Repository::lockRepository() {
