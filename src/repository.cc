@@ -240,9 +240,6 @@ void Repository::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
-	//t->InstanceTemplate()->SetAccessor(String::New("index"), IndexGetter);
-	//target->Set(String::New("Repository"), t->GetFunction());
-
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
 }
@@ -733,8 +730,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 // ==========
 int Repository::EIO_GetCommit(eio_req *req) {
 	GET_REQUEST_DATA(get_commit_request);
- 	commit_data* data;
- 	int result = reqData->error = reqData->repo->getCommit(&reqData->oid, &reqData->commit);
+ 	reqData->error = reqData->repo->getCommit(&reqData->oid, &reqData->commit);
 	return 0;
 }
 

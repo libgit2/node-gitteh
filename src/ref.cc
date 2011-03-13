@@ -31,6 +31,12 @@
 
 namespace gitteh {
 
+struct ref_data {
+	std::string *name;
+	git_rtype type;
+	std::string *target;
+};
+
 Persistent<FunctionTemplate> Reference::constructor_template;
 
 Reference::Reference() {
@@ -61,25 +67,8 @@ Handle<Value> Reference::New(const Arguments& args) {
 	REQ_EXT_ARG(0, refArg);
 
 	Reference *ref = new Reference();
-	ref->ref_ = static_cast<git_reference*>(refArg->Value());
-	ref->type_ = git_reference_type(ref->ref_);
 	ref->Wrap(args.This());
-
-	args.This()->Set(NAME_PROPERTY, String::New(git_reference_name(ref->ref_)),
-			(PropertyAttribute)(ReadOnly | DontDelete));
-
-	args.This()->Set(TYPE_PROPERTY, Integer::New(ref->type_),
-			(PropertyAttribute)(ReadOnly | DontDelete));
-
-	if(ref->type_ == GIT_REF_OID) {
-		const char *oidStr = git_oid_allocfmt(git_reference_oid(ref->ref_));
-		args.This()->Set(TARGET_PROPERTY, String::New(oidStr),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-	}
-	else if(ref->type_ == GIT_REF_SYMBOLIC) {
-		args.This()->Set(TARGET_PROPERTY, String::New(git_reference_target(ref->ref_)),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-	}
+	ref->ref_ = static_cast<git_reference*>(refArg->Value());
 
 	return args.This();
 }
@@ -165,6 +154,57 @@ Handle<Value> Reference::SetTarget(const Arguments &args) {
 	}
 	
 	return scope.Close(True());
+}
+
+void Reference::processInitData(void *data) {
+	HandleScope scope;
+	Handle<Object> jsObject = handle_;
+
+	if(data != NULL) {
+		ref_data *refData = static_cast<ref_data*>(data);
+		jsObject->Set(NAME_PROPERTY, String::New(refData->name->c_str()),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		type_ = refData->type;
+		jsObject->Set(TYPE_PROPERTY, Integer::New(refData->type),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		jsObject->Set(TARGET_PROPERTY, String::New(refData->target->c_str()),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		delete refData->name;
+		delete refData->target;
+		delete refData;
+	}
+	else {
+		jsObject->Set(NAME_PROPERTY, Null(),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+		jsObject->Set(TYPE_PROPERTY, Null(),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+		jsObject->Set(TARGET_PROPERTY, Null(),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+	}
+}
+
+void* Reference::loadInitData() {
+	ref_data *data = new ref_data;
+
+	repository_->lockRepository();
+
+	data->name = new std::string(git_reference_name(ref_));
+	data->type = git_reference_type(ref_);
+
+	if(data->type == GIT_REF_OID) {
+		char id[40];
+		git_oid_fmt(id, git_reference_oid(ref_));
+		data->target = new std::string(id, 40);
+	}
+	else if(data->type == GIT_REF_SYMBOLIC) {
+		data->target = new std::string(git_reference_target(ref_));
+	}
+
+	repository_->unlockRepository();
+	return data;
 }
 
 } // namespace gitteh

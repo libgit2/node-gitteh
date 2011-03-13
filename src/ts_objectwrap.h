@@ -18,7 +18,7 @@ public:
 	// Shortcut, if this is a newly allocated object for a newly created Git
 	// object, then there's not going to be any threads fighting for access,
 	// we just mark it as initialized straight up, no need to even use a mutex.
-	bool forceInitialized() {
+	void forceInitialized() {
 		processInitData(NULL);
 		initialized_ = true;
 	}

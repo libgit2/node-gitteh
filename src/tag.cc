@@ -118,10 +118,11 @@ Handle<Value> Tag::Save(const Arguments& args) {
 }
 
 void Tag::processInitData(void *data) {
+	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	tag_data *tagData = static_cast<tag_data*>(data);
 	if(data != NULL) {
+		tag_data *tagData = static_cast<tag_data*>(data);
 		jsObject->Set(ID_PROPERTY, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
 
 		jsObject->Set(NAME_PROPERTY, String::New(tagData->name->c_str()));

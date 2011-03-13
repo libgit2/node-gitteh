@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#include "repository.h"
 #include "tree.h"
 #include "tree_entry.h"
 
@@ -36,6 +37,11 @@
 	return scope.Close(treeEntryObject->handle_);
 
 namespace gitteh {
+
+struct tree_data {
+	char id[40];
+	int entryCount;
+};
 
 Persistent<FunctionTemplate> Tree::constructor_template;
 
@@ -65,21 +71,10 @@ Handle<Value> Tree::New(const Arguments& args) {
 	REQ_EXT_ARG(0, theTree);
 
 	Tree *tree = new Tree();
+	tree->Wrap(args.This());
 
 	tree->tree_ = (git_tree*)theTree->Value();
-	tree->entryCount_ = git_tree_entrycount(tree->tree_);
 
-	const git_oid *treeOid = git_tree_id(tree->tree_);
-	if(treeOid) {
-		args.This()->Set(ID_PROPERTY, String::New(git_oid_allocfmt(treeOid)), ReadOnly);
-	}
-	else {
-		args.This()->Set(ID_PROPERTY, Null(), ReadOnly);
-	}
-
-	args.This()->Set(LENGTH_PROPERTY, Integer::New(tree->entryCount_), ReadOnly);
-
-	tree->Wrap(args.This());
 	return args.This();
 }
 
@@ -216,6 +211,39 @@ TreeEntry *Tree::wrapEntry(git_tree_entry *entry) {
 }
 
 Tree::~Tree() {
+}
+
+void Tree::processInitData(void *data) {
+	HandleScope scope;
+	Handle<Object> jsObject = handle_;
+
+	if(data != NULL) {
+		tree_data *treeData = static_cast<tree_data*>(data);
+		jsObject->Set(ID_PROPERTY, String::New(treeData->id, 40),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+		jsObject->Set(LENGTH_PROPERTY, Integer::New(treeData->entryCount),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		delete treeData;
+	}
+	else {
+		jsObject->Set(ID_PROPERTY, Null(), ReadOnly);
+		jsObject->Set(LENGTH_PROPERTY, Integer::New(0),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+	}
+
+}
+
+void* Tree::loadInitData() {
+	tree_data *data = new tree_data;
+
+	repository_->lockRepository();
+	data->entryCount = git_tree_entrycount(tree_);
+	const git_oid *treeOid = git_tree_id(tree_);
+	git_oid_fmt(data->id, treeOid);
+	repository_->unlockRepository();
+
+	return data;
 }
 
 } // namespace gitteh

@@ -17,6 +17,6 @@ def configure(conf):
 def build(bld):
   obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
   obj.target = 'gitteh'
-  obj.cxxflags = ["-O0", "-ggdb"]
+  obj.cxxflags = ["-O0", "-ggdb", "-Wall"]
   obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/tree_entry.cc src/rawobj.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc'
   obj.lib = 'git2'

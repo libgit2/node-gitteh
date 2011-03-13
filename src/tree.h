@@ -3,6 +3,7 @@
 
 #include "gitteh.h"
 #include "object_store.h"
+#include "ts_objectwrap.h"
 
 namespace gitteh {
 
@@ -12,7 +13,7 @@ class Repository;
 #define TREE_ID_SYMBOL String::NewSymbol("id")
 #define TREE_LENGTH_SYMBOL String::NewSymbol("length")
 
-class Tree : public ObjectWrap {
+class Tree : public ThreadSafeObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
@@ -31,6 +32,9 @@ protected:
 	static Handle<Value> RemoveEntry(const Arguments&);
 	static Handle<Value> Clear(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
+
+	void processInitData(void *data);
+	void* loadInitData();
 
 	size_t entryCount_;
 	ObjectStore<TreeEntry, git_tree_entry> entryStore_;

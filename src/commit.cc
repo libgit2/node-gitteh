@@ -184,7 +184,7 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 int Commit::EIO_GetParent(eio_req *req) {
 	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
 
-	git_commit *parent = reqData->parent = reqData->commit->repository_->getParentCommit(
+	reqData->parent = reqData->commit->repository_->getParentCommit(
 			reqData->commit->commit_, reqData->index);
 
 	return 0;
@@ -306,6 +306,7 @@ Handle<Value> Commit::Save(const Arguments& args) {
 }
 
 void Commit::processInitData(void *data) {
+	HandleScope scope;
 	Handle<Object> jsObj = handle_;
 
 	if(data != NULL) {

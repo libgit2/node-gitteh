@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <cstdlib>
 
 #include "thread.h"
 

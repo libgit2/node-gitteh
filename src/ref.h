@@ -2,12 +2,13 @@
 #define GITTEH_REF_H
 
 #include "gitteh.h"
+#include "ts_objectwrap.h"
 
 namespace gitteh {
 
 class Repository;
 
-class Reference : public ObjectWrap {
+class Reference : public ThreadSafeObjectWrap {
 public:
 	Reference();
 
@@ -23,6 +24,9 @@ protected:
 	static Handle<Value> Delete(const Arguments&);
 	static Handle<Value> Resolve(const Arguments&);
 	static Handle<Value> SetTarget(const Arguments&);
+
+	void processInitData(void *data);
+	void* loadInitData();
 
 	git_reference *ref_;
 	git_rtype type_;

@@ -56,30 +56,6 @@ Handle<Value> RawObject::New(const Arguments& args) {
 
 	obj->obj_ = static_cast<git_rawobj*>(theObj->Value());
 
-	if(obj->obj_->type != GIT_OBJ_BAD) {
-		git_oid objId;
-		int res = git_rawobj_hash(&objId, obj->obj_);
-		if(res != GIT_SUCCESS)
-			THROW_GIT_ERROR("Couldn't get rawobj id.", res);
-
-		const char* oidStr = git_oid_allocfmt(&objId);
-		args.This()->Set(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
-
-		Buffer *buf = Buffer::New(static_cast<char*>(obj->obj_->data), obj->obj_->len);
-
-		Local<Object> globalObj = Context::GetCurrent()->Global();
-		Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
-		Handle<Value> constructorArgs[3] = { buf->handle_, Integer::New(obj->obj_->len), Integer::New(0) };
-		Local<Object> actualBuffer = bufferConstructor->NewInstance(3, constructorArgs);
-		args.This()->Set(DATA_PROPERTY, actualBuffer);
-	}
-	else {
-		args.This()->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		args.This()->Set(DATA_PROPERTY, Null());
-	}
-
-	args.This()->Set(TYPE_PROPERTY, String::New(git_object_type2string(obj->obj_->type)));
-
 	return args.This();
 }
 
@@ -124,6 +100,67 @@ Handle<Value> RawObject::Save(const Arguments& args) {
 
 RawObject::~RawObject() {
 	delete obj_;
+}
+
+struct rawobj_data {
+	char id[40];
+	std::string *type;
+	int len;
+	void *data;
+};
+
+void RawObject::processInitData(void *data) {
+	HandleScope scope;
+	Handle<Object> jsObject = handle_;
+
+	if(data != NULL) {
+		rawobj_data *rawObjData = static_cast<rawobj_data*>(data);
+
+		jsObject->Set(ID_PROPERTY, String::New(rawObjData->id, 40),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		Buffer *buf = Buffer::New(static_cast<char*>(rawObjData->data),
+				rawObjData->len);
+		Local<Object> globalObj = Context::GetCurrent()->Global();
+		Local<Function> bufferConstructor = Local<Function>::Cast(
+				globalObj->Get(String::New("Buffer")));
+		Handle<Value> constructorArgs[3] = { buf->handle_, Integer::New(
+				rawObjData->len), Integer::New(0) };
+		Local<Object> actualBuffer = bufferConstructor->NewInstance(3, constructorArgs);
+		jsObject->Set(DATA_PROPERTY, actualBuffer);
+
+		delete rawObjData->type;
+		delete rawObjData;
+	}
+	else {
+		jsObject->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObject->Set(DATA_PROPERTY, Null());
+
+		repository_->lockRepository();
+		jsObject->Set(TYPE_PROPERTY, String::New(git_object_type2string(GIT_OBJ_BAD)));
+		repository_->unlockRepository();
+	}
+}
+
+void* RawObject::loadInitData() {
+	rawobj_data *data = new rawobj_data;
+
+	repository_->lockRepository();
+	git_oid id;
+	int res = git_rawobj_hash(&id, obj_);
+	if(res == GIT_SUCCESS) {
+		// TODO: what should we do if this fails?
+		git_oid_fmt(data->id, &id);
+	}
+
+	data->type = new std::string(git_object_type2string(obj_->type));
+	data->len = obj_->len;
+	data->data = malloc(data->len);
+	memcpy(data->data, obj_->data, data->len);
+
+	repository_->unlockRepository();
+
+	return data;
 }
 
 } // namespace gitteh
