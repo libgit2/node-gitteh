@@ -24,6 +24,7 @@
 
 #include "ref.h"
 #include "repository.h"
+#include "object_factory.h"
 
 #define NAME_PROPERTY String::NewSymbol("name")
 #define TYPE_PROPERTY String::NewSymbol("type")
@@ -121,8 +122,8 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 	if(result != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't resolve ref.", result);
 
-	Reference *resolvedRefObj = ref->repository_->wrapReference(resolvedRef);
-	return scope.Close(resolvedRefObj->handle_);
+	return scope.Close(ref->repository_->referenceFactory_->
+			syncRequestObject(resolvedRef)->handle_);
 }
 
 Handle<Value> Reference::SetTarget(const Arguments &args) {

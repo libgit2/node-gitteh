@@ -113,8 +113,8 @@ Handle<Value> Commit::GetTree(const Arguments& args) {
 		return scope.Close(Null());
 	}
 
-	Tree *treeObject = commit->repository_->wrapTree(const_cast<git_tree*>(tree));
-	return scope.Close(treeObject->handle_);
+	return commit->repository_->treeFactory_->
+			syncRequestObject(const_cast<git_tree*>(tree))->handle_;
 }
 
 Handle<Value> Commit::SetTree(const Arguments& args) {

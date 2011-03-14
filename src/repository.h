@@ -27,27 +27,13 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
-	int createTree(git_tree**);
-	int createCommit(git_commit**);
-	int createTag(git_tag**);
-	int createRawObject(git_rawobj**);
-	int createRevWalker(git_revwalk**);
-
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
-	int getReference(char*, git_reference**);
+	int getReference(const char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
 
-	Tree *wrapTree(git_tree*);
-	Reference *wrapReference(git_reference*);
-	Tag *wrapTag(git_tag*);
-	RawObject *wrapRawObject(git_rawobj*);
-	RevWalker *wrapRevWalker(git_revwalk*);
-
 	git_commit* getParentCommit(git_commit*, int);
-
-	void asyncWrapCommit(git_commit*, Persistent<Function>&);
 
 	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
 	// on a libgit2 repository needs to be locked to one thread at a time, as
@@ -90,14 +76,17 @@ protected:
 
 	void close();
 
-	//ObjectStore<Commit, git_commit> commitStore_;
-	ObjectStore<Tree, git_tree> treeStore_;
-	ObjectStore<Tag, git_tag> tagStore_;
-	ObjectStore<Reference, git_reference> refStore_;
-
 	Index *index_;
 	char *path_;
 private:
+	RevWalker *wrapRevWalker(git_revwalk*);
+
+	int createTree(git_tree**);
+	int createCommit(git_commit**);
+	int createTag(git_tag**);
+	int createRawObject(git_rawobj**);
+	int createRevWalker(git_revwalk**);
+
 	static int EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
 
@@ -107,28 +96,24 @@ private:
 	static int EIO_GetCommit(eio_req*);
 	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
-	static int EIO_ReturnCreatedCommit(eio_req*);
 	
 	static int EIO_GetTree(eio_req*);
 	static int EIO_CreateTree(eio_req*);
 	static int EIO_ReturnTree(eio_req*);
-	static int EIO_ReturnCreatedTree(eio_req*);
 	
 	static int EIO_GetTag(eio_req*);
 	static int EIO_CreateTag(eio_req*);
 	static int EIO_ReturnTag(eio_req*);
-	static int EIO_ReturnCreatedTag(eio_req*);
 	
 	static int EIO_GetRawObject(eio_req*);
 	static int EIO_CreateRawObject(eio_req*);
 	static int EIO_ReturnRawObject(eio_req*);
-	static int EIO_ReturnCreatedRawObject(eio_req*);
 
 	static int EIO_GetReference(eio_req*);
 	static int EIO_ReturnReference(eio_req*);
 
 	static int EIO_CreateRevWalker(eio_req*);
-	static int EIO_ReturnCreatedRevWalker(eio_req*);
+	static int EIO_ReturnRevWalker(eio_req*);
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,

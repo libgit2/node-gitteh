@@ -61,23 +61,6 @@
 	request->callback = Persistent<Function>::New(callbackArg);				\
 	request->repo = repo;
 
-#define PREPARE_ASYNC_OID_GET(CLASS)										\
-	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
-	CREATE_ASYNC_REQUEST(get_oid_object_request);							\
-	LOAD_OID_ARG(0, request->oid);											\
-	REQUEST_DETACH(repo, EIO_Get##CLASS, EIO_Return##CLASS);				
-
-#define PREPARE_ASYNC_NAMED_GET(CLASS, NAMEINDEX)							\
-	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
-	CREATE_ASYNC_REQUEST(get_named_object_request);							\
-	request->name = new String::Utf8Value(args[NAMEINDEX]);					\
-	REQUEST_DETACH(repo, EIO_Get##CLASS, EIO_Return##CLASS);
-
-#define PREPARE_ASYNC_CREATE(CLASS)											\
-	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
-	CREATE_ASYNC_REQUEST(create_object_request)								\
-	REQUEST_DETACH(repo, EIO_Create##CLASS, EIO_ReturnCreated##CLASS);
-
 #define SETUP_CALLBACK_ARGS(TYPE, CLASS)									\
 		Handle<Value> callbackArgs[2];										\
 	 	if(reqData->error) {												\
@@ -93,110 +76,144 @@
 			callbackArgs[1] = object->handle_;								\
 		}
 
-#define ASYNC_GET_REPO_OID_OBJECT_FN(TYPE, CLASS)							\
-	int Repository::EIO_Get##CLASS(eio_req *req) {							\
-		GET_REQUEST_DATA(get_oid_object_request);							\
-	 	TYPE* object;														\
-	 	int result = reqData->error = reqData->repo->get##CLASS(			\
-	 			&reqData->oid, &object);									\
-		if(result == GIT_SUCCESS) {											\
-			reqData->object = object;										\
-		}																	\
-		return 0;															\
-	}
 
-#define ASYNC_GET_REPO_NAMED_OBJECT_FN(TYPE, CLASS)							\
-	int Repository::EIO_Get##CLASS(eio_req *req) {							\
-		GET_REQUEST_DATA(get_named_object_request);							\
-	 	TYPE* object;														\
-	 	int result = reqData->error = reqData->repo->get##CLASS(			\
-	 			**reqData->name, &object);									\
-		if(result == GIT_SUCCESS) {											\
-			reqData->object = object;										\
-		}																	\
-		return 0;															\
-	}
-
-#define ASYNC_CREATE_REPO_OBJECT_FN(TYPE, CLASS)							\
-	int Repository::EIO_Create##CLASS(eio_req *req) {						\
-		GET_REQUEST_DATA(create_object_request);							\
-	 	TYPE* object;														\
-		int result = reqData->error = reqData->repo->create##CLASS( 		\
-				&object);													\
-		if(result == GIT_SUCCESS) {											\
-			reqData->object = object;										\
-		}																	\
-		return 0;															\
-	}
-	
-#define ASYNC_RETURN_REPO_OID_OBJECT_FN(TYPE, CLASS)						\
-	int Repository::EIO_Return##CLASS(eio_req *req) {						\
-		HandleScope scope;													\
-		GET_REQUEST_DATA(get_oid_object_request);							\
-		SETUP_CALLBACK_ARGS(TYPE, CLASS);									\
-		TRIGGER_CALLBACK();													\
-	    REQUEST_CLEANUP();													\
-	}
-
-#define ASYNC_RETURN_REPO_NAMED_OBJECT_FN(TYPE, CLASS)						\
-	int Repository::EIO_Return##CLASS(eio_req *req) {						\
-		HandleScope scope;													\
-		GET_REQUEST_DATA(get_named_object_request);							\
-		SETUP_CALLBACK_ARGS(TYPE, CLASS);									\
-		TRIGGER_CALLBACK();													\
-		delete reqData->name;												\
-	    REQUEST_CLEANUP();													\
-	}
-
-#define ASYNC_RETURN_REPO_CREATED_OBJECT_FN(TYPE, CLASS)					\
-	int Repository::EIO_ReturnCreated##CLASS(eio_req *req) {				\
-		HandleScope scope;													\
-		GET_REQUEST_DATA(create_object_request);							\
-		SETUP_CALLBACK_ARGS(TYPE, CLASS);									\
-		TRIGGER_CALLBACK();													\
-	    REQUEST_CLEANUP();													\
-	}
-
-#define FN_ASYNC_GET_OID_OBJECT(TYPE, REQTYPE)								\
+#define FN_ASYNC_GET_OID_OBJECT(TYPE, GIT_TYPE)								\
 	int Repository::EIO_Get##TYPE(eio_req *req) {							\
-		GET_REQUEST_DATA(get_commit_request);								\
-		reqData->error = reqData->repo->getCommit(&reqData->oid,			\
-				&reqData->object);											\
+		GET_REQUEST_DATA(object_request);									\
+		GIT_TYPE *object;													\
+		reqData->error = reqData->repo->get##TYPE(&reqData->oid,			\
+				&object);													\
+		if(reqData->error != GIT_SUCCESS) {									\
+			reqData->object = object;										\
+		}																	\
 		return 0;															\
 	}
 
+#define FN_ASYNC_GET_NAMED_OBJECT(TYPE, GIT_TYPE)							\
+	int Repository::EIO_Get##TYPE(eio_req *req) {							\
+		GET_REQUEST_DATA(object_request);									\
+		GIT_TYPE *object;													\
+		reqData->error = reqData->repo->get##TYPE(reqData->name->c_str(),	\
+				&object);													\
+		if(reqData->error != GIT_SUCCESS) {									\
+			reqData->object = object;										\
+		}																	\
+		delete reqData->name;												\
+		return 0;															\
+	}
 
-#define FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(TYPE, REQTYPE, FACTORY)			\
+#define FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(TYPE, GIT_TYPE, FACTORY)			\
 	int Repository::EIO_Return##TYPE(eio_req *req) {						\
 		HandleScope scope;													\
-		GET_REQUEST_DATA(REQTYPE);											\
+		GET_REQUEST_DATA(object_request);									\
 		ev_unref(EV_DEFAULT_UC);											\
 		reqData->repo->Unref();												\
 		Handle<Value> callbackArgs[2];										\
-		if(reqData->error) {												\
+		if(reqData->error != GIT_SUCCESS) {									\
 			Handle<Value> error = CreateGitError(String::New(				\
-					"Couldn't get commit."), reqData->error);				\
+					"Git error."), reqData->error);							\
 			callbackArgs[0] = error;										\
 			callbackArgs[1] = Null();										\
 			TRIGGER_CALLBACK();												\
 			reqData->callback.Dispose();									\
 		}																	\
 		else {																\
-			reqData->repo->FACTORY->asyncRequestObject(reqData->object,		\
-					reqData->callback);										\
+			reqData->repo->FACTORY->asyncRequestObject(						\
+				static_cast<GIT_TYPE*>(reqData->object), reqData->callback);\
 		}																	\
 		delete reqData;														\
 		return 0;															\
 	}
 
+#define FN_ASYNC_RETURN_OBJECT_VIA_WRAP(TYPE, GIT_TYPE)						\
+	int Repository::EIO_Return##TYPE(eio_req *req) {						\
+		HandleScope scope;													\
+		GET_REQUEST_DATA(object_request);									\
+		ev_unref(EV_DEFAULT_UC);											\
+		reqData->repo->Unref();												\
+		Handle<Value> callbackArgs[2];										\
+		if(reqData->error != GIT_SUCCESS) {									\
+			Handle<Value> error = CreateGitError(String::New(				\
+					"Git error."), reqData->error);							\
+			callbackArgs[0] = error;										\
+			callbackArgs[1] = Null();										\
+		}																	\
+		else {																\
+			TYPE *obj = reqData->repo->wrap##TYPE(							\
+					static_cast<GIT_TYPE*>(reqData->object));				\
+			callbackArgs[0] = Null();										\
+			callbackArgs[1] = obj->handle_;									\
+		}																	\
+		TRIGGER_CALLBACK();													\
+		reqData->callback.Dispose();										\
+		delete reqData;														\
+		return 0;															\
+	}
+
+#define FN_ASYNC_CREATE_OBJECT(TYPE, GIT_TYPE)								\
+	int Repository::EIO_Create##TYPE(eio_req *req) {						\
+		GET_REQUEST_DATA(object_request);									\
+		GIT_TYPE* object;													\
+		reqData->error = reqData->repo->create##TYPE(&object);				\
+		if(reqData->error == GIT_SUCCESS) {									\
+			reqData->object = object;										\
+		}																	\
+		return 0;															\
+	}
+
+#define ASYNC_PREPARE_GET_OID_OBJECT(TYPE, GIT_TYPE)						\
+	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
+	CREATE_ASYNC_REQUEST(object_request);									\
+	memcpy(&request->oid, &oidArg, sizeof(git_oid));						\
+	REQUEST_DETACH(repo, EIO_Get##TYPE, EIO_Return##TYPE);
+
+#define ASYNC_PREPARE_GET_NAMED_OBJECT(TYPE, GIT_TYPE)						\
+	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
+	CREATE_ASYNC_REQUEST(object_request);									\
+	request->name = new std::string(*nameArg);								\
+	REQUEST_DETACH(repo, EIO_Get##TYPE, EIO_Return##TYPE);
+
+#define ASYNC_PREPARE_CREATE_OBJECT(TYPE)									\
+	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
+	CREATE_ASYNC_REQUEST(object_request);									\
+	REQUEST_DETACH(repo, EIO_Create##TYPE, EIO_Return##TYPE);
+
+#define SYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
+	GIT_TYPE *object;														\
+	int res = repo->get##TYPE(&oidArg, &object);							\
+	if(res != GIT_SUCCESS) {												\
+		THROW_GIT_ERROR("Git error.", res);									\
+	}																		\
+	return scope.Close(repo->FACTORY->										\
+			syncRequestObject(object)->handle_);
+
+#define SYNC_GET_NAMED_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
+	GIT_TYPE *object;														\
+	int res = repo->get##TYPE(*nameArg, &object);							\
+	if(res != GIT_SUCCESS) {												\
+		THROW_GIT_ERROR("Git error.", res);									\
+	}																		\
+	return scope.Close(repo->FACTORY->										\
+			syncRequestObject(object)->handle_);
+
+#define SYNC_CREATE_OBJECT(TYPE, GIT_TYPE, FACTORY)							\
+	GIT_TYPE *object;														\
+	int res = repo->create##TYPE(&object);									\
+	if(res != GIT_SUCCESS) {												\
+		THROW_GIT_ERROR("Git error.", res);									\
+	}																		\
+	return scope.Close(repo->FACTORY->										\
+			newObject(object)->handle_);
+
 namespace gitteh {
 
-struct get_commit_request {
+struct object_request {
 	Persistent<Function> callback;
 	Repository *repo;
 	int error;
 	git_oid oid;
-	git_commit *object;
+	std::string *name;
+	void *object;
 };
 
 struct get_oid_object_request {
@@ -467,17 +484,10 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(HAS_CALLBACK_ARG) {
-		// TODO:
-		//PREPARE_ASYNC_CREATE(Commit);
+		ASYNC_PREPARE_CREATE_OBJECT(Commit);
 	}
 	else {
-		git_commit *commit;
-		int result = repo->createCommit(&commit);
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't create commit.", result);
-		}
-
-		return scope.Close(repo->commitFactory_->newObject(commit)->handle_);
+		SYNC_CREATE_OBJECT(Commit, git_commit, commitFactory_);
 	}
 }
 
@@ -488,23 +498,11 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, oidArg);
 
-	if(args.Length() == 2) {
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		CREATE_ASYNC_REQUEST(get_commit_request);
-		memcpy(&request->oid, &oidArg, sizeof(git_oid));
-
-		REQUEST_DETACH(repo, EIO_GetCommit, EIO_ReturnCommit);
+	if(HAS_CALLBACK_ARG) {
+		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
 	}
 	else {
-		REQ_OID_ARG(0, oidArg);
-
-		git_commit *commit;
-		int res = repo->getCommit(&oidArg, &commit);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't get commit", res);
-		}
-
-		return scope.Close(repo->commitFactory_->syncRequestObject(commit)->handle_);
+		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
 	}
 }
 
@@ -513,16 +511,10 @@ Handle<Value> Repository::CreateTree(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(args.Length() > 0) {
-		PREPARE_ASYNC_CREATE(Tree);
+		ASYNC_PREPARE_CREATE_OBJECT(Tree);
 	}
 	else {
-		git_tree *tree;
-		int res = repo->createTree(&tree);
-		if(res != GIT_SUCCESS)
-			THROW_GIT_ERROR("Couldn't create tree.", res);
-	
-		Tree *treeObject = repo->wrapTree(tree);
-		return treeObject->handle_;
+		SYNC_CREATE_OBJECT(Tree, git_tree, treeFactory_);
 	}
 }
 
@@ -534,17 +526,10 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(args.Length() == 2) {
-		PREPARE_ASYNC_OID_GET(Tree);
+		ASYNC_PREPARE_GET_OID_OBJECT(Tree, git_tree);
 	}
 	else {
-		git_tree *tree;
-		int res = repo->getTree(&oidArg, &tree);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't get Tree.", res);
-		}
-
-		Tree *treeObject = repo->wrapTree(tree);
-		return scope.Close(treeObject->handle_);
+		SYNC_GET_OID_OBJECT(Tree, git_tree, treeFactory_);
 	}
 }
 
@@ -553,16 +538,10 @@ Handle<Value> Repository::CreateTag(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(args.Length() > 0) {
-		PREPARE_ASYNC_CREATE(Tag);
+		ASYNC_PREPARE_CREATE_OBJECT(Tag);
 	}
 	else {
-		git_tag *tag;
-		int res = repo->createTag(&tag);
-		if(res != GIT_SUCCESS)
-			THROW_GIT_ERROR("Couldn't create new tag.", res);
-	
-		Tag *tagObject = repo->wrapTag(tag);
-		return scope.Close(tagObject->handle_);
+		SYNC_CREATE_OBJECT(Tag, git_tag, tagFactory_);
 	}
 }
 
@@ -574,17 +553,10 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(args.Length() == 2) {
-		PREPARE_ASYNC_OID_GET(Tag);
+		ASYNC_PREPARE_GET_OID_OBJECT(Tag, git_tag);
 	}
 	else {
-		git_tag *tag;
-		int res = repo->getTag(&oidArg, &tag);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't get Tag.", res);
-		}
-
-		Tag *tagObject = repo->wrapTag(tag);
-		return scope.Close(tagObject->handle_);
+		SYNC_GET_OID_OBJECT(Tag, git_tag, tagFactory_);
 	}
 }
 
@@ -596,17 +568,10 @@ Handle<Value> Repository::GetRawObject(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(args.Length() == 2) {
-		PREPARE_ASYNC_OID_GET(RawObject);
+		ASYNC_PREPARE_GET_OID_OBJECT(RawObject, git_rawobj);
 	}
 	else {
-		git_rawobj *obj;
-		int res = repo->getRawObject(&oidArg, &obj);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't get RawObject.", res);
-		}
-
-		RawObject *objObj = repo->wrapRawObject(obj);
-		return scope.Close(objObj->handle_);
+		SYNC_GET_OID_OBJECT(RawObject, git_rawobj, rawObjFactory_);
 	}
 }
 
@@ -615,18 +580,10 @@ Handle<Value> Repository::CreateRawObject(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(args.Length() > 0) {
-		PREPARE_ASYNC_CREATE(RawObject);
+		ASYNC_PREPARE_CREATE_OBJECT(RawObject);
 	}
 	else {
-		// Initialize a new rawobj.
-		git_rawobj *rawObj;
-		int res = repo->createRawObject(&rawObj);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't create RawObject.", res);
-		}
-
-		RawObject *objObj = repo->wrapRawObject(rawObj);
-		return scope.Close(objObj->handle_);
+		SYNC_CREATE_OBJECT(RawObject, git_rawobj, rawObjFactory_);
 	}
 }
 
@@ -635,7 +592,7 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(args.Length() > 0) {
-		PREPARE_ASYNC_CREATE(RevWalker);
+		ASYNC_PREPARE_CREATE_OBJECT(RevWalker);
 	}
 	else {
 		git_revwalk *walker;
@@ -673,20 +630,13 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	REQ_ARGS(1);
+	REQ_STR_ARG(0, nameArg);
 
 	if(args.Length() > 1) {
-		PREPARE_ASYNC_NAMED_GET(Reference, 0);
+		ASYNC_PREPARE_GET_NAMED_OBJECT(Reference, git_reference);
 	}
 	else {
-		REQ_STR_ARG(0, nameArg);
-		git_reference *reference;
-		int result = repo->getReference(*nameArg, &reference);
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Failed to load ref.", result);
-		}
-
-		Reference *refObj = repo->wrapReference(reference);
-		return scope.Close(refObj->handle_);
+		SYNC_GET_NAMED_OBJECT(Reference, git_reference, referenceFactory_);
 	}
 }
 
@@ -717,8 +667,7 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
 
-		Reference *refObj = repo->wrapReference(ref);
-		return scope.Close(refObj->handle_);
+		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
 	}
 
 	return Undefined();
@@ -742,8 +691,7 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 		THROW_GIT_ERROR("Couldn't create reference.", res);
 	}
 
-	Reference *refObj = repo->wrapReference(ref);
-	return scope.Close(refObj->handle_);
+	return repo->referenceFactory_->syncRequestObject(ref)->handle_;
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {
@@ -760,88 +708,42 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 // ==========
 // COMMIT EIO
 // ==========
-FN_ASYNC_GET_OID_OBJECT(Commit, get_commit_request)
-
-int Repository::EIO_CreateCommit(eio_req *req) {
-	GET_REQUEST_DATA(create_object_request);
- 	git_commit* object;
-	int result = reqData->error = reqData->repo->createCommit(
-			&object);
-	if(result == GIT_SUCCESS) {
-		reqData->object = object;
-	}
-	return 0;
-}
-
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, get_commit_request, commitFactory_)
-
-#if 0
-int Repository::EIO_ReturnCreatedCommit(eio_req *req) {
-	HandleScope scope;
-	GET_REQUEST_DATA(create_object_request);
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error) {
- 		Handle<Value> error = CreateGitError(String::New(
- 				"Couldn't create Commit."), reqData->error);
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
-	}
-	else {
-		/*Commit *object = reqData->repo->wrapCommit(
-				static_cast<git_commit*>(reqData->object));
-		object->forceInitialized();
-		callbackArgs[0] = Null();
-		callbackArgs[1] = object->handle_;*/
-		// TODO:
-
-	}
-
-	TRIGGER_CALLBACK();
-	REQUEST_CLEANUP();
-}
-
-#endif
-
-//ASYNC_RETURN_REPO_OID_OBJECT_FN(git_commit, Commit)
-//ASYNC_CREATE_REPO_OBJECT_FN(git_commit, Commit)
-//ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_commit, Commit)
+FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
+FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)
 
 // ========
 // TREE EIO
 // ========
-ASYNC_GET_REPO_OID_OBJECT_FN(git_tree, Tree)
-ASYNC_RETURN_REPO_OID_OBJECT_FN(git_tree, Tree)
-ASYNC_CREATE_REPO_OBJECT_FN(git_tree, Tree)
-ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_tree, Tree)
+FN_ASYNC_GET_OID_OBJECT(Tree, git_tree)
+FN_ASYNC_CREATE_OBJECT(Tree, git_tree)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tree, git_tree, treeFactory_)
 
 // =======
 // TAG EIO
 // =======
-ASYNC_GET_REPO_OID_OBJECT_FN(git_tag, Tag)
-ASYNC_RETURN_REPO_OID_OBJECT_FN(git_tag, Tag)
-ASYNC_CREATE_REPO_OBJECT_FN(git_tag, Tag)
-ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_tag, Tag)
+FN_ASYNC_GET_OID_OBJECT(Tag, git_tag)
+FN_ASYNC_CREATE_OBJECT(Tag, git_tag)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tag, git_tag, tagFactory_)
 
 // =============
 // RAWOBJECT EIO
 // =============
-ASYNC_CREATE_REPO_OBJECT_FN(git_rawobj, RawObject)
-ASYNC_RETURN_REPO_OID_OBJECT_FN(git_rawobj, RawObject)
-ASYNC_GET_REPO_OID_OBJECT_FN(git_rawobj, RawObject)
-ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_rawobj, RawObject)
+FN_ASYNC_GET_OID_OBJECT(RawObject, git_rawobj)
+FN_ASYNC_CREATE_OBJECT(RawObject, git_rawobj)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(RawObject, git_rawobj, rawObjFactory_)
 
 // =======
 // REF EIO
 // =======
-ASYNC_GET_REPO_NAMED_OBJECT_FN(git_reference, Reference)
-ASYNC_RETURN_REPO_NAMED_OBJECT_FN(git_reference, Reference)
+FN_ASYNC_GET_NAMED_OBJECT(Reference, git_reference)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Reference, git_reference, referenceFactory_)
 
 // ===========
 // REVWALK EIO
 // ===========
-ASYNC_CREATE_REPO_OBJECT_FN(git_revwalk, RevWalker)
-ASYNC_RETURN_REPO_CREATED_OBJECT_FN(git_revwalk, RevWalker)
+FN_ASYNC_CREATE_OBJECT(RevWalker, git_revwalk)
+FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
@@ -910,15 +812,6 @@ int Repository::getTree(git_oid *id, git_tree **tree) {
 	return result;
 }
 
-Tree *Repository::wrapTree(git_tree *tree) {
-	Tree *treeObject;
-	if(treeStore_.getObjectFor(tree, &treeObject)) {
-		treeObject->repository_ = this;
-	}
-
-	return treeObject;
-}
-
 int Repository::createTag(git_tag **tag) {
 	int result;
 
@@ -939,16 +832,7 @@ int Repository::getTag(git_oid *id, git_tag **tag) {
 	return result;
 }
 
-Tag *Repository::wrapTag(git_tag *tag) {
-	Tag *tagObject;
-	if(tagStore_.getObjectFor(tag, &tagObject)) {
-		tagObject->repository_ = this;
-	}
-
-	return tagObject;
-}
-
-int Repository::getReference(char* name, git_reference** ref) {
+int Repository::getReference(const char* name, git_reference** ref) {
 	int result;
 
 	LOCK_MUTEX(gitLock_);
@@ -956,15 +840,6 @@ int Repository::getReference(char* name, git_reference** ref) {
 	UNLOCK_MUTEX(gitLock_);
 
 	return result;
-}
-
-Reference *Repository::wrapReference(git_reference *ref) {
-	Reference *refObj;
-	if(refStore_.getObjectFor(ref, &refObj)) {
-		refObj->repository_ = this;
-	}
-	
-	return refObj;
 }
 
 int Repository::getRawObject(git_oid *id, git_rawobj **objPtr) {
@@ -1002,18 +877,6 @@ RevWalker *Repository::wrapRevWalker(git_revwalk *walker) {
 	walkerObj->repo_ = this;
 
 	return walkerObj;
-}
-
-RawObject *Repository::wrapRawObject(git_rawobj *rawObj) {
-	HandleScope scope;
-
-	Handle<Value> constructorArgs[1] = { External::New(rawObj) };
-	Handle<Object> jsObject = RawObject::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
-
-	RawObject *rawObjObj = ObjectWrap::Unwrap<RawObject>(jsObject);
-	rawObjObj->repository_ = this;
-
-	return rawObjObj;
 }
 
 int Repository::createRawObject(git_rawobj** rawObj) {
