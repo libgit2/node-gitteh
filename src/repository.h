@@ -20,18 +20,13 @@ struct commit_data;
 
 class Repository : public ObjectWrap {
 public:
+	static Persistent<FunctionTemplate> constructor_template;
+
 	template<class,class> friend class ObjectFactory;
 
 	Repository();
 	~Repository();
-	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
-
-	int getTree(git_oid*, git_tree**);
-	int getTag(git_oid*, git_tag**);
-	int getCommit(git_oid*, git_commit**);
-	int getReference(const char*, git_reference**);
-	int getRawObject(git_oid*, git_rawobj**);
 
 	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
 	// on a libgit2 repository needs to be locked to one thread at a time, as
@@ -76,7 +71,14 @@ protected:
 
 	Index *index_;
 	char *path_;
+
 private:
+	int getTree(git_oid*, git_tree**);
+	int getTag(git_oid*, git_tag**);
+	int getCommit(git_oid*, git_commit**);
+	int getReference(const char*, git_reference**);
+	int getRawObject(git_oid*, git_rawobj**);
+
 	RevWalker *wrapRevWalker(git_revwalk*);
 
 	int createTree(git_tree**);

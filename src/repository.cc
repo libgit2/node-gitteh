@@ -216,29 +216,6 @@ struct object_request {
 	void *object;
 };
 
-struct get_oid_object_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	int error;
-	void *object;
-	git_oid oid;
-};
-
-struct get_named_object_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	int error;
-	void *object;
-	String::Utf8Value *name;
-};
-
-struct create_object_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	int error;
-	void *object;
-};
-
 struct create_symref_request {
 	Persistent<Function> callback;
 	Repository *repo;
