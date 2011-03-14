@@ -33,8 +33,6 @@ public:
 	int getReference(const char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
 
-	git_commit* getParentCommit(git_commit*, int);
-
 	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
 	// on a libgit2 repository needs to be locked to one thread at a time, as
 	// libgit2 is not thread safe in the slightest.

@@ -887,16 +887,6 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	return GIT_SUCCESS;
 }
 
-git_commit* Repository::getParentCommit(git_commit *commit, int index) {
-	git_commit *parent;
-
-	LOCK_MUTEX(gitLock_);
-	parent = git_commit_parent(commit, index);
-	UNLOCK_MUTEX(gitLock_);
-
-	return parent;
-}
-
 void Repository::lockRepository() {
 	LOCK_MUTEX(gitLock_);
 }

@@ -170,7 +170,10 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 		return Undefined();
 	}
 	else {
-		git_commit *parent = commit->repository_->getParentCommit(commit->commit_, indexArg);
+		commit->repository_->lockRepository();
+		git_commit *parent = git_commit_parent(commit->commit_, indexArg);
+		commit->repository_->unlockRepository();
+
 
 		if(parent == NULL) {
 			THROW_ERROR("Error getting parent.");
@@ -184,8 +187,9 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 int Commit::EIO_GetParent(eio_req *req) {
 	get_parent_request *reqData = static_cast<get_parent_request*>(req->data);
 
-	reqData->parent = reqData->commit->repository_->getParentCommit(
-			reqData->commit->commit_, reqData->index);
+	reqData->commit->repository_->lockRepository();
+	reqData->parent = git_commit_parent(reqData->commit->commit_, reqData->index);
+	reqData->commit->repository_->unlockRepository();
 
 	return 0;
 }
