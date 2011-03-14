@@ -163,4 +163,8 @@ void* RawObject::loadInitData() {
 	return data;
 }
 
+void RawObject::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
+}
+
 } // namespace gitteh

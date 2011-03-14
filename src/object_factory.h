@@ -8,19 +8,19 @@ namespace gitteh {
 
 class Repository;
 
-template<class T, class S>
+template<class P, class T, class S>
 struct build_object_request {
 	Persistent<Function> callback;
-	ObjectFactory<T,S> *factory;
+	ObjectFactory<P, T,S> *factory;
 	S *gitObject;
 	T *jsObject;
 };
 
-template<class T, class S>
+template<class P, class T, class S>
 class ObjectFactory {
 public:
-	ObjectFactory(Repository *repo) {
-		repo_ = repo;
+	ObjectFactory(P *owner) {
+		owner_ = owner;
 	}
 
 	~ObjectFactory() {
@@ -40,14 +40,14 @@ public:
 			return;
 		}
 
-		build_object_request<T, S> *req = new build_object_request<T, S>;
+		build_object_request<P, T, S> *req = new build_object_request<P, T, S>;
 		req->callback = callback;
 		req->gitObject = gitObject;
 		req->jsObject = object;
 		req->factory = this;
 
 		object->registerInitInterest();
-		repo_->Ref();
+		owner_->Ref();
 		eio_custom(EIO_BuildObject, EIO_PRI_DEFAULT, EIO_ReturnBuiltObject, req);
 		ev_ref(EV_DEFAULT_UC);
 	}
@@ -70,8 +70,8 @@ protected:
 		T *object;
 
 		if(store_.getObjectFor(gitObj, &object)) {
-			// Commit needs to know who it's daddy is.
-			object->repository_ = repo_;
+			//object->repository_ = repo_;
+			object->setOwner(owner_);
 		}
 
 		return object;
@@ -79,16 +79,16 @@ protected:
 
 private:
 	static int EIO_BuildObject(eio_req *req) {
-		build_object_request<T,S> *reqData = static_cast<build_object_request<T,S>*>(req->data);
+		build_object_request<P, T, S> *reqData = static_cast<build_object_request<P, T, S>*>(req->data);
 		reqData->jsObject->waitForInitialization();
 		return 0;
 	}
 
 	static int EIO_ReturnBuiltObject(eio_req *req) {
-		build_object_request<T,S> *reqData = static_cast<build_object_request<T,S>*>(req->data);
+		build_object_request<P, T, S> *reqData = static_cast<build_object_request<P, T, S>*>(req->data);
 
 		ev_unref(EV_DEFAULT_UC);
-		reqData->factory->repo_->Unref();
+		reqData->factory->owner_->Unref();
 
 		reqData->jsObject->ensureInitDone();
 		reqData->jsObject->removeInitInterest();
@@ -114,7 +114,7 @@ private:
 	 	CLEANUP_CALLBACK(callback);
 	}
 
-	Repository *repo_;
+	P *owner_;
 	ObjectStore<T,S> store_;
 };
 

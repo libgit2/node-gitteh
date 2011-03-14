@@ -108,10 +108,12 @@ public:
 		}
 	}
 
+	virtual void setOwner(void*);
+
 protected:
 	// This is implemented by actual object classes. Implements MUST free all
 	// resources allocated by the data on the heap.
-	virtual void processInitData(void *data) = 0;
+	virtual void processInitData(void*) = 0;
 	virtual void* loadInitData() = 0;
 
 private:

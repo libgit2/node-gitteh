@@ -14,17 +14,19 @@ class Repository;
 class RawObject : public ThreadSafeObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
-	static void Init(Handle<Object> target);
+	static void Init(Handle<Object>);
 
 	~RawObject();
+
+	void setOwner(void*);
 
 	Repository *repository_;
 
 protected:
-	static Handle<Value> New(const Arguments& args);
-	static Handle<Value> Save(const Arguments& args);
+	static Handle<Value> New(const Arguments&);
+	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void *data);
+	void processInitData(void*);
 	void* loadInitData();
 
 	git_rawobj *obj_;

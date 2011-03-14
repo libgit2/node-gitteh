@@ -246,4 +246,8 @@ void* Tree::loadInitData() {
 	return data;
 }
 
+void Tree::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
+}
+
 } // namespace gitteh

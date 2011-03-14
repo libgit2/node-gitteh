@@ -725,11 +725,11 @@ FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 
-	commitFactory_ = new ObjectFactory<Commit, git_commit>(this);
-	referenceFactory_ = new ObjectFactory<Reference, git_reference>(this);
-	treeFactory_ = new ObjectFactory<Tree, git_tree>(this);
-	tagFactory_ = new ObjectFactory<Tag, git_tag>(this);
-	rawObjFactory_ = new ObjectFactory<RawObject, git_rawobj>(this);
+	commitFactory_ = new ObjectFactory<Repository, Commit, git_commit>(this);
+	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
+	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
+	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
+	rawObjFactory_ = new ObjectFactory<Repository, RawObject, git_rawobj>(this);
 }
 
 Repository::~Repository() {

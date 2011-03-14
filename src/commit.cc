@@ -58,22 +58,6 @@ struct get_parent_request {
 
 Persistent<FunctionTemplate> Commit::constructor_template;
 
-void* Commit::loadInitData() {
-	commit_data *data = new commit_data;
-
-	repository_->lockRepository();
-	const git_oid *commitId = git_commit_id(commit_);
-	git_oid_fmt(data->id, commitId);
-	data->message = new std::string(git_commit_message(commit_));
-	data->author = git_signature_dup(git_commit_author(commit_));
-	data->committer = git_signature_dup(git_commit_committer(commit_));
-	data->parentCount = git_commit_parentcount(commit_);
-
-	repository_->unlockRepository();
-
-	return data;
-}
-
 void Commit::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -309,6 +293,22 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	return True();
 }
 
+void* Commit::loadInitData() {
+	commit_data *data = new commit_data;
+
+	repository_->lockRepository();
+	const git_oid *commitId = git_commit_id(commit_);
+	git_oid_fmt(data->id, commitId);
+	data->message = new std::string(git_commit_message(commit_));
+	data->author = git_signature_dup(git_commit_author(commit_));
+	data->committer = git_signature_dup(git_commit_committer(commit_));
+	data->parentCount = git_commit_parentcount(commit_);
+
+	repository_->unlockRepository();
+
+	return data;
+}
+
 void Commit::processInitData(void *data) {
 	HandleScope scope;
 	Handle<Object> jsObj = handle_;
@@ -342,6 +342,10 @@ void Commit::processInitData(void *data) {
 		parentCount_ = 0;
 		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
 	}
+}
+
+void Commit::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
 }
 
 Commit::Commit() : ThreadSafeObjectWrap() {

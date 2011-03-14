@@ -21,6 +21,8 @@ public:
 
 	TreeEntry *wrapEntry(git_tree_entry*);
 
+	void setOwner(void*);
+
 	git_tree *tree_;
 	Repository *repository_;
 
@@ -33,7 +35,7 @@ protected:
 	static Handle<Value> Clear(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void *data);
+	void processInitData(void*);
 	void* loadInitData();
 
 	size_t entryCount_;

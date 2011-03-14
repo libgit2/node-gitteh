@@ -13,13 +13,15 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
+	void setOwner(void*);
+
 	Repository *repository_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void *data);
+	void processInitData(void*);
 	void* loadInitData();
 
 	git_tag *tag_;
