@@ -118,6 +118,7 @@ public:
 			managedObject = it->second;
 			managedObject->handle.Dispose();
 			managedObject->handle.Clear();
+			delete managedObject;
 			++it;
 		}
 

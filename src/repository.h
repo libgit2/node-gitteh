@@ -56,6 +56,10 @@ public:
 	void unlockRepository();
 
 	ObjectFactory<Commit, git_commit> *commitFactory_;
+	ObjectFactory<Tag, git_tag> *tagFactory_;
+	ObjectFactory<Tree, git_tree> *treeFactory_;
+	ObjectFactory<RawObject, git_rawobj> *rawObjFactory_;
+	ObjectFactory<Reference, git_reference> *referenceFactory_;
 
 	git_repository *repo_;
 	git_odb *odb_;

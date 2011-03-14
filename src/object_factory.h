@@ -24,7 +24,6 @@ public:
 	}
 
 	~ObjectFactory() {
-
 	}
 
 	inline T *newObject(S *gitObject) {

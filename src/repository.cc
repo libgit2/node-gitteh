@@ -157,6 +157,38 @@
 	    REQUEST_CLEANUP();													\
 	}
 
+#define FN_ASYNC_GET_OID_OBJECT(TYPE, REQTYPE)								\
+	int Repository::EIO_Get##TYPE(eio_req *req) {							\
+		GET_REQUEST_DATA(get_commit_request);								\
+		reqData->error = reqData->repo->getCommit(&reqData->oid,			\
+				&reqData->object);											\
+		return 0;															\
+	}
+
+
+#define FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(TYPE, REQTYPE, FACTORY)			\
+	int Repository::EIO_Return##TYPE(eio_req *req) {						\
+		HandleScope scope;													\
+		GET_REQUEST_DATA(REQTYPE);											\
+		ev_unref(EV_DEFAULT_UC);											\
+		reqData->repo->Unref();												\
+		Handle<Value> callbackArgs[2];										\
+		if(reqData->error) {												\
+			Handle<Value> error = CreateGitError(String::New(				\
+					"Couldn't get commit."), reqData->error);				\
+			callbackArgs[0] = error;										\
+			callbackArgs[1] = Null();										\
+			TRIGGER_CALLBACK();												\
+			reqData->callback.Dispose();									\
+		}																	\
+		else {																\
+			reqData->repo->FACTORY->asyncRequestObject(reqData->object,		\
+					reqData->callback);										\
+		}																	\
+		delete reqData;														\
+		return 0;															\
+	}
+
 namespace gitteh {
 
 struct get_commit_request {
@@ -164,7 +196,7 @@ struct get_commit_request {
 	Repository *repo;
 	int error;
 	git_oid oid;
-	git_commit *commit;
+	git_commit *object;
 };
 
 struct get_oid_object_request {
@@ -435,7 +467,8 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	if(HAS_CALLBACK_ARG) {
-		PREPARE_ASYNC_CREATE(Commit);
+		// TODO:
+		//PREPARE_ASYNC_CREATE(Commit);
 	}
 	else {
 		git_commit *commit;
@@ -471,8 +504,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get commit", res);
 		}
 
-		Commit *commitObject = repo->commitFactory_->syncRequestObject(commit);
-		return scope.Close(commitObject->handle_);
+		return scope.Close(repo->commitFactory_->syncRequestObject(commit)->handle_);
 	}
 }
 
@@ -728,35 +760,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 // ==========
 // COMMIT EIO
 // ==========
-int Repository::EIO_GetCommit(eio_req *req) {
-	GET_REQUEST_DATA(get_commit_request);
- 	reqData->error = reqData->repo->getCommit(&reqData->oid, &reqData->commit);
-	return 0;
-}
-
-int Repository::EIO_ReturnCommit(eio_req *req) {
-	HandleScope scope;
-	GET_REQUEST_DATA(get_commit_request);
-
- 	ev_unref(EV_DEFAULT_UC);
- 	reqData->repo->Unref();
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error) {
- 		Handle<Value> error = CreateGitError(String::New(
- 				"Couldn't get commit."), reqData->error);
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
- 		TRIGGER_CALLBACK();
- 	    reqData->callback.Dispose();
-	}
-	else {
-		reqData->repo->commitFactory_->asyncRequestObject(reqData->commit, reqData->callback);
-	}
-
- 	delete reqData;
-	return 0;
-}
+FN_ASYNC_GET_OID_OBJECT(Commit, get_commit_request)
 
 int Repository::EIO_CreateCommit(eio_req *req) {
 	GET_REQUEST_DATA(create_object_request);
@@ -769,6 +773,9 @@ int Repository::EIO_CreateCommit(eio_req *req) {
 	return 0;
 }
 
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, get_commit_request, commitFactory_)
+
+#if 0
 int Repository::EIO_ReturnCreatedCommit(eio_req *req) {
 	HandleScope scope;
 	GET_REQUEST_DATA(create_object_request);
@@ -793,6 +800,8 @@ int Repository::EIO_ReturnCreatedCommit(eio_req *req) {
 	TRIGGER_CALLBACK();
 	REQUEST_CLEANUP();
 }
+
+#endif
 
 //ASYNC_RETURN_REPO_OID_OBJECT_FN(git_commit, Commit)
 //ASYNC_CREATE_REPO_OBJECT_FN(git_commit, Commit)
@@ -838,10 +847,21 @@ Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 
 	commitFactory_ = new ObjectFactory<Commit, git_commit>(this);
+	referenceFactory_ = new ObjectFactory<Reference, git_reference>(this);
+	treeFactory_ = new ObjectFactory<Tree, git_tree>(this);
+	tagFactory_ = new ObjectFactory<Tag, git_tag>(this);
+	rawObjFactory_ = new ObjectFactory<RawObject, git_rawobj>(this);
 }
 
 Repository::~Repository() {
 	std::cout << "repo dtor.\n";
+
+	delete commitFactory_;
+	delete referenceFactory_;
+	delete treeFactory_;
+	delete tagFactory_;
+	delete rawObjFactory_;
+
 	close();
 }
 
