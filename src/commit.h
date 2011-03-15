@@ -34,8 +34,20 @@ protected:
 	int parentCount_;
 
 private:
+	static int EIO_AddParent(eio_req*);
+	static int EIO_AfterAddParent(eio_req*);
+
 	static int EIO_GetParent(eio_req*);
 	static int EIO_AfterGetParent(eio_req*);
+
+	static int EIO_GetTree(eio_req*);
+	static int EIO_AfterGetTree(eio_req*);
+
+	static int EIO_SetTree(eio_req*);
+	static int EIO_AfterSetTree(eio_req*);
+
+	static int EIO_Save(eio_req*);
+	static int EIO_AfterSave(eio_req*);
 };
 
 } // namespace gitteh

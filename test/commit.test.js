@@ -172,6 +172,83 @@ vows.describe("Commit").addBatch({
 		}
 	},
 	
+	"Getting commit tree *synchronously*": {
+		topic: function() {
+			var commit = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
+			return commit.getTree();
+		},
+		
+		"returns correct tree": function(tree) {
+			assert.isTrue(!!tree);
+			assert.equal(tree.id, fixtureValues.FIRST_TREE.id);
+		}
+	},
+	
+	"Getting commit tree *asynchronously*": {
+		topic: function() {
+			var commit = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
+			commit.getTree(this.callback);
+		},
+		
+		"returns correct tree": function(tree) {
+			assert.isTrue(!!tree);
+			assert.equal(tree.id, fixtureValues.FIRST_TREE.id);
+		}
+	},
+	
+	"Setting commit tree *synchronously*": {
+		topic: function() {
+			var commit = this.context.commit = repo.createCommit();
+			var tree = this.context.tree = repo.createTree();
+			commit.setTree(tree);
+			return true;
+		},
+		
+		"sets tree correctly": function() {
+			assert.isTrue(this.context.tree === this.context.commit.getTree());
+		}
+	},
+	
+	"Setting commit tree *asynchronously*": {
+		topic: function() {
+			var commit = this.context.commit = repo.createCommit();
+			var tree = this.context.tree = repo.createTree();
+			commit.setTree(tree, this.callback);
+		},
+		
+		"sets tree correctly": function() {
+			assert.isTrue(this.context.tree === this.context.commit.getTree());
+		}
+	},
+	
+	"Adding a parent commit *synchronously*": {
+		topic: function() {
+			var commit = this.context.commit = repo.createCommit();
+			var parent = this.context.parent = repo.createCommit();
+			
+			commit.addParent(parent);
+			return true;
+		},
+		
+		"adds parent correctly": function() {
+			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
+		}
+	},
+	
+	"Adding a parent commit *synchronously*": {
+		topic: function() {
+			var commit = this.context.commit = repo.createCommit();
+			var parent = this.context.parent = repo.createCommit();
+			
+			commit.addParent(parent, this.callback);
+		},
+		
+		"adds parent correctly": function(res) {
+			assert.isTrue(res);
+			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
+		}
+	},
+	
 	"Newly created commit": {
 		topic: function() {
 			return repo.createCommit();
@@ -216,11 +293,11 @@ vows.describe("Commit").addBatch({
 		}
 	},
 	
-	/*"Saving a commit *asynchronously*": {
+	"Saving a commit *asynchronously*": {
 		topic: function(commit) {
 			var commit = repo.createCommit();
 			
-			commit.message = "Test commit from Gitteh.";
+			commit.message = "Test async commit save from Gitteh.";
 			commit.author = commit.committer = {
 				name: "Sam Day",
 				email: "sam.c.day@gmail.com",
@@ -233,15 +310,16 @@ vows.describe("Commit").addBatch({
 			commit.save(this.callback);
 		},
 		
-		"save works": function(fn) {
-			assert.doesNotThrow(fn, Error);
+		"save works": function(res) {
+			assert.isTrue(res);
 		},
 		
 		"commit object is not redundant": function() {
 			var commit = this.context.commit;
+			console.log(commit);
 			assert.isTrue(commit === repo.getCommit(commit.id));
 		}
-	},*/
+	},
 	
 	"Creating a Commit and adding a parent by id": {
 		topic: function() {

@@ -5,6 +5,15 @@ var profiler = require("profiler");
 
 var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
+var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
+commit.getTree(function() {
+console.log(arguments);
+});
+repo.getTree("8988db760a1b7885d146d6610469304207c03582");
+commit.getTree();
+
+return;
+
 var num = 50;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
