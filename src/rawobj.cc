@@ -128,6 +128,7 @@ void RawObject::processInitData(void *data) {
 				rawObjData->len), Integer::New(0) };
 		Local<Object> actualBuffer = bufferConstructor->NewInstance(3, constructorArgs);
 		jsObject->Set(DATA_PROPERTY, actualBuffer);
+		jsObject->Set(TYPE_PROPERTY, String::New(rawObjData->type->c_str()));
 
 		delete rawObjData->type;
 		delete rawObjData;

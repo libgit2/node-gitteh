@@ -18,6 +18,8 @@ var traverseParents = function(commit, workerNum, callback) {
 			callback(null, commit);
 			return;
 		}
+		
+		console.log(commit.id);
 	
 		for(var i = 0; i < commit.parentCount; i++) {
 			traverser(commit.getParent(i));

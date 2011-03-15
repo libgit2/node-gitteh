@@ -38,7 +38,7 @@ vows.describe("Repository").addBatch({
 		},
 		
 		"opens correctly": function(repo) {
-			assert.instanceOf(repo, gitteh.Repository);
+			assert.isTrue(!!repo);
 		},
 		
 		"repo has correct path": function(repo) {

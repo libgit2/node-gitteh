@@ -101,7 +101,7 @@ vows.describe("RawObj").addBatch({
 			assert.equal(rawobj.type, actual.type);
 			assert.equal(rawobj.data.toString(), actual.data.toString());
 		},
-		
+
 		"object is not part of graph": function(rawobj) {
 			assert.isFalse(rawobj === repo.getRawObject(rawobj.id));
 		}

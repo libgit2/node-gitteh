@@ -25,6 +25,7 @@
 #include "rev_walker.h"
 #include "commit.h"
 #include "repository.h"
+#include "object_factory.h"
 
 namespace gitteh {
 
@@ -147,20 +148,23 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 
 	git_oid id;
 	int result = git_revwalk_next(&id, walker->walker_);
+
+	if(result == GIT_EREVWALKOVER) {
+		return Null();
+	}
+
 	if(result != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Couldn't get next commit.", result);
 	}
 
 	git_commit *commit;
 	result = git_commit_lookup(&commit, walker->repo_->repo_, &id);
+
 	if(result != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Couldn't get next commit.", result);
 	}
 
-	// TODO:
-//	Commit *commitObject = walker->repo_->wrapCommit(commit);
-	//return scope.Close(commitObject->handle_);
-	return Undefined();
+	return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {
