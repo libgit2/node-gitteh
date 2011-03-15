@@ -79,7 +79,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theCommit);
 
-	std::cout << "ref: " << theCommit->Value() << "\n";
 	Commit *commit = new Commit();
 	commit->commit_ = (git_commit*)theCommit->Value();
 	commit->Wrap(args.This());
@@ -298,7 +297,6 @@ void* Commit::loadInitData() {
 	commit_data *data = new commit_data;
 	repository_->lockRepository();
 	const git_oid *commitId = git_commit_id(commit_);
-	std::cout << commitId << "\n";
 	git_oid_fmt(data->id, commitId);
 	data->message = new std::string(git_commit_message(commit_));
 	data->author = git_signature_dup(git_commit_author(commit_));
@@ -314,7 +312,6 @@ void Commit::processInitData(void *data) {
 	HandleScope scope;
 	Handle<Object> jsObj = handle_;
 
-	std::cout << "data: " << data << "\n";
 	if(data != NULL) {
 		commit_data *commitData = static_cast<commit_data*>(data);
 

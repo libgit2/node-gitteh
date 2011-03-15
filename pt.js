@@ -9,6 +9,14 @@ var num = 1;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
 
+commit.getParent(0, function(err, commit) {
+	console.log(commit);
+});
+commit.getParent(0, function(err, commit) {
+	console.log(commit);
+});
+return;
+
 var commitsTraversed = 0;
 var i = 0;
 var traverseParents = function(commit, workerNum, callback) {
