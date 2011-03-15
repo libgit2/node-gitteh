@@ -58,22 +58,6 @@ struct get_parent_request {
 
 Persistent<FunctionTemplate> Commit::constructor_template;
 
-void* Commit::loadInitData() {
-	commit_data *data = new commit_data;
-
-	repository_->lockRepository();
-	const git_oid *commitId = git_commit_id(commit_);
-	git_oid_fmt(data->id, commitId);
-	data->message = new std::string(git_commit_message(commit_));
-	data->author = git_signature_dup(git_commit_author(commit_));
-	data->committer = git_signature_dup(git_commit_committer(commit_));
-	data->parentCount = git_commit_parentcount(commit_);
-
-	repository_->unlockRepository();
-
-	return data;
-}
-
 void Commit::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -95,10 +79,11 @@ Handle<Value> Commit::New(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, theCommit);
 
+	std::cout << "ref: " << theCommit->Value() << "\n";
 	Commit *commit = new Commit();
+	commit->commit_ = (git_commit*)theCommit->Value();
 	commit->Wrap(args.This());
 
-	commit->commit_ = (git_commit*)theCommit->Value();
 
 	return args.This();
 }
@@ -309,10 +294,27 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	return True();
 }
 
+void* Commit::loadInitData() {
+	commit_data *data = new commit_data;
+	repository_->lockRepository();
+	const git_oid *commitId = git_commit_id(commit_);
+	std::cout << commitId << "\n";
+	git_oid_fmt(data->id, commitId);
+	data->message = new std::string(git_commit_message(commit_));
+	data->author = git_signature_dup(git_commit_author(commit_));
+	data->committer = git_signature_dup(git_commit_committer(commit_));
+	data->parentCount = git_commit_parentcount(commit_);
+
+	repository_->unlockRepository();
+
+	return data;
+}
+
 void Commit::processInitData(void *data) {
 	HandleScope scope;
 	Handle<Object> jsObj = handle_;
 
+	std::cout << "data: " << data << "\n";
 	if(data != NULL) {
 		commit_data *commitData = static_cast<commit_data*>(data);
 
@@ -342,6 +344,10 @@ void Commit::processInitData(void *data) {
 		parentCount_ = 0;
 		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
 	}
+}
+
+void Commit::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
 }
 
 Commit::Commit() : ThreadSafeObjectWrap() {

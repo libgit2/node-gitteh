@@ -172,4 +172,8 @@ void* Tag::loadInitData() {
 	return data;
 }
 
+void Tag::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
+}
+
 } // namespace gitteh

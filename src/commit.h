@@ -15,6 +15,7 @@ public:
 	Commit();
 	~Commit();
 
+	void setOwner(void*);
 
 	Repository *repository_;
 	git_commit *commit_;

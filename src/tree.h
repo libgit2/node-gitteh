@@ -21,6 +21,8 @@ public:
 
 	TreeEntry *wrapEntry(git_tree_entry*);
 
+	void setOwner(void*);
+
 	git_tree *tree_;
 	Repository *repository_;
 

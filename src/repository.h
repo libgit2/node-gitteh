@@ -14,7 +14,7 @@ class RawObject;
 class Reference;
 class RevWalker;
 
-template <class, class> class ObjectFactory;
+template <class, class, class> class ObjectFactory;
 
 struct commit_data;
 
@@ -22,7 +22,7 @@ class Repository : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
-	template<class,class> friend class ObjectFactory;
+	template<class, class,class> friend class ObjectFactory;
 
 	Repository();
 	~Repository();
@@ -34,11 +34,11 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
-	ObjectFactory<Commit, git_commit> *commitFactory_;
-	ObjectFactory<Tag, git_tag> *tagFactory_;
-	ObjectFactory<Tree, git_tree> *treeFactory_;
-	ObjectFactory<RawObject, git_rawobj> *rawObjFactory_;
-	ObjectFactory<Reference, git_reference> *referenceFactory_;
+	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
+	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
+	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
+	ObjectFactory<Repository, RawObject, git_rawobj> *rawObjFactory_;
+	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
 
 	git_repository *repo_;
 	git_odb *odb_;

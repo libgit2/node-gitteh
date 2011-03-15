@@ -108,6 +108,8 @@ public:
 		}
 	}
 
+	virtual void setOwner(void *owner) = 0;
+
 protected:
 	// This is implemented by actual object classes. Implements MUST free all
 	// resources allocated by the data on the heap.

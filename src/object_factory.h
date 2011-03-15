@@ -8,19 +8,19 @@ namespace gitteh {
 
 class Repository;
 
-template<class T, class S>
+template<class P, class T, class S>
 struct build_object_request {
 	Persistent<Function> callback;
-	ObjectFactory<T,S> *factory;
+	ObjectFactory<P,T,S> *factory;
 	S *gitObject;
 	T *jsObject;
 };
 
-template<class T, class S>
+template<class P, class T, class S>
 class ObjectFactory {
 public:
-	ObjectFactory(Repository *repo) {
-		repo_ = repo;
+	ObjectFactory(P *owner) {
+		owner_ = owner;
 	}
 
 	~ObjectFactory() {
@@ -40,14 +40,14 @@ public:
 			return;
 		}
 
-		build_object_request<T, S> *req = new build_object_request<T, S>;
+		build_object_request<P, T, S> *req = new build_object_request<P, T, S>;
 		req->callback = callback;
 		req->gitObject = gitObject;
 		req->jsObject = object;
 		req->factory = this;
 
 		object->registerInitInterest();
-		repo_->Ref();
+		owner_->Ref();
 		eio_custom(EIO_BuildObject, EIO_PRI_DEFAULT, EIO_ReturnBuiltObject, req);
 		ev_ref(EV_DEFAULT_UC);
 	}
@@ -70,8 +70,21 @@ protected:
 		T *object;
 
 		if(store_.getObjectFor(gitObj, &object)) {
-			// Commit needs to know who it's daddy is.
-			object->repository_ = repo_;
+			//object->repository_ = static_cast<Repository*>(owner_);
+
+			// TODO: My plan here is that when we initialize an object, we inc
+			// the ref counter on the object that created it. That way, if we
+			// had a situation where someone opened a repo, then loaded a commit
+			// but lost reference to the repo, the repo would hang around in
+			// memory until the commit reference is lost also. To make this work
+			// I need some way to *hook* into the Unref(), most likely via a
+			// friend class (which I've started), but I need a hook into the
+			// ObjectStore to catch when the weakref callback is hit, or the
+			// object is explicitly removed, then I can Unref() from here. I
+			// think I'll end up merging ObjectStore and ObjectFactory soon, so
+			// I'll do it then.
+			//owner_->Ref();
+			object->setOwner(owner_);
 		}
 
 		return object;
@@ -79,16 +92,16 @@ protected:
 
 private:
 	static int EIO_BuildObject(eio_req *req) {
-		build_object_request<T,S> *reqData = static_cast<build_object_request<T,S>*>(req->data);
+		build_object_request<P,T,S> *reqData = static_cast<build_object_request<P,T,S>*>(req->data);
 		reqData->jsObject->waitForInitialization();
 		return 0;
 	}
 
 	static int EIO_ReturnBuiltObject(eio_req *req) {
-		build_object_request<T,S> *reqData = static_cast<build_object_request<T,S>*>(req->data);
+		build_object_request<P,T,S> *reqData = static_cast<build_object_request<P,T,S>*>(req->data);
 
 		ev_unref(EV_DEFAULT_UC);
-		reqData->factory->repo_->Unref();
+		reqData->factory->owner_->Unref();
 
 		reqData->jsObject->ensureInitDone();
 		reqData->jsObject->removeInitInterest();
@@ -114,7 +127,7 @@ private:
 	 	CLEANUP_CALLBACK(callback);
 	}
 
-	Repository *repo_;
+	P *owner_;
 	ObjectStore<T,S> store_;
 };
 

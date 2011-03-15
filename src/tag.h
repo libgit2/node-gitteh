@@ -13,6 +13,8 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
+	void setOwner(void*);
+
 	Repository *repository_;
 
 protected:

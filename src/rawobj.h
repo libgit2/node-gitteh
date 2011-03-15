@@ -18,6 +18,8 @@ public:
 
 	~RawObject();
 
+	void setOwner(void*);
+
 	Repository *repository_;
 
 protected:
