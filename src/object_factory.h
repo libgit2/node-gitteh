@@ -100,11 +100,12 @@ private:
 	static int EIO_ReturnBuiltObject(eio_req *req) {
 		build_object_request<P,T,S> *reqData = static_cast<build_object_request<P,T,S>*>(req->data);
 
+		reqData->jsObject->ensureInitDone();
+		reqData->jsObject->removeInitInterest();
+
 		ev_unref(EV_DEFAULT_UC);
 		reqData->factory->owner_->Unref();
 
-		reqData->jsObject->ensureInitDone();
-		reqData->jsObject->removeInitInterest();
 		ReturnWrappedObject(reqData->jsObject, reqData->callback);
 		delete reqData;
 

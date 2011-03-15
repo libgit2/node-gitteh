@@ -5,17 +5,18 @@ var profiler = require("profiler");
 
 var repo = gitteh.openRepository(path.join(__dirname, ".git"));
 
-var num = 1;
+var num = 50;
 
 var commit = repo.getCommit("f02b077372ebc200dca09be8e7b9732300646eb2");
-
-commit.getParent(0, function(err, commit) {
-	console.log(commit);
-});
-commit.getParent(0, function(err, commit) {
-	console.log(commit);
-});
-return;
+/*
+for(var i = 0; i < 50; i++) {
+	(function(i) {
+		commit.getParent(0, function(err, commit) {
+			console.log("worker " + i + ": err - " + err + " ID - " + commit.id);
+		});
+	})(i);
+}
+return;*/
 
 var commitsTraversed = 0;
 var i = 0;
@@ -33,8 +34,9 @@ var traverseParents = function(commit, workerNum, callback) {
 		}
 
 		//console.log(workerNum + " working...");
-		console.log(commit);
-		//console.log(commit.id.toLowerCase());
+		//console.log(commit);
+	
+		//console.log(commit.id.toUpperCase());
 
 		for(var i = 0; i < commit.parentCount; i++) {
 			//traverseParents(commit.getParent(i));

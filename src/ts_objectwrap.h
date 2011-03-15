@@ -86,7 +86,6 @@ public:
 	// is now done and JS object can be finalized.
 	void initializationDone(void *data) {
 		LOCK_MUTEX(gatekeeperLock_);
-		initialized_ = true;
 		data_ = data;
 		UNLOCK_MUTEX(gatekeeperLock_);
 
@@ -102,10 +101,13 @@ public:
 	void ensureInitDone() {
 		// FIXME? don't think any locking is necessary here as this is ONLY
 		// called from main thread.
+		LOCK_MUTEX(gatekeeperLock_);
 		if(data_ != NULL) {
 			processInitData(data_);
+			initialized_ = true;
 			data_ = NULL;
 		}
+		UNLOCK_MUTEX(gatekeeperLock_);
 	}
 
 	virtual void setOwner(void *owner) = 0;

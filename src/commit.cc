@@ -196,33 +196,9 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  		reqData->callback.Dispose();
 	}
 	else {
-		/*reqData->commit->repository_->asyncWrapCommit(reqData->parent,
-				reqData->callback);*/
-
 		reqData->commit->repository_->commitFactory_->asyncRequestObject(
 				reqData->parent, reqData->callback);
-
-		/*Commit *object = reqData->commit->repository_->wrapCommitData(reqData->parent);
-		//Commit *object = reqData->commit->repository_->wrapCommit(reqData->parent->commit);
-
-		if(object == NULL) {
-	 		Handle<Value> error = Exception::Error(String::New("Couldn't get parent commit."));
-	 		callbackArgs[0] = error;
-	 		callbackArgs[1] = Null();
-	 	 	TRIGGER_CALLBACK();
-		 	reqData->commit->Unref();
-			reqData->callback.Dispose();
-			delete reqData;
-			ev_unref(EV_DEFAULT_UC);
-			//eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, req);
-			return 0;
-		}
-
-		callbackArgs[0] = Null();
-		callbackArgs[1] = object->handle_;*/
 	}
-
-// 	TRIGGER_CALLBACK();
 
 	delete reqData;
 
