@@ -230,6 +230,13 @@ struct object_request {
 	bool create;
 };
 
+struct exists_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	git_oid oid;
+	bool exists;
+};
+
 struct open_repo_request {
 	Persistent<Function> callback;
 	int error;
@@ -694,9 +701,41 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	REQ_ARGS(1);
-	REQ_OID_ARG(0, objOid);
+	REQ_OID_ARG(0, oidArg);
 
-	return Boolean::New(git_odb_exists(repo->odb_, &objOid));
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(exists_request);
+		memcpy(&request->oid, &oidArg, sizeof(git_oid));
+		REQUEST_DETACH(repo, EIO_Exists, EIO_AfterExists);
+	}
+	else {
+		return Boolean::New(git_odb_exists(repo->odb_, &oidArg));
+	}
+}
+
+int Repository::EIO_Exists(eio_req *req) {
+	GET_REQUEST_DATA(exists_request);
+
+	reqData->repo->lockRepository();
+	reqData->exists = git_odb_exists(reqData->repo->odb_, &reqData->oid);
+	reqData->repo->unlockRepository();
+
+	return 0;
+}
+
+int Repository::EIO_AfterExists(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(exists_request);
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+	Handle<Value> callbackArgs[2];
+	callbackArgs[0] = Null();
+	callbackArgs[1] = Boolean::New(reqData->exists);
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+	return 0;
 }
 
 // Boilerplate code can SMFD.

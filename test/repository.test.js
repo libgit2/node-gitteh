@@ -75,6 +75,20 @@ vows.describe("Repository").addBatch({
 		
 		"Commits are not redundant": function(repo) {
 			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
+		},
+
+		"Exists() *asynchronously*": {
+			topic: function(repo) {
+				repo.exists(fixtureValues.FIRST_COMMIT.id, this.callback);
+			},
+			
+			"works correctly": function(result) {
+				assert.isTrue(result);
+			}
+		},
+		
+		"Exists() *synchronously*": function(repo) {
+			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
 		}
-	}
+	},
 }).export(module);

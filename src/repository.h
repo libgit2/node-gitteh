@@ -87,6 +87,9 @@ private:
 	int createRawObject(git_rawobj**);
 	int createRevWalker(git_revwalk**);
 
+	static int EIO_Exists(eio_req*);
+	static int EIO_AfterExists(eio_req*);
+
 	static int EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
 
