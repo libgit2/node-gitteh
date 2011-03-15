@@ -30,7 +30,39 @@
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 vows.describe("References").addBatch({
-	"Getting HEAD ref": {
+	"Getting HEAD ref *synchronously*": {
+		topic: function() {
+			return repo.getReference("HEAD");
+		},
+		
+		"gives us a reference": function(ref) {
+			assert.isTrue(!!ref);
+		},
+
+		"name is correct": function(ref) {
+			assert.equal(ref.name, "HEAD");
+		},
+
+		"- then resolving it": {
+			topic: function(ref) {
+				return ref.resolve();
+			},
+			
+			"gives us a ref": function(ref) {
+				assert.isTrue(!!ref);
+			},
+			
+			"gives us a non-symbolic ref": function(ref) {
+				assert.equal(ref.type, gitteh.GIT_REF_OID);
+			},
+			
+			"gives us the ref pointing to latest commit": function(ref) {
+				assert.equal(ref.target, fixtureValues.LATEST_COMMIT.id);
+			}
+		}
+	},
+	
+	"Getting HEAD ref *asynchronously*": {
 		topic: function() {
 			repo.getReference("HEAD", this.callback);
 		},
@@ -62,7 +94,7 @@ vows.describe("References").addBatch({
 		}
 	},
 	
-	"Creating a symbolic ref": {
+	"Creating a symbolic ref *synchronously*": {
 		topic: repo.createSymbolicReference("refs/heads/test", "refs/heads/master"),
 		
 		"gives us a reference": function(ref) {

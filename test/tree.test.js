@@ -113,8 +113,7 @@ vows.describe("Tree").addBatch({
 			assert.equal(tree.entryCount, fixtureValues.FIRST_TREE.entries.length);
 		}
 	},
-	
-	
+
 	"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
 	"Second tree": createTreeTestContext(fixtureValues.SECOND_TREE),
 	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),

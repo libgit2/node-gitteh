@@ -29,12 +29,35 @@
 	fixtureValues = require("./fixtures/values");
 
 vows.describe("Repository").addBatch({
-	"Opening an existing bare repository": {
+	"Opening an existing bare repository *synchronously*": {
 		topic: function() {
 			var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 			this.context.repo = repo;
 			
 			return repo;
+		},
+		
+		"opens correctly": function(repo) {
+			assert.isTrue(!!repo);
+		},
+		
+		"repo has correct path": function(repo) {
+			assert.equal(repo.path, fixtureValues.REPO_PATH);
+		},
+		
+		"repo path is immutable": function(repo) {
+			repo.path = "foo";
+			assert.equal(repo.path, fixtureValues.REPO_PATH);
+		},
+		
+		"Commits are not redundant": function(repo) {
+			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
+		}
+	},
+	
+	"Opening an existing bare repository *asynchronously*": {
+		topic: function() {
+			gitteh.openRepository(fixtureValues.REPO_PATH, this.callback);
 		},
 		
 		"opens correctly": function(repo) {

@@ -30,11 +30,9 @@
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 
-var createCommitTests = function(commitFixture) {
+var createCommitTests = function(topic, commitFixture) {
 	var context = {
-		topic: function() {
-			repo.getCommit(commitFixture.id, this.callback);
-		},
+		topic: topic,
 		
 		"exists": function(commit) {
 			assert.isNotNull(commit);
@@ -115,20 +113,51 @@ var createCommitTests = function(commitFixture) {
 				assert.isTrue(commit.getParent(i) === repo.getCommit(commitFixtureParent));
 			};
 		});
-		
 	}
 	
 	return context;
 };
 
-vows.describe("Commit").addBatch({
-	"First commit": createCommitTests(fixtureValues.FIRST_COMMIT),
-	"Second commit": createCommitTests(fixtureValues.SECOND_COMMIT),
-	"Third commit": createCommitTests(fixtureValues.THIRD_COMMIT),
-	"Fourth commit": createCommitTests(fixtureValues.FOURTH_COMMIT),
-	"Fifth commit": createCommitTests(fixtureValues.FIFTH_COMMIT),
+var createAsyncCommitTests = function(commitFixture) {
+	return createCommitTests(function() {
+		repo.getCommit(commitFixture.id, this.callback);
+	}, commitFixture);
+};
+var createSyncCommitTests = function(commitFixture) {
+	return createCommitTests(function() {
+		return repo.getCommit(commitFixture.id);
+	}, commitFixture);
+};
 
-	"Creating a new commit": {
+vows.describe("Commit").addBatch({
+	"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
+	"Second commit (async)": createAsyncCommitTests(fixtureValues.SECOND_COMMIT),
+	"Third commit (async)": createAsyncCommitTests(fixtureValues.THIRD_COMMIT),
+	"Fourth commit (async)": createAsyncCommitTests(fixtureValues.FOURTH_COMMIT),
+	"Fifth commit (async)": createAsyncCommitTests(fixtureValues.FIFTH_COMMIT),
+	
+	"First commit (sync)": createSyncCommitTests(fixtureValues.FIRST_COMMIT),
+	"Second commit (sync)": createSyncCommitTests(fixtureValues.SECOND_COMMIT),
+	"Third commit (sync)": createSyncCommitTests(fixtureValues.THIRD_COMMIT),
+	"Fourth commit (sync)": createSyncCommitTests(fixtureValues.FOURTH_COMMIT),
+	"Fifth commit (sync)": createSyncCommitTests(fixtureValues.FIFTH_COMMIT),
+	
+	"Creating a new commit *synchronously*": {
+		topic: function() {
+			return repo.createCommit();
+		},
+		
+		"gives us an identity Commit": function(commit) {
+			assert.isTrue(!!commit);
+			assert.isNull(commit.id);
+			assert.isNull(commit.message);
+			assert.isNull(commit.author);
+			assert.isNull(commit.committer);
+			assert.isNull(commit.getTree());
+		},
+	},
+	
+	"Creating a new commit *asynchronously*": {
 		topic: function() {
 			repo.createCommit(this.callback);
 		},
@@ -140,6 +169,12 @@ vows.describe("Commit").addBatch({
 			assert.isNull(commit.author);
 			assert.isNull(commit.committer);
 			assert.isNull(commit.getTree());
+		}
+	},
+	
+	"Newly created commit": {
+		topic: function() {
+			return repo.createCommit();
 		},
 		
 		"id is immutable": function(commit) {
@@ -150,32 +185,63 @@ vows.describe("Commit").addBatch({
 		"saving the Commit gives us an error": function(commit) {
 			assert.throws(function() { commit.save(); }, Error);
 		},
-		
-		"- setting valid data and saving": {
-			topic: function(commit) {
-				commit.message = "Test commit from Gitteh.";
-				commit.author = commit.committer = {
-					name: "Sam Day",
-					email: "sam.c.day@gmail.com",
-					time: new Date()
-				};
-				commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
+	},
+	
+	"Saving a commit *synchronously*": {
+		topic: function(commit) {
+			var commit = repo.createCommit();
+			
+			commit.message = "Test commit from Gitteh.";
+			commit.author = commit.committer = {
+				name: "Sam Day",
+				email: "sam.c.day@gmail.com",
+				time: new Date()
+			};
+			commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
 
-				return function() {
-					commit.save();
-				};
-			},
+			this.context.commit = commit;
 			
-			"save works": function(fn) {
-				assert.doesNotThrow(fn, Error);
-			},
-			
-			"commit object is not redundant": function() {
-				var commit = this.context.topics[1];
-				assert.isTrue(commit === repo.getCommit(commit.id));
-			}
+			return function() {
+				commit.save();
+			};
+		},
+		
+		"save works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		},
+		
+		"commit object is not redundant": function() {
+			var commit = this.context.commit;
+			assert.isTrue(commit === repo.getCommit(commit.id));
 		}
 	},
+	
+	/*"Saving a commit *asynchronously*": {
+		topic: function(commit) {
+			var commit = repo.createCommit();
+			
+			commit.message = "Test commit from Gitteh.";
+			commit.author = commit.committer = {
+				name: "Sam Day",
+				email: "sam.c.day@gmail.com",
+				time: new Date()
+			};
+			commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
+
+			this.context.commit = commit;
+			
+			commit.save(this.callback);
+		},
+		
+		"save works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		},
+		
+		"commit object is not redundant": function() {
+			var commit = this.context.commit;
+			assert.isTrue(commit === repo.getCommit(commit.id));
+		}
+	},*/
 	
 	"Creating a Commit and adding a parent by id": {
 		topic: function() {

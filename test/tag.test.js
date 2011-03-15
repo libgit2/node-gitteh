@@ -30,11 +30,9 @@
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH); 
 
-var createTagTestContext = function(tagFixture) {
+var createTagTestContext = function(topic, tagFixture) {
 	var context = {
-		topic: function() {
-			repo.getTag(tagFixture.id, this.callback);
-		},
+		topic: topic,
 		
 		"tag exists": function(tag) {
 			assert.isTrue(!!tag);
@@ -79,10 +77,38 @@ var createTagTestContext = function(tagFixture) {
 	return context;
 };
 
+var createSyncTagTestContext = function(tagFixture) {
+	return createTagTestContext(function() {
+		return repo.getTag(tagFixture.id);
+	}, tagFixture);
+};
+
+var createAsyncTagTestContext = function(tagFixture) {
+	return createTagTestContext(function() {
+		repo.getTag(tagFixture.id, this.callback);
+	}, tagFixture);
+};
+
 vows.describe("Tag").addBatch({
-	"Tag *test_tag*": createTagTestContext(fixtureValues.TEST_TAG),
+	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
+	"Tag *test_tag*, *asynchronously*": createAsyncTagTestContext(fixtureValues.TEST_TAG),
 	
-	"Creating a new tag": {
+	"Creating a new tag *synchronously*": {
+		topic: function() {
+			return repo.createTag();
+		},
+
+		"tag is in identity state": function(tag) {
+			assert.isNull(tag.id);
+			assert.isNull(tag.name);
+			assert.isNull(tag.message);
+			assert.isNull(tag.tagger);
+			assert.isNull(tag.targetId);
+			assert.isNull(tag.targetType);
+		},
+	},
+	
+	"Creating a new tag *asynchronously*": {
 		topic: function() {
 			repo.createTag(this.callback);
 		},
@@ -95,14 +121,18 @@ vows.describe("Tag").addBatch({
 			assert.isNull(tag.targetId);
 			assert.isNull(tag.targetType);
 		},
+	},
 		
-		"saving identity results in an error": function(tag) {
-			assert.throws(function() {
-				tag.save();
-			}, Error);
-		},
+	"saving identity results in an error": function(tag) {
+		var tag = repo.createTag();
+		assert.throws(function() {
+			tag.save();
+		}, Error);
+	},
 		
-		"setting valid data and saving works": function(tag) {
+	"Saving tag *synchronously*": {
+		topic: function(tag) {
+			var tag = repo.createTag();
 			tag.name = "Test Tag";
 			tag.message = "Test tag.";
 			tag.tagger = {
@@ -112,19 +142,27 @@ vows.describe("Tag").addBatch({
 			};
 			tag.targetId = fixtureValues.FIRST_COMMIT.id;
 			
-			tag.save();
+			this.context.tag = tag;
+			
+			return function() {
+				tag.save();
+			};
 		},
 		
-		"tag has correct id": function(tag) {
-			assert.equal(tag.id, "b76986bf57110b466b2f77ef662ea37f9d5eab80");
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
 		},
 		
-		"tag type is correct": function(tag) {
-			assert.equal(tag.targetType, "commit");
+		"tag has correct id": function() {
+			assert.equal(this.context.tag.id, "b76986bf57110b466b2f77ef662ea37f9d5eab80");
+		},
+		
+		"tag type is correct": function() {
+			assert.equal(this.context.tag.targetType, "commit");
 		},
 
-		"tag is reachable from repo": function(tag) {
-			assert.isTrue(tag === repo.getTag(tag.id));
+		"tag is reachable from repo": function() {
+			assert.isTrue(this.context.tag === repo.getTag(this.context.tag.id));
 		}
 	}
 }).export(module);
