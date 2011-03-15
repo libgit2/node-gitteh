@@ -208,4 +208,8 @@ void* Reference::loadInitData() {
 	return data;
 }
 
+void Reference::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
+}
+
 } // namespace gitteh

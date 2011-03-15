@@ -83,7 +83,7 @@
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(&reqData->oid,			\
 				&object);													\
-		if(reqData->error != GIT_SUCCESS) {									\
+		if(reqData->error == GIT_SUCCESS) {									\
 			reqData->object = object;										\
 		}																	\
 		return 0;															\
@@ -95,7 +95,7 @@
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(reqData->name->c_str(),	\
 				&object);													\
-		if(reqData->error != GIT_SUCCESS) {									\
+		if(reqData->error == GIT_SUCCESS) {									\
 			reqData->object = object;										\
 		}																	\
 		delete reqData->name;												\
@@ -118,8 +118,19 @@
 			reqData->callback.Dispose();									\
 		}																	\
 		else {																\
-			reqData->repo->FACTORY->asyncRequestObject(						\
-				static_cast<GIT_TYPE*>(reqData->object), reqData->callback);\
+			if(reqData->create) {											\
+				TYPE *obj = reqData->repo->FACTORY->newObject(				\
+					static_cast<GIT_TYPE*>(reqData->object));				\
+				callbackArgs[0] = Null();									\
+				callbackArgs[1] = obj->handle_;								\
+				TRIGGER_CALLBACK();											\
+				reqData->callback.Dispose();								\
+			}																\
+			else {															\
+				reqData->repo->FACTORY->asyncRequestObject(					\
+						static_cast<GIT_TYPE*>(reqData->object),			\
+						reqData->callback);									\
+			}																\
 		}																	\
 		delete reqData;														\
 		return 0;															\
@@ -176,6 +187,7 @@
 #define ASYNC_PREPARE_CREATE_OBJECT(TYPE)									\
 	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
 	CREATE_ASYNC_REQUEST(object_request);									\
+	request->create = true;													\
 	REQUEST_DETACH(repo, EIO_Create##TYPE, EIO_Return##TYPE);
 
 #define SYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
@@ -214,6 +226,7 @@ struct object_request {
 	git_oid oid;
 	std::string *name;
 	void *object;
+	bool create;
 };
 
 struct create_symref_request {
