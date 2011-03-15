@@ -225,17 +225,9 @@ struct object_request {
 	int error;
 	git_oid oid;
 	std::string *name;
+	std::string *target;
 	void *object;
 	bool create;
-};
-
-struct create_symref_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	int error;
-	git_reference *object;
-	String::Utf8Value *name;
-	String::Utf8Value *target;
 };
 
 struct open_repo_request {
@@ -646,8 +638,12 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		THROW_ERROR("Please provide a target for the symbolic ref.");
 	}
 
-	if(args.Length() > 2) {
-
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(object_request);
+		request->name = new std::string(*nameArg);
+		request->target = new std::string(*targetArg);
+		REQUEST_DETACH(repo, EIO_CreateSymbolicRef, EIO_ReturnReference);
 	}
 	else {
 		git_reference *ref;
@@ -659,8 +655,6 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 
 		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
 	}
-
-	return Undefined();
 }
 
 Handle<Value> Repository::CreateOidRef(const Arguments& args) {
@@ -675,13 +669,24 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 		THROW_ERROR("Please provide a name.");
 	}
 
-	git_reference *ref;
-	int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
-	if(res != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't create reference.", res);
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(object_request);
+		request->name = new std::string(*nameArg);
+		char oidStr[40];
+		git_oid_fmt(oidStr, &oidArg);
+		request->target = new std::string(oidStr, 40);
+		REQUEST_DETACH(repo, EIO_CreateOidRef, EIO_ReturnReference);
 	}
+	else {
+		git_reference *ref;
+		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't create reference.", res);
+		}
 
-	return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+	}
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {
@@ -728,6 +733,50 @@ FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(RawObject, git_rawobj, rawObjFactory_)
 // =======
 FN_ASYNC_GET_NAMED_OBJECT(Reference, git_reference)
 FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Reference, git_reference, referenceFactory_)
+
+int Repository::EIO_CreateSymbolicRef(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+
+	git_reference *obj;
+
+	reqData->repo->lockRepository();
+	reqData->error = git_reference_create_symbolic(&obj, reqData->repo->repo_,
+			reqData->name->c_str(), reqData->target->c_str());
+	reqData->repo->unlockRepository();
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = obj;
+	}
+
+	delete reqData->name;
+	delete reqData->target;
+
+	return 0;
+}
+
+int Repository::EIO_CreateOidRef(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	reqData->repo->lockRepository();
+
+	// Ignoring the result of this, as we know it's definitely a good oid.
+	git_oid oid;
+	git_oid_mkstr(&oid, reqData->target->c_str());
+
+	git_reference *obj;
+	reqData->error = git_reference_create_oid(&obj, reqData->repo->repo_,
+			reqData->name->c_str(), &oid);
+
+	reqData->repo->unlockRepository();
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = obj;
+	}
+
+	delete reqData->name;
+	delete reqData->target;
+
+	return 0;
+}
 
 // ===========
 // REVWALK EIO

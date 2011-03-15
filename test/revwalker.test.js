@@ -38,7 +38,6 @@ vows.describe("RevWalker").addBatch({
 		},
 
 		"gives us a walker": function(walker) {
-			console.log("woot.");
 			assert.isTrue(!!walker);
 		},
 		

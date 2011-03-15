@@ -95,14 +95,14 @@ vows.describe("References").addBatch({
 	},
 	
 	"Creating a symbolic ref *synchronously*": {
-		topic: repo.createSymbolicReference("refs/heads/test", "refs/heads/master"),
+		topic: repo.createSymbolicReference("refs/heads/syncsymtest", "refs/heads/master"),
 		
 		"gives us a reference": function(ref) {
 			assert.isTrue(!!ref);
 		},
 		
 		"with correct name": function(ref) {
-			assert.equal(ref.name, "refs/heads/test");
+			assert.equal(ref.name, "refs/heads/syncsymtest");
 		},
 
 		"and correct type": function(ref) {
@@ -114,7 +114,37 @@ vows.describe("References").addBatch({
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/test"));
+			assert.isTrue(ref === repo.getReference("refs/heads/syncsymtest"));
+		},
+
+		"new ref resolves to same place as refs/heads/master does": function(ref) {
+			assert.isTrue(ref.resolve() === repo.getReference("refs/heads/master").resolve());
+		}
+	},
+	
+	"Creating a symbolic ref *asynchronously*": {
+		topic: function() {
+			repo.createSymbolicReference("refs/heads/asyncsymtest", "refs/heads/master", this.callback);
+		},
+		
+		"gives us a reference": function(ref) {
+			assert.isTrue(!!ref);
+		},
+		
+		"with correct name": function(ref) {
+			assert.equal(ref.name, "refs/heads/asyncsymtest");
+		},
+
+		"and correct type": function(ref) {
+			assert.equal(ref.type, gitteh.GIT_REF_SYMBOLIC);
+		},
+
+		"correct target": function(ref) {
+			assert.equal(ref.target, "refs/heads/master");
+		},
+
+		"ref is reachable from repository": function(ref) {
+			assert.isTrue(ref === repo.getReference("refs/heads/asyncsymtest"));
 		},
 
 		"new ref resolves to same place as refs/heads/master does": function(ref) {
@@ -122,15 +152,15 @@ vows.describe("References").addBatch({
 		}
 	},
 
-	"Creating an OID ref": {
-		topic: repo.createOidReference("refs/heads/oidtest", fixtureValues.FIRST_COMMIT.id),
+	"Creating an OID ref *synchronously*": {
+		topic: repo.createOidReference("refs/heads/syncoidtest", fixtureValues.FIRST_COMMIT.id),
 
 		"gives us a reference": function(ref) {
 			assert.isTrue(!!ref);
 		},
 
 		"with correct name": function(ref) {
-			assert.equal(ref.name, "refs/heads/oidtest");
+			assert.equal(ref.name, "refs/heads/syncoidtest");
 		},
 
 		"and correct type": function(ref) {
@@ -142,7 +172,33 @@ vows.describe("References").addBatch({
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/oidtest"));
+			assert.isTrue(ref === repo.getReference("refs/heads/syncoidtest"));
+		},
+	},
+
+	"Creating an OID ref *asynchronously*": {
+		topic: function() {
+			repo.createOidReference("refs/heads/asyncoidtest", fixtureValues.FIRST_COMMIT.id, this.callback);
+		},
+
+		"gives us a reference": function(ref) {
+			assert.isTrue(!!ref);
+		},
+
+		"with correct name": function(ref) {
+			assert.equal(ref.name, "refs/heads/asyncoidtest");
+		},
+
+		"and correct type": function(ref) {
+			assert.equal(ref.type, gitteh.GIT_REF_OID);
+		},
+
+		"and correct target": function(ref) {
+			assert.equal(ref.target, fixtureValues.FIRST_COMMIT.id);
+		},
+
+		"ref is reachable from repository": function(ref) {
+			assert.isTrue(ref === repo.getReference("refs/heads/asyncoidtest"));
 		},
 	},
 	

@@ -110,6 +110,8 @@ private:
 	static int EIO_ReturnRawObject(eio_req*);
 
 	static int EIO_GetReference(eio_req*);
+	static int EIO_CreateSymbolicRef(eio_req*);
+	static int EIO_CreateOidRef(eio_req*);
 	static int EIO_ReturnReference(eio_req*);
 
 	static int EIO_CreateRevWalker(eio_req*);
