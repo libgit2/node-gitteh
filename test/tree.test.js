@@ -454,10 +454,33 @@ vows.describe("Tree").addBatch({
 		}
 	},
 	
-	"Clearing tree entries": {
+	"Clearing tree entries *asynchronously*": {
 		topic: function() {
 			var tree = this.context.tree = repo.createTree();
-			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "clearingtest", 100644);
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asyncclearingtest", 100644);
+			tree.save();
+			this.context.treeId = tree.id;
+
+			tree.clear(this.callback);
+		},
+		
+		"executes correctly": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"results in an empty tree": function() {
+			assert.equal(this.context.tree.entryCount, 0);
+		},
+		
+		"still has same id though": function() {
+			assert.equal(this.context.tree.id, this.context.treeId);
+		}
+	},
+	
+	"Clearing tree entries *synchronously*": {
+		topic: function() {
+			var tree = this.context.tree = repo.createTree();
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "syncclearingtest", 100644);
 			tree.save();
 			this.context.treeId = tree.id;
 			

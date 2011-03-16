@@ -1,0 +1,1 @@
+* Saving a commit with an unsaved tree segfaults.
