@@ -29,12 +29,8 @@
 #define ID_PROPERTY String::NewSymbol("id")
 #define LENGTH_PROPERTY String::NewSymbol("entryCount")
 
-#define UPDATE_ENTRY_COUNT()							\
+#define UPDATE_ENTRY_COUNT()												\
 	args.This()->ForceSet(LENGTH_PROPERTY, Integer::New(tree->entryCount_));
-
-#define RETURN_WRAP_TREE_ENTRY()							\
-	TreeEntry *treeEntryObject = tree->wrapEntry(entry);	\
-	return scope.Close(treeEntryObject->handle_);
 
 namespace gitteh {
 
@@ -43,12 +39,34 @@ struct tree_data {
 	int entryCount;
 };
 
+struct save_request {
+	Persistent<Function> callback;
+	Tree *tree;
+	int error;
+	char id[40];
+};
+
+struct entry_request {
+	Persistent<Function> callback;
+	Tree *tree;
+	int index;
+	std::string *name;
+	git_tree_entry *entry;
+	int error;
+};
+
+struct add_entry_request {
+	Persistent<Function> callback;
+	Tree *tree;
+	git_oid id;
+	int attributes;
+	std::string *filename;
+	int error;
+	git_tree_entry *entry;
+};
+
 Persistent<FunctionTemplate> Tree::constructor_template;
 
-// TODO: I think I'm going about this all wrong. I'm trying to lock down the tree entries array, but rather I should just intercept
-// when things happen to it and update the backing git_tree instead.
-// This might be hard though, given that libgit2's support for manipulating tree entries is somewhat limited (can't insert entries anywhere but end of list for example).
-// One approach I could take is to just git_tree_clear_entries() when the Tree is saved. Seems a waste though.
 void Tree::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -84,22 +102,96 @@ Handle<Value> Tree::GetEntry(const Arguments& args) {
 	REQ_ARGS(1);
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
-	git_tree_entry *entry;
 
-	if(args[0]->IsString()) {
-		REQ_STR_ARG(0, propertyName);
-		entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*propertyName));
+	if(HAS_CALLBACK_ARG) {
+		entry_request *request = new entry_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		request->tree = tree;
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->entry = NULL;
+
+		if(args[0]->IsString()) {
+			REQ_STR_ARG(0, propertyName);
+			request->name = new std::string(*propertyName);
+		}
+		else {
+			REQ_INT_ARG(0, indexArg);
+			request->index = indexArg;
+			request->name = NULL;
+		}
+
+		tree->Ref();
+		eio_custom(EIO_GetEntry, EIO_PRI_DEFAULT, EIO_AfterGetEntry, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	else {
-		REQ_INT_ARG(0, indexArg);
-		entry = git_tree_entry_byindex(tree->tree_, indexArg);
+		git_tree_entry *entry;
+
+		if(args[0]->IsString()) {
+			REQ_STR_ARG(0, propertyName);
+
+			tree->repository_->lockRepository();
+			entry = git_tree_entry_byname(tree->tree_, const_cast<const char*>(*propertyName));
+			tree->repository_->unlockRepository();
+		}
+		else {
+			REQ_INT_ARG(0, indexArg);
+			tree->repository_->lockRepository();
+			entry = git_tree_entry_byindex(tree->tree_, indexArg);
+			tree->repository_->unlockRepository();
+		}
+
+		if(entry == NULL) {
+			return scope.Close(Null());
+		}
+
+		return scope.Close(tree->entryFactory_->syncRequestObject(entry)->handle_);
+	}
+}
+
+int Tree::EIO_GetEntry(eio_req *req) {
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	reqData->tree->repository_->lockRepository();
+	if(reqData->name != NULL) {
+		reqData->entry = git_tree_entry_byname(reqData->tree->tree_,
+				reqData->name->c_str());
+		delete reqData->name;
+	}
+	else {
+		reqData->entry = git_tree_entry_byindex(reqData->tree->tree_, reqData->index);
+	}
+	reqData->tree->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Tree::EIO_AfterGetEntry(eio_req *req) {
+	HandleScope scope;
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->tree->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->entry == NULL) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't get tree entry."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+
+ 		TRIGGER_CALLBACK();
+ 		reqData->callback.Dispose();
+	}
+	else {
+		reqData->tree->entryFactory_->asyncRequestObject(
+				reqData->entry, reqData->callback);
 	}
 
-	if(entry == NULL) {
-		return scope.Close(Null());
-	}
-
-	RETURN_WRAP_TREE_ENTRY();
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Tree::AddEntry(const Arguments& args) {
@@ -112,16 +204,77 @@ Handle<Value> Tree::AddEntry(const Arguments& args) {
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
 
-	git_tree_entry *entry;
-	int res = git_tree_add_entry(&entry, tree->tree_, &idArg, *filenameArg, modeArg);
-	if(res != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Error creating tree entry.", res);
+	if(HAS_CALLBACK_ARG) {
+		add_entry_request *request = new add_entry_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		request->tree = tree;
+		request->callback = Persistent<Function>::New(callbackArg);
+
+		memcpy(&request->id, &idArg, sizeof(git_oid));
+		request->filename = new std::string(*filenameArg);
+		request->attributes = modeArg;
+
+		tree->Ref();
+		eio_custom(EIO_AddEntry, EIO_PRI_DEFAULT, EIO_AfterAddEntry, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		git_tree_entry *entry;
+		tree->repository_->lockRepository();
+		int res = git_tree_add_entry(&entry, tree->tree_, &idArg, *filenameArg, modeArg);
+		tree->repository_->unlockRepository();
+
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Error creating tree entry.", res);
+		}
+
+		tree->entryCount_++;
+		UPDATE_ENTRY_COUNT();
+
+		return scope.Close(tree->entryFactory_->syncRequestObject(entry)->handle_);
+	}
+}
+
+int Tree::EIO_AddEntry(eio_req *req) {
+	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
+
+	reqData->tree->repository_->lockRepository();
+	reqData->error = git_tree_add_entry(&reqData->entry, reqData->tree->tree_,
+			&reqData->id, reqData->filename->c_str(), reqData->attributes);
+	reqData->tree->repository_->unlockRepository();
+
+	delete reqData->filename;
+
+	return 0;
+}
+
+int Tree::EIO_AfterAddEntry(eio_req *req) {
+	HandleScope scope;
+
+	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->tree->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't add tree entry."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+
+ 		TRIGGER_CALLBACK();
+ 		reqData->callback.Dispose();
+	}
+	else {
+		reqData->tree->entryFactory_->asyncRequestObject(
+				reqData->entry, reqData->callback);
 	}
 
-	tree->entryCount_++;
-	UPDATE_ENTRY_COUNT();
-
-	RETURN_WRAP_TREE_ENTRY();
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Tree::RemoveEntry(const Arguments& args) {
@@ -131,43 +284,152 @@ Handle<Value> Tree::RemoveEntry(const Arguments& args) {
 	REQ_INT_ARG(0, indexArg);
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
-	int res;
 
-	if(args[0]->IsString()) {
-		REQ_STR_ARG(0, propertyName);
+	if(HAS_CALLBACK_ARG) {
+		entry_request *request = new entry_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
 
-		git_tree_entry *entry = git_tree_entry_byname(tree->tree_, *propertyName);
-		if(!entry) {
-			THROW_ERROR("Entry with that name not found.");
+		request->tree = tree;
+		request->callback = Persistent<Function>::New(callbackArg);
+
+		if(args[0]->IsString()) {
+			REQ_STR_ARG(0, propertyName);
+			request->name = new std::string(*propertyName);
+		}
+		else {
+			REQ_INT_ARG(0, indexArg);
+			request->index = indexArg;
+			request->name = NULL;
 		}
 
-		tree->entryStore_.deleteObjectFor(entry);
+		tree->Ref();
+		eio_custom(EIO_RemoveEntry, EIO_PRI_DEFAULT, EIO_AfterRemoveEntry, request);
+		ev_ref(EV_DEFAULT_UC);
 
-		res = git_tree_remove_entry_byname(tree->tree_, *propertyName);
+		return Undefined();
 	}
 	else {
-		REQ_INT_ARG(0, indexArg);
+		int res;
+		git_tree_entry *entry;
 
-		git_tree_entry *entry = git_tree_entry_byindex(tree->tree_, indexArg);
+		if(args[0]->IsString()) {
+			REQ_STR_ARG(0, propertyName);
 
-		if(!entry) {
-			THROW_ERROR("Entry with that index not found.");
+			tree->repository_->lockRepository();
+			entry = git_tree_entry_byname(tree->tree_, *propertyName);
+			tree->repository_->unlockRepository();
+
+			if(!entry) {
+				THROW_ERROR("Entry with that name not found.");
+			}
+
+			tree->repository_->lockRepository();
+			res = git_tree_remove_entry_byname(tree->tree_, *propertyName);
+			tree->repository_->unlockRepository();
+		}
+		else {
+			REQ_INT_ARG(0, indexArg);
+
+			tree->repository_->lockRepository();
+			entry = git_tree_entry_byindex(tree->tree_, indexArg);
+			tree->repository_->unlockRepository();
+
+			if(!entry) {
+				THROW_ERROR("Entry with that index not found.");
+			}
+
+			tree->repository_->lockRepository();
+			res = git_tree_remove_entry_byindex(tree->tree_, indexArg);
+			tree->repository_->unlockRepository();
 		}
 
-		// Delete the entry from objectstore.
-		tree->entryStore_.deleteObjectFor(entry);
+		if(res != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't delete tree entry", res);
+		}
 
-		res = git_tree_remove_entry_byindex(tree->tree_, indexArg);
+		tree->entryFactory_->deleteObject(entry);
+
+		tree->entryCount_--;
+		UPDATE_ENTRY_COUNT();
+
+		return scope.Close(True());
+	}
+}
+
+int Tree::EIO_RemoveEntry(eio_req *req) {
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	reqData->tree->repository_->lockRepository();
+	if(reqData->name != NULL) {
+		reqData->entry = git_tree_entry_byname(reqData->tree->tree_,
+				reqData->name->c_str());
+
+		if(reqData->entry == NULL) {
+			reqData->error = GIT_ENOTFOUND;
+		}
+		else {
+			reqData->error = git_tree_remove_entry_byname(reqData->tree->tree_,
+					reqData->name->c_str());
+		}
+
+		delete reqData->name;
+	}
+	else {
+		reqData->entry = git_tree_entry_byindex(reqData->tree->tree_,
+				reqData->index);
+
+		if(reqData->entry == NULL) {
+			reqData->error = GIT_ENOTFOUND;
+		}
+		else {
+			reqData->error = git_tree_remove_entry_byindex(reqData->tree->tree_,
+					reqData->index);
+		}
 	}
 
-	if(res != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't delete tree entry", res);
+	reqData->tree->repository_->unlockRepository();
+
+	// TODO: what happens if someone tries to do something with an entry at this
+	// point? We might need a mutex for tree entries...
+
+	return 0;
+}
+
+int Tree::EIO_AfterRemoveEntry(eio_req *req) {
+	HandleScope scope;
+
+	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->tree->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't add tree entry."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+		// Note for future me: in this situation, reqData->entry ptr is actually
+		// pointing to a non-existent entry, so technically if we were to do
+		// anything with it we'd most likely segfault. However! All we're doing
+		// here is asking the object factory (and consequently the objectstore)
+		// to delete the js object that belongs to this pointer. If we ever
+		// made the objectstore work off anything other than ptr address,
+		reqData->tree->entryFactory_->deleteObject(reqData->entry);
+		reqData->tree->entryCount_--;
+		reqData->tree->handle_->ForceSet(LENGTH_PROPERTY, Integer::New(reqData->tree->entryCount_),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+ 		callbackArgs[0] = Null();
+ 		callbackArgs[1] = True();
 	}
 
-	tree->entryCount_--;
-	UPDATE_ENTRY_COUNT();
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
 
-	return scope.Close(True());
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Tree::Clear(const Arguments& args) {
@@ -175,12 +437,69 @@ Handle<Value> Tree::Clear(const Arguments& args) {
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
 
-	git_tree_clear_entries(tree->tree_);
+	if(HAS_CALLBACK_ARG) {
+		entry_request *request = new entry_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
 
-	tree->entryCount_ = 0;
-	UPDATE_ENTRY_COUNT();
+		request->tree = tree;
+		request->callback = Persistent<Function>::New(callbackArg);
 
-	return scope.Close(Undefined());
+		tree->Ref();
+		eio_custom(EIO_ClearEntries, EIO_PRI_DEFAULT, EIO_AfterClearEntries, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		tree->repository_->lockRepository();
+		git_tree_clear_entries(tree->tree_);
+		tree->repository_->unlockRepository();
+
+		// TODO: could probably implement something in objectstore/objectfactory to
+		// make this a little more ... elegant.
+		delete tree->entryFactory_;
+		tree->entryFactory_ = new ObjectFactory<Tree, TreeEntry, git_tree_entry>(tree);
+
+		tree->entryCount_ = 0;
+		UPDATE_ENTRY_COUNT();
+
+		return scope.Close(Undefined());
+	}
+}
+
+int Tree::EIO_ClearEntries(eio_req *req) {
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	reqData->tree->repository_->lockRepository();
+	git_tree_clear_entries(reqData->tree->tree_);
+	reqData->tree->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Tree::EIO_AfterClearEntries(eio_req *req) {
+	HandleScope scope;
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->tree->Unref();
+
+	delete reqData->tree->entryFactory_;
+	reqData->tree->entryFactory_ = new ObjectFactory<Tree, TreeEntry, git_tree_entry>(reqData->tree);
+
+	reqData->tree->entryCount_ = 0;
+	reqData->tree->handle_->ForceSet(LENGTH_PROPERTY, Integer::New(reqData->tree->entryCount_),
+			(PropertyAttribute)(ReadOnly | DontDelete));
+
+	Handle<Value> callbackArgs[2];
+	callbackArgs[0] = Null();
+	callbackArgs[1] = True();
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> Tree::Save(const Arguments& args) {
@@ -188,29 +507,87 @@ Handle<Value> Tree::Save(const Arguments& args) {
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
 
-	int result = git_object_write((git_object *)tree->tree_);
-	if(result != GIT_SUCCESS) {
-		return ThrowException(CreateGitError(String::New("Error saving tree."), result));
+	if(HAS_CALLBACK_ARG) {
+		save_request *request = new save_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		request->tree = tree;
+		request->callback = Persistent<Function>::New(callbackArg);
+
+		tree->Ref();
+		eio_custom(EIO_Save, EIO_PRI_DEFAULT, EIO_AfterSave, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
+	else {
+		tree->repository_->lockRepository();
+		int result = git_object_write((git_object *)tree->tree_);
+		tree->repository_->unlockRepository();
+		if(result != GIT_SUCCESS) {
+			return ThrowException(CreateGitError(String::New("Error saving tree."), result));
+		}
 
-	const git_oid *treeOid = git_tree_id(tree->tree_);
-	args.This()->ForceSet(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
+		tree->repository_->lockRepository();
+		const git_oid *treeOid = git_tree_id(tree->tree_);
+		tree->repository_->unlockRepository();
+		args.This()->ForceSet(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
 
-	return Undefined();
+		return Undefined();
+	}
 }
 
-TreeEntry *Tree::wrapEntry(git_tree_entry *entry) {
-	HandleScope scope;
+int Tree::EIO_Save(eio_req *req) {
+	save_request *reqData = static_cast<save_request*>(req->data);
 
-	TreeEntry *entryObject;
-	if(entryStore_.getObjectFor(entry, &entryObject)) {
-		entryObject->tree_ = this;
+	reqData->tree->repository_->lockRepository();
+	reqData->error = git_object_write((git_object *)reqData->tree->tree_);
+
+	if(reqData->error == GIT_SUCCESS) {
+		const git_oid *treeOid = git_tree_id(reqData->tree->tree_);
+		git_oid_fmt(reqData->id, treeOid);
 	}
 
-	return entryObject;
+	reqData->tree->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Tree::EIO_AfterSave(eio_req *req) {
+	HandleScope scope;
+
+	save_request *reqData = static_cast<save_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->tree->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't save tree."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+		reqData->tree->handle_->ForceSet(String::New("id"),String::New(reqData->id, 40),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+ 		callbackArgs[0] = Null();
+ 		callbackArgs[1] = True();
+	}
+
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+	return 0;
+}
+
+Tree::Tree() {
+	entryFactory_ = new ObjectFactory<Tree, TreeEntry, git_tree_entry>(this);
 }
 
 Tree::~Tree() {
+	delete entryFactory_;
 }
 
 void Tree::processInitData(void *data) {
@@ -219,14 +596,19 @@ void Tree::processInitData(void *data) {
 
 	if(data != NULL) {
 		tree_data *treeData = static_cast<tree_data*>(data);
+		entryCount_ = treeData->entryCount;
+
 		jsObject->Set(ID_PROPERTY, String::New(treeData->id, 40),
 				(PropertyAttribute)(ReadOnly | DontDelete));
+
 		jsObject->Set(LENGTH_PROPERTY, Integer::New(treeData->entryCount),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		delete treeData;
 	}
 	else {
+		entryCount_ = 0;
+
 		jsObject->Set(ID_PROPERTY, Null(), ReadOnly);
 		jsObject->Set(LENGTH_PROPERTY, Integer::New(0),
 				(PropertyAttribute)(ReadOnly | DontDelete));

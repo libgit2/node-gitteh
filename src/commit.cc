@@ -126,7 +126,6 @@ Handle<Value> Commit::GetTree(const Arguments& args) {
 		const git_tree *tree = git_commit_tree(commit->commit_);
 		commit->repository_->unlockRepository();
 		if(tree == NULL) {
-			std::cout << commit->commit_ << " :(\n";
 			return scope.Close(Null());
 		}
 

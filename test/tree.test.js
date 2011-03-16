@@ -33,11 +33,9 @@ var DIRECTORY_ATTRIBUTE = helpers.fromOctal(40000);
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 
-var createTreeTestContext = function(treeFixture) {
+var createTreeTestContext = function(topic, treeFixture) {
 	var context = {
-		topic: function() {
-			repo.getTree(treeFixture.id, this.callback);
-		},
+		topic: topic,
 		
 		"gives us a Tree": function(tree) {
 			assert.isTrue(!!tree);
@@ -51,22 +49,22 @@ var createTreeTestContext = function(treeFixture) {
 	// Run assertions on the contents of tree.
 	var createEntriesChecks = function(entriesFixture, path) {
 		var entriesContext = {
-			/*topic: function(tree) {
-				return tree.entries;
-			},*/
+			topic: function(tree) {
+				return tree;
+			},
 			
 			"has correct number of entries": function(tree) {
-				assert.length(tree.entryCount, entriesFixture.length);
+				assert.equal(tree.entryCount, entriesFixture.length);
 			}
 		};
-		/*
+		
 		context[(path == "") ? "- root entries" : ("- tree " + path)] = entriesContext;
 
 		for(var i = 0; i < entriesFixture.length; i++) {
 			entriesContext["- entry " + entriesFixture[i].filename] = (function(i) {
 				var theContext = {
-					topic: function(entries) {
-						return entries[i];
+					topic: function(tree) {
+						return tree.getEntry(i);
 					},
 					
 					"has correct name": function(entry) {
@@ -89,15 +87,26 @@ var createTreeTestContext = function(treeFixture) {
 				
 				return theContext;				
 			})(i);
-		}*/
-		
-		
+		}
 	};
 	
 	createEntriesChecks(treeFixture.entries, "");
 	
 	return context;
-}
+};
+
+
+var createSyncTreeTestContext = function(treeFixture) {
+	return createTreeTestContext(function() {
+		return repo.getTree(treeFixture.id);
+	}, treeFixture);
+};
+
+var createAsyncTreeTestContext = function(treeFixture) {
+	return createTreeTestContext(function() {
+		repo.getTree(treeFixture.id, this.callback);
+	}, treeFixture);
+};
 
 vows.describe("Tree").addBatch({
 	"Basic tree tests": {
@@ -113,14 +122,37 @@ vows.describe("Tree").addBatch({
 			assert.equal(tree.entryCount, fixtureValues.FIRST_TREE.entries.length);
 		}
 	},
-
-	"First tree": createTreeTestContext(fixtureValues.FIRST_TREE),
-	"Second tree": createTreeTestContext(fixtureValues.SECOND_TREE),
-	"Third tree": createTreeTestContext(fixtureValues.THIRD_TREE),
-	"Fourth tree": createTreeTestContext(fixtureValues.FOURTH_TREE),
-	"Fifth tree": createTreeTestContext(fixtureValues.FIFTH_TREE),
 	
-	"Retrieving tree entries by name": {
+	"First tree (async)": createAsyncTreeTestContext(fixtureValues.FIRST_TREE),
+	"Second tree (async)": createAsyncTreeTestContext(fixtureValues.SECOND_TREE),
+	"Third tree (async)": createAsyncTreeTestContext(fixtureValues.THIRD_TREE),
+	"Fourth tree (async)": createAsyncTreeTestContext(fixtureValues.FOURTH_TREE),
+	"Fifth tree (async)": createAsyncTreeTestContext(fixtureValues.FIFTH_TREE),
+	
+	"First tree": createSyncTreeTestContext(fixtureValues.FIRST_TREE),
+	"Second tree": createSyncTreeTestContext(fixtureValues.SECOND_TREE),
+	"Third tree": createSyncTreeTestContext(fixtureValues.THIRD_TREE),
+	"Fourth tree": createSyncTreeTestContext(fixtureValues.FOURTH_TREE),
+	"Fifth tree": createSyncTreeTestContext(fixtureValues.FIFTH_TREE),
+	
+	"Retrieving tree entry by name *asynchronously*": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			this.context.tree = tree;
+			tree.getEntry(fixtureValues.FIRST_TREE.entries[0].filename, this.callback);
+		},
+		
+		"gives us the correct entry": function(entry) {
+			assert.equal(entry.filename, fixtureValues.FIRST_TREE.entries[0].filename);
+			assert.equal(entry.id, fixtureValues.FIRST_TREE.entries[0].id);	
+		},
+		
+		"identical to getting it via index": function(entry) {
+			assert.isTrue(entry === this.context.tree.getEntry(0));
+		}
+	},
+	
+	"Retrieving tree entry by name *synchronously*": {
 		topic: function() {
 			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
 			this.context.tree = tree;
@@ -134,6 +166,32 @@ vows.describe("Tree").addBatch({
 		
 		"identical to getting it via index": function(entry) {
 			assert.isTrue(entry === this.context.tree.getEntry(0));
+		}
+	},
+	
+	"Retrieving tree entry by index *asynchronously*": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			this.context.tree = tree;
+			tree.getEntry(0, this.callback);
+		},
+		
+		"gives us the correct entry": function(entry) {
+			assert.equal(entry.filename, fixtureValues.FIRST_TREE.entries[0].filename);
+			assert.equal(entry.id, fixtureValues.FIRST_TREE.entries[0].id);	
+		}
+	},	
+	
+	"Retrieving tree entry by index *synchronously*": {
+		topic: function() {
+			var tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			this.context.tree = tree;
+			return tree.getEntry(0);
+		},
+		
+		"gives us the correct entry": function(entry) {
+			assert.equal(entry.filename, fixtureValues.FIRST_TREE.entries[0].filename);
+			assert.equal(entry.id, fixtureValues.FIRST_TREE.entries[0].id);	
 		}
 	},
 	
@@ -187,6 +245,20 @@ vows.describe("Tree").addBatch({
 		}
 	},
 	
+	"Saving tree *asynchronously*": {
+		topic: function() {
+			var tree = this.context.tree = repo.createTree();
+			
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asyncsave", 1);
+			tree.save(this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+			assert.isNotNull(this.context.tree.id);
+		}
+	},
+
 	"Creating a new Tree": {
 		topic: function() {
 			repo.createTree(this.callback);
@@ -296,6 +368,38 @@ vows.describe("Tree").addBatch({
 		}
 	},
 	
+	"Deleting an entry *asynchronously*": {
+		topic: function() {
+			var tree = this.context.tree = repo.createTree();
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asynceleteme", 100);
+			tree.removeEntry(0, this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"length is 0 now": function() {
+			assert.equal(this.context.tree.entryCount, 0);
+		}
+	},
+	
+	"Deleting an entry *synchronously*": {
+		topic: function() {
+			var tree = this.context.tree = repo.createTree();
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asynceleteme", 100);
+			return tree.removeEntry(0);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"length is 0 now": function() {
+			assert.equal(this.context.tree.entryCount, 0);
+		}
+	},
+	
 	"Deleting an entry via out of bounds index": {
 		topic: function() {
 			var tree = repo.createTree();
@@ -352,7 +456,10 @@ vows.describe("Tree").addBatch({
 	
 	"Clearing tree entries": {
 		topic: function() {
-			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			var tree = this.context.tree = repo.createTree();
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "clearingtest", 100644);
+			tree.save();
+			this.context.treeId = tree.id;
 			
 			return function() {
 				tree.clear();
@@ -368,7 +475,7 @@ vows.describe("Tree").addBatch({
 		},
 		
 		"still has same id though": function() {
-			assert.equal(this.context.tree.id, fixtureValues.FIRST_TREE.id);
+			assert.equal(this.context.tree.id, this.context.treeId);
 		}
 	}
 }).export(module);

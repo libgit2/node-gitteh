@@ -9,3 +9,4 @@
 * Possibly implement custom backend support, allowing JS callbacks to provide a custom git backend.
 * Write up tests for both sync and async.
 * Check for memory leaks
+* Cleanup git_oid_allocfmt (bad)

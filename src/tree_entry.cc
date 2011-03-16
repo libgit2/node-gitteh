@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#include "tree.h"
 #include "tree_entry.h"
 
 #define ID_PROPERTY String::NewSymbol("id")
@@ -52,10 +53,6 @@ Handle<Value> TreeEntry::New(const Arguments& args) {
 	TreeEntry *entry = new TreeEntry();
 	entry->entry_ = (git_tree_entry*)theEntry->Value();
 
-	args.This()->ForceSet(ID_PROPERTY, String::New(git_oid_allocfmt(git_tree_entry_id(entry->entry_))));
-	args.This()->ForceSet(ATTRIBUTES_PROPERTY, Integer::New(git_tree_entry_attributes(entry->entry_)));
-	args.This()->ForceSet(FILENAME_PROPERTY, String::New(git_tree_entry_name(entry->entry_)));
-
 	entry->Wrap(args.This());
 	return args.This();
 }
@@ -64,28 +61,76 @@ Handle<Value> TreeEntry::SetterHandler(Local<String> property, Local<Value> valu
 	HandleScope scope;
 
 	TreeEntry *entry = ObjectWrap::Unwrap<TreeEntry>(info.This());
+	int result = GIT_SUCCESS;
 
 	if(property->Equals(ID_PROPERTY)) {
 		git_oid newId;
-		int res = git_oid_mkstr(&newId, *String::Utf8Value(value->ToString()));
+		result = git_oid_mkstr(&newId, *String::Utf8Value(value->ToString()));
 
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Failed to parse new id", res);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Failed to parse new id", result);
 		}
 
+		entry->tree_->repository_->lockRepository();
 		git_tree_entry_set_id(entry->entry_, &newId);
+		entry->tree_->repository_->unlockRepository();
 	}
 	else if(property->Equals(ATTRIBUTES_PROPERTY)) {
-		git_tree_entry_set_attributes(entry->entry_, value->Uint32Value());
+		entry->tree_->repository_->lockRepository();
+		result = git_tree_entry_set_attributes(entry->entry_, value->Uint32Value());
+		entry->tree_->repository_->unlockRepository();
 	}
 	else if(property->Equals(FILENAME_PROPERTY)) {
+		entry->tree_->repository_->lockRepository();
 		git_tree_entry_set_name(entry->entry_, *String::Utf8Value(value->ToString()));
+		entry->tree_->repository_->unlockRepository();
+	}
+
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Failed to set property.", result);
 	}
 
 	return scope.Close(Handle<Value>());
 }
 
 TreeEntry::~TreeEntry() {
+
+}
+
+struct tree_entry_data {
+	char id[40];
+	int attributes;
+	std::string *filename;
+};
+
+void *TreeEntry::loadInitData() {
+	tree_entry_data *data = new tree_entry_data;
+
+	tree_->repository_->lockRepository();
+	const git_oid *entryId = git_tree_entry_id(entry_);
+	git_oid_fmt(data->id, entryId);
+	data->filename = new std::string(git_tree_entry_name(entry_));
+	data->attributes = git_tree_entry_attributes(entry_);
+	tree_->repository_->unlockRepository();
+
+	return data;
+}
+
+void TreeEntry::processInitData(void *data) {
+	HandleScope scope;
+	Handle<Object> jsObject = handle_;
+	tree_entry_data *reqData = static_cast<tree_entry_data*>(data);
+
+	jsObject->ForceSet(ID_PROPERTY, String::New(reqData->id, 40));
+	jsObject->ForceSet(ATTRIBUTES_PROPERTY, Integer::New(reqData->attributes));
+	jsObject->ForceSet(FILENAME_PROPERTY, String::New(reqData->filename->c_str()));
+
+	delete reqData->filename;
+	delete reqData;
+}
+
+void TreeEntry::setOwner(void *owner) {
+	tree_ = static_cast<Tree*>(owner);
 }
 
 } // namespace gitteh

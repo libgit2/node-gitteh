@@ -65,6 +65,10 @@ public:
 		return object;
 	}
 
+	inline void deleteObject(S *gitObject) {
+		store_.deleteObjectFor(gitObject);
+	}
+
 protected:
 	inline T *wrap(S *gitObj) {
 		T *object;

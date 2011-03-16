@@ -16,8 +16,6 @@ class RevWalker;
 
 template <class, class, class> class ObjectFactory;
 
-struct commit_data;
-
 class Repository : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
