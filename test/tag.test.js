@@ -90,8 +90,8 @@ var createAsyncTagTestContext = function(tagFixture) {
 };
 
 vows.describe("Tag").addBatch({
-	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
 	"Tag *test_tag*, *asynchronously*": createAsyncTagTestContext(fixtureValues.TEST_TAG),
+	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
 	
 	"Creating a new tag *synchronously*": {
 		topic: function() {
@@ -130,11 +130,45 @@ vows.describe("Tag").addBatch({
 		}, Error);
 	},
 		
+	"Saving tag *asynchronously*": {
+		topic: function(tag) {
+			var tag = repo.createTag();
+			tag.name = "Async Test Tag";
+			tag.message = "Async Test tag.";
+			tag.tagger = {
+				name: "Sam Day",
+				email: "sam.c.day@gmail.com",
+				time: new Date()
+			};
+			tag.targetId = fixtureValues.FIRST_COMMIT.id;
+			
+			this.context.tag = tag;
+			
+			tag.save(this.callback);
+		},
+		
+		"works": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"tag has correct id": function() {
+			assert.equal(this.context.tag.id, "19d361418f74421ab4b2baddb9619ea0449a8bdb");
+		},
+		
+		"tag type is correct": function() {
+			assert.equal(this.context.tag.targetType, "commit");
+		},
+
+		"tag is reachable from repo": function() {
+			assert.isTrue(this.context.tag === repo.getTag(this.context.tag.id));
+		}
+	},
+		
 	"Saving tag *synchronously*": {
 		topic: function(tag) {
 			var tag = repo.createTag();
-			tag.name = "Test Tag";
-			tag.message = "Test tag.";
+			tag.name = "Sync Test Tag";
+			tag.message = "Sync Test tag.";
 			tag.tagger = {
 				name: "Sam Day",
 				email: "sam.c.day@gmail.com",
@@ -154,7 +188,7 @@ vows.describe("Tag").addBatch({
 		},
 		
 		"tag has correct id": function() {
-			assert.equal(this.context.tag.id, "b76986bf57110b466b2f77ef662ea37f9d5eab80");
+			assert.equal(this.context.tag.id, "a912c342ece537e69f60352eae2f717a7f72ab2d");
 		},
 		
 		"tag type is correct": function() {

@@ -25,6 +25,10 @@ protected:
 	void* loadInitData();
 
 	git_tag *tag_;
+
+private:
+	static int EIO_Save(eio_req*);
+	static int EIO_AfterSave(eio_req*);
 };
 
 } // namespace gitteh
