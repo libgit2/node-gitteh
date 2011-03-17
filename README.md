@@ -7,7 +7,8 @@ Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. T
 * There's no notion of "oids" like in other libraries, all object ids are referenced by their 40 character SHA1 string.
 * I didn't just write some quick bridge code to access libgit2 stuff, I took the time to distill the libgit2 API into an organized, intuitive set of objects you can work with.
 * I avoided calling into C code where possible. This means that when you're composing a new commit for example, you can set most of the properties of the commit on a JS object as standard properties, then call save() when you're ready. Calling into C++ code is inherently expensive with V8.
-* Although some of it is missing from the repo at the moment, I've written lots of little stress tests to make sure this library doesn't go ahead and segfault your server. Libgit2 isn't thread-safe at all. Hey, no need to thank me, it's all part of the job (it's why I get to wear a cape, and you don't).
+* Although some of it is missing from the repo at the moment, I've written lots of little stress tests to make sure this library doesn't go ahead and segfault your server. Libgit2 isn't thread-safe at all. Hey, no need to thank me, it's all part of the job (it's why I get to wear a cape, and you don't). Essentially this means that you, libgit2, Node, and V8's garbage compiler can all play in the sandpit nicely together.
+* I didn't bother wrapping blob API functions, since all they do is offer helper methods to load files into blobs, save blobs out to files etc. You can do all this with a RawObject, it exposes a Buffer with the contents of any objects in a git repo. Node has cooler filesystem stuff anyway.
 * No animals were harmed during development, except that one little hamst... you know what? Never mind.
 
 ## Why?
@@ -18,11 +19,13 @@ Or you could, you know, manually execute `git` CLI commands and parse stdout. Ha
 
 ## How?
 
-You need to [install libgit2](http://libgit2.github.com/#install) first.
+You need to [install libgit2](http://libgit2.github.com/#install) first. 
 
-Installation can be done via npm.
+Installation can be done via npm. 
 
 	npm install gitteh
+	
+Gitteh on NPM requires the latest version of libgit2 - v0.10.0 "Very Disco".
 
 Documentation coming soon to a Markdown README near you. In the meantime, check out the examples, you can also look at some of the stress tests and test code I wrote.
 
