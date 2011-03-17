@@ -735,7 +735,6 @@ Handle<Value> Repository::ListReferences(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get ref list.", result);
 		}
 
-		std::cout << references.count << "\n";
 		Handle<Array> refArray = Array::New(references.count);
 
 		for(int i = 0, len = references.count; i < len; i++) {
@@ -930,8 +929,6 @@ Repository::Repository() {
 }
 
 Repository::~Repository() {
-	std::cout << "repo dtor.\n";
-
 	delete commitFactory_;
 	delete referenceFactory_;
 	delete treeFactory_;
