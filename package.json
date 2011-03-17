@@ -1,7 +1,7 @@
 {
 	"name": "gitteh",
 	"version": "0.0.1",
-	"description": "Native bindings to libgit2.",
+	"description": "Bindings to libgit2.",
 	"keywords": "git, libgit2, bindings",
 	"author": "Sam Day <sam.c.day@gmail.com>",
 	"engines": { "node": ">= 0.4.0" },
