@@ -11,3 +11,4 @@
 * Check for memory leaks
 * Cleanup git_oid_allocfmt (bad)
 * Cleanup signature allocs
+* Support for ref deletion.
