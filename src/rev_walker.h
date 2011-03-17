@@ -26,6 +26,15 @@ protected:
 	static Handle<Value> Reset(const Arguments&);
 
 	git_revwalk *walker_;
+private:
+	static int EIO_Push(eio_req*);
+	static int EIO_AfterPush(eio_req*);
+
+	static int EIO_Hide(eio_req*);
+	static int EIO_AfterHide(eio_req*);
+
+	static int EIO_Next(eio_req*);
+	static int EIO_AfterNext(eio_req*);
 };
 
 } // namespace gitteh

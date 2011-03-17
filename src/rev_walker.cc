@@ -29,6 +29,14 @@
 
 namespace gitteh {
 
+struct walker_request {
+	Persistent<Function> callback;
+	RevWalker *walker;
+	git_commit *commit;
+	std::string *id;
+	int error;
+};
+
 Persistent<FunctionTemplate> RevWalker::constructor_template;
 
 void RevWalker::Init(Handle<Object> target) {
@@ -72,99 +80,274 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_commit *commit;
-	if(args[0]->IsString()) {
-		REQ_OID_ARG(0, commitOid);
-		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
-		if(result != GIT_SUCCESS)
-			THROW_GIT_ERROR("Commit not found.", result);
+	if(HAS_CALLBACK_ARG) {
+		walker_request *request = new walker_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->walker = walker;
+
+		if(Commit::constructor_template->HasInstance(args[0])) {
+			request->commit = ObjectWrap::Unwrap<Commit>(Handle<Object>::Cast(args[0]))
+					->commit_;
+
+			// TODO: what would happen if the commit was GC'd when we go to the
+			// EIO threadpool? I think it should be ok since we're not
+			// referencing the js object, but just the underlying commit itself
+			// which shouldn't get gc'd.
+			//request->commit->Ref();
+		}
+		else {
+			request->commit = NULL;
+			request->id = new std::string();
+		}
+
+		walker->Ref();
+		eio_custom(EIO_Push, EIO_PRI_DEFAULT, EIO_AfterPush, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	else {
-		// Commit object.
-		if(!args[0]->IsObject()) {
-			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		git_commit *commit;
+		if(Commit::constructor_template->HasInstance(args[0])) {
+			Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
+			Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
+			commit = commitObject->commit_;
+			//return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
+		}
+		else {
+			REQ_OID_ARG(0, commitOid);
+			walker->repo_->lockRepository();
+			int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
+			walker->repo_->unlockRepository();
+			if(result != GIT_SUCCESS)
+				THROW_GIT_ERROR("Commit not found.", result);
 		}
 
-		Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
-		if(!Commit::constructor_template->HasInstance(commitArg)) {
-			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
-		}
+		// Get the commit for this oid.
+		walker->repo_->lockRepository();
+		int res = git_revwalk_push(walker->walker_, git_commit_id(commit));
+		walker->repo_->unlockRepository();
+		if(res != GIT_SUCCESS)
+			THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
-		Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
-		commit = commitObject->commit_;
-		//return ThrowException(Exception::Error(String::New("Passing commit object is not supported yet.")));
+		return scope.Close(Undefined());
+	}
+}
+
+int RevWalker::EIO_Push(eio_req *req) {
+	walker_request *reqData = static_cast<walker_request*>(req->data);
+
+	git_commit *commit;
+	if(reqData->commit != NULL) {
+		commit = reqData->commit;
+		reqData->error = GIT_SUCCESS;
+	}
+	else {
+		reqData->walker->repo_->lockRepository();
+		git_oid commitOid;
+		git_oid_mkstr(&commitOid, reqData->id->c_str());
+		reqData->error = git_commit_lookup(&commit, reqData->walker->repo_->repo_, &commitOid);
+		reqData->walker->repo_->unlockRepository();
+
+		delete reqData->id;
+
 	}
 
-	// Get the commit for this oid.
-	int res = git_revwalk_push(walker->walker_, git_commit_id(commit));
-	if(res != GIT_SUCCESS)
-		THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->walker->repo_->lockRepository();
+		reqData->error = git_revwalk_push(reqData->walker->walker_,
+				git_commit_id(commit));
+		reqData->walker->repo_->unlockRepository();
+	}
+	return 0;
+}
 
-	return scope.Close(Undefined());
+int RevWalker::EIO_AfterPush(eio_req *req) {
+	HandleScope scope;
+	walker_request *reqData = static_cast<walker_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->walker->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't push commit."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Null();
+		callbackArgs[1] = True();
+	}
+
+	reqData->callback.Dispose();
+	TRIGGER_CALLBACK();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> RevWalker::Hide(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_commit *commit;
-	if(args[0]->IsString()) {
-		REQ_OID_ARG(0, commitOid);
-		int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
+	if(HAS_CALLBACK_ARG) {
+		walker_request *request = new walker_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->walker = walker;
 
-		if(result != GIT_SUCCESS) {
-			return ThrowException(Exception::Error(String::New("Commit not found.")));
+		if(Commit::constructor_template->HasInstance(args[0])) {
+			request->commit = ObjectWrap::Unwrap<Commit>(Handle<Object>::Cast(args[0]))
+					->commit_;
 		}
+		else {
+			request->commit = NULL;
+			request->id = new std::string();
+		}
+
+		walker->Ref();
+		eio_custom(EIO_Hide, EIO_PRI_DEFAULT, EIO_AfterHide, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
 	else {
-		// Commit object.
-		if(!args[0]->IsObject()) {
-			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
+		git_commit *commit;
+		if(Commit::constructor_template->HasInstance(args[0])) {
+			Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
+
+			Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
+			commit = commitObject->commit_;
+		}
+		else {
+			REQ_OID_ARG(0, commitOid);
+			int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
+
+			if(result != GIT_SUCCESS) {
+				return ThrowException(Exception::Error(String::New("Commit not found.")));
+			}
 		}
 
-		Handle<Object> commitArg = Handle<Object>::Cast(args[0]);
-		if(!Commit::constructor_template->HasInstance(commitArg)) {
-			return ThrowException(Exception::Error(String::New("Invalid commit object.")));
-		}
 
-		Commit *commitObject = ObjectWrap::Unwrap<Commit>(commitArg);
-		commit = commitObject->commit_;
-	}
+		int res = git_revwalk_hide(walker->walker_, git_commit_id(commit));
+		if(res != GIT_SUCCESS)
+			THROW_GIT_ERROR("Couldn't hide commit.", res);
 	
-	int res = git_revwalk_hide(walker->walker_, git_commit_id(commit));
-	if(res != GIT_SUCCESS)
-		THROW_GIT_ERROR("Couldn't hide commit.", res);
+		return scope.Close(Undefined());
+	}
+}
 
-	return scope.Close(Undefined());
+int RevWalker::EIO_Hide(eio_req *req) {
+	walker_request *reqData = static_cast<walker_request*>(req->data);
+
+	git_commit *commit;
+	if(reqData->commit != NULL) {
+		commit = reqData->commit;
+		reqData->error = GIT_SUCCESS;
+	}
+	else {
+		reqData->walker->repo_->lockRepository();
+		git_oid commitOid;
+		git_oid_mkstr(&commitOid, reqData->id->c_str());
+		reqData->error = git_commit_lookup(&commit, reqData->walker->repo_->repo_, &commitOid);
+		reqData->walker->repo_->unlockRepository();
+
+		delete reqData->id;
+
+	}
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->walker->repo_->lockRepository();
+		reqData->error = git_revwalk_hide(reqData->walker->walker_,
+				git_commit_id(commit));
+		reqData->walker->repo_->unlockRepository();
+	}
+	return 0;
+}
+
+int RevWalker::EIO_AfterHide(eio_req *req) {
+	HandleScope scope;
+	walker_request *reqData = static_cast<walker_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->walker->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't hide commit."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Null();
+		callbackArgs[1] = True();
+	}
+
+	reqData->callback.Dispose();
+	TRIGGER_CALLBACK();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> RevWalker::Next(const Arguments& args) {
 	HandleScope scope;
-
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	git_oid id;
-	int result = git_revwalk_next(&id, walker->walker_);
+	if(HAS_CALLBACK_ARG) {
+		walker_request *request = new walker_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->walker = walker;
 
-	if(result == GIT_EREVWALKOVER) {
-		return Null();
+		walker->Ref();
+		eio_custom(EIO_Next, EIO_PRI_DEFAULT, EIO_AfterNext, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
 	}
+	else {
+		git_oid id;
 
-	if(result != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't get next commit.", result);
+		walker->repo_->lockRepository();
+		int result = git_revwalk_next(&id, walker->walker_);
+		walker->repo_->unlockRepository();
+
+		if(result == GIT_EREVWALKOVER) {
+			return Null();
+		}
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get next commit.", result);
+		}
+
+		git_commit *commit;
+		walker->repo_->lockRepository();
+		result = git_commit_lookup(&commit, walker->repo_->repo_, &id);
+		walker->repo_->unlockRepository();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get next commit.", result);
+		}
+
+		return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
 	}
+}
 
-	git_commit *commit;
-	result = git_commit_lookup(&commit, walker->repo_->repo_, &id);
+int RevWalker::EIO_Next(eio_req *req) {
+	walker_request *reqData = static_cast<walker_request*>(req->data);
 
-	if(result != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't get next commit.", result);
-	}
 
-	return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
+
+	return 0;
+}
+
+int RevWalker::EIO_AfterNext(eio_req *req) {
+
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {

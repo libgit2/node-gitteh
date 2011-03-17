@@ -74,7 +74,7 @@ vows.describe("RevWalker").addBatch({
 			}
 		}
 	},
-/*
+
 	"RevWalker from second commit in reverse order": {
 		topic: function() {
 			repo.createWalker(this.callback);
@@ -156,5 +156,5 @@ vows.describe("RevWalker").addBatch({
 			var commit = walker.next();
 			assert.isNull(commit);
 		}
-	}*/
+	}
 }).export(module);

@@ -192,7 +192,7 @@ int Tag::EIO_AfterSave(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
  	if(reqData->error != GIT_SUCCESS) {
- 		Handle<Value> error = Exception::Error(String::New("Couldn't save tag."));
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't save tag."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
 	}
