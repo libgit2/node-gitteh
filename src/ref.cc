@@ -82,6 +82,7 @@ void Reference::Init(Handle<Object> target) {
 
 	NODE_DEFINE_CONSTANT(target, GIT_REF_OID);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_SYMBOLIC);
+	NODE_DEFINE_CONSTANT(target, GIT_REF_LISTALL);
 }
 
 Handle<Value> Reference::New(const Arguments& args) {

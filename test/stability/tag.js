@@ -6,7 +6,7 @@ var gitteh = require("../../build/default/gitteh"),
 	async = require("async"),
 	fs = require("fs");
 
-var repoPath = path.join(__dirname, "tagrepo/");
+var repoPath = "/tmp/tagstress" + Date.now() + "/";
 try {
 	require("wrench").rmdirSyncRecursive(repoPath);
 } catch(e) {}
@@ -18,7 +18,7 @@ blobRawObj.data = new Buffer("Hello world!");
 blobRawObj.save();
 
 var tree = repo.createTree();
-tree.addEntry(blobRawObj.id, "test", 1);
+tree.addEntry(blobRawObj.id, "test", 33188);
 tree.save();
 
 var commit = repo.createCommit();
@@ -31,6 +31,8 @@ commit.author = commit.committer = {
 };
 commit.save();
 console.log(commit.id);
+
+var ref = repo.createOidReference("refs/heads/master", commit.id);
 
 var createTag = function(i, tagCallback) {
 	var tag_ = null;
@@ -45,7 +47,7 @@ var createTag = function(i, tagCallback) {
 
 			tag.name = "v0." + i;
 			tag.message = "Test tag.";
-			tag.target = commit.id;
+			tag.targetId = commit.id;
 			tag.tagger = {
 				name: "Sam",
 				email: "sam.c.day@gmail.com",
@@ -57,10 +59,11 @@ var createTag = function(i, tagCallback) {
 		
 		function(result, callback) {
 			if(!result) callback(new Error("Couldn't save Tag."));
-			callback(null, tag);
+			else repo.createOidReference("refs/tags/v0."+i, tag_.id, callback);
 		}
 	], function(err) {
 		if(err) tagCallback(err);
+		else tagCallback(null, tag_);
 	});
 };
 

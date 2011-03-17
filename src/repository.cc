@@ -252,6 +252,14 @@ struct init_repo_request {
 	git_repository *repo;
 };
 
+struct reflist_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	int error;
+	int flags;
+	git_strarray refList;
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 void Repository::Init(Handle<Object> target) {
@@ -275,6 +283,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidRef);
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
@@ -694,6 +704,92 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 
 		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
 	}
+}
+
+Handle<Value> Repository::ListReferences(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(reflist_request);
+
+		if(args.Length() > 1) {
+			request->flags = args[0]->Int32Value();
+		}
+
+		REQUEST_DETACH(repo, EIO_GetRefList, EIO_AfterGetRefList);
+	}
+	else {
+		int flags = 0;
+		if(args.Length() > 0) {
+			flags = args[0]->Int32Value();
+		}
+
+		git_strarray references;
+		repo->lockRepository();
+		int result = git_reference_listall(&references, repo->repo_, flags);
+		repo->unlockRepository();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get ref list.", result);
+		}
+
+		std::cout << references.count << "\n";
+		Handle<Array> refArray = Array::New(references.count);
+
+		for(int i = 0, len = references.count; i < len; i++) {
+			refArray->Set(i, String::New(references.strings[i]));
+		}
+
+		git_strarray_free(&references);
+
+		return scope.Close(refArray);
+	}
+}
+
+int Repository::EIO_GetRefList(eio_req *req) {
+	GET_REQUEST_DATA(reflist_request);
+
+	reqData->repo->lockRepository();
+	reqData->error = git_reference_listall(&reqData->refList, reqData->repo->repo_,
+			reqData->flags);
+	reqData->repo->unlockRepository();
+
+	return 0;
+}
+
+int Repository::EIO_AfterGetRefList(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(reflist_request);
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't get ref list."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		Handle<Array> refArray = Array::New(reqData->refList.count);
+
+		for(int i = 0, len = reqData->refList.count; i < len; i++) {
+			refArray->Set(i, String::New(reqData->refList.strings[i]));
+		}
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = refArray;
+
+		git_strarray_free(&reqData->refList);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {

@@ -247,7 +247,7 @@ vows.describe("References").addBatch({
 		}
 	},
 	
-	"Setting sym target *synchronously*": {
+/*	"Setting sym target *synchronously*": {
 		topic: function() {
 			var ref = this.context.ref = repo.createSymbolicReference("refs/heads/settargetasync", "refs/heads/test");
 			return ref.setTarget("refs/heads/master");
@@ -399,6 +399,26 @@ vows.describe("References").addBatch({
 		
 		"updates target correctly": function() {
 			assert.equal(this.context.ref.target, "refs/heads/test");
+		}
+	},
+	
+	"Loading reference list *asynchronously*": {
+		topic: function() {
+			repo.listReferences(gitteh.GIT_REF_LISTALL, this.callback);
+		},
+		
+		"gives us an Array": function(refs) {
+			assert.isArray(refs);
+		}
+	},
+	
+	"Loading reference list *synchronously*": {
+		topic: function() {
+			return repo.listReferences(gitteh.GIT_REF_LISTALL);
+		},
+		
+		"gives us an Array": function(refs) {
+			assert.isArray(refs);
 		}
 	}
 })

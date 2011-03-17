@@ -65,6 +65,8 @@ protected:
 	static Handle<Value> CreateSymbolicRef(const Arguments&);
 	static Handle<Value> CreateOidRef(const Arguments&);
 
+	static Handle<Value> ListReferences(const Arguments&);
+
 	void close();
 
 	Index *index_;
@@ -117,6 +119,9 @@ private:
 
 	static int EIO_CreateRevWalker(eio_req*);
 	static int EIO_ReturnRevWalker(eio_req*);
+
+	static int EIO_GetRefList(eio_req*);
+	static int EIO_AfterGetRefList(eio_req*);
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,
