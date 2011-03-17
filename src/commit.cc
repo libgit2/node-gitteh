@@ -61,6 +61,7 @@ struct tree_request {
 	Persistent<Function> callback;
 	Commit *commit;
 	git_tree *tree;
+	int error;
 };
 
 struct save_commit_request {
@@ -122,11 +123,14 @@ Handle<Value> Commit::GetTree(const Arguments& args) {
 		return Undefined();
 	}
 	else {
+		git_tree *tree;
+
 		commit->repository_->lockRepository();
-		const git_tree *tree = git_commit_tree(commit->commit_);
+		int result = git_commit_tree(&tree, commit->commit_);
 		commit->repository_->unlockRepository();
-		if(tree == NULL) {
-			return scope.Close(Null());
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get commit tree.", result);
 		}
 
 		return commit->repository_->treeFactory_->
@@ -138,7 +142,7 @@ int Commit::EIO_GetTree(eio_req *req) {
 	tree_request *reqData = static_cast<tree_request*>(req->data);
 
 	reqData->commit->repository_->lockRepository();
-	reqData->tree = const_cast<git_tree*>(git_commit_tree(reqData->commit->commit_));
+	reqData->error = git_commit_tree(&reqData->tree, reqData->commit->commit_);
 	reqData->commit->repository_->unlockRepository();
 
 	return 0;
@@ -152,8 +156,8 @@ int Commit::EIO_AfterGetTree(eio_req *req) {
  	reqData->commit->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->tree == NULL) {
- 		Handle<Value> error = Exception::Error(String::New("Couldn't get tree."));
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't get commit tree."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
 
@@ -273,12 +277,12 @@ Handle<Value> Commit::GetParent(const Arguments& args) {
 	}
 	else {
 		commit->repository_->lockRepository();
-		git_commit *parent = git_commit_parent(commit->commit_, indexArg);
+		git_commit *parent;
+		int result = git_commit_parent(&parent, commit->commit_, indexArg);
 		commit->repository_->unlockRepository();
 
-
-		if(parent == NULL) {
-			THROW_ERROR("Error getting parent.");
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Error getting parent.", result);
 		}
 
 		Commit *parentObject = commit->repository_->commitFactory_->syncRequestObject(parent);
@@ -290,7 +294,7 @@ int Commit::EIO_GetParent(eio_req *req) {
 	parent_request *reqData = static_cast<parent_request*>(req->data);
 
 	reqData->commit->repository_->lockRepository();
-	reqData->parent = git_commit_parent(reqData->commit->commit_, reqData->index);
+	reqData->error = git_commit_parent(&reqData->parent, reqData->commit->commit_, reqData->index);
 	reqData->commit->repository_->unlockRepository();
 
 	return 0;
@@ -304,8 +308,8 @@ int Commit::EIO_AfterGetParent(eio_req *req) {
  	reqData->commit->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->parent == NULL) {
- 		Handle<Value> error = Exception::Error(String::New("Couldn't get parent commit."));
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't get parent commit."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
 

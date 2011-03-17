@@ -153,7 +153,9 @@ vows.describe("Commit").addBatch({
 			assert.isNull(commit.message);
 			assert.isNull(commit.author);
 			assert.isNull(commit.committer);
-			assert.isNull(commit.getTree());
+			assert.throws(function() {
+				commit.getTree();
+			}, Error);
 		},
 	},
 	
@@ -168,7 +170,9 @@ vows.describe("Commit").addBatch({
 			assert.isNull(commit.message);
 			assert.isNull(commit.author);
 			assert.isNull(commit.committer);
-			assert.isNull(commit.getTree());
+			assert.throws(function() {
+				commit.getTree();
+			}, Error);
 		}
 	},
 	
@@ -196,10 +200,22 @@ vows.describe("Commit").addBatch({
 		}
 	},
 	
+	"Setting commit tree *asynchronously*": {
+		topic: function() {
+			var commit = this.context.commit = repo.createCommit();
+			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
+			commit.setTree(tree, this.callback);
+		},
+
+		"sets tree correctly": function() {
+			assert.isTrue(this.context.tree === this.context.commit.getTree());
+		}
+	},
+	
 	"Setting commit tree *synchronously*": {
 		topic: function() {
 			var commit = this.context.commit = repo.createCommit();
-			var tree = this.context.tree = repo.createTree();
+			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
 			commit.setTree(tree);
 			return true;
 		},
@@ -209,28 +225,16 @@ vows.describe("Commit").addBatch({
 		}
 	},
 	
-	"Setting commit tree *asynchronously*": {
+	"Adding a parent commit *asynchronously*": {
 		topic: function() {
 			var commit = this.context.commit = repo.createCommit();
-			var tree = this.context.tree = repo.createTree();
-			commit.setTree(tree, this.callback);
-		},
-		
-		"sets tree correctly": function() {
-			assert.isTrue(this.context.tree === this.context.commit.getTree());
-		}
-	},
-	
-	"Adding a parent commit *synchronously*": {
-		topic: function() {
-			var commit = this.context.commit = repo.createCommit();
-			var parent = this.context.parent = repo.createCommit();
+			var parent = this.context.parent = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
 			
-			commit.addParent(parent);
-			return true;
+			commit.addParent(parent, this.callback);
 		},
 		
-		"adds parent correctly": function() {
+		"adds parent correctly": function(res) {
+			assert.isTrue(res);
 			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
 		}
 	},
@@ -238,13 +242,13 @@ vows.describe("Commit").addBatch({
 	"Adding a parent commit *synchronously*": {
 		topic: function() {
 			var commit = this.context.commit = repo.createCommit();
-			var parent = this.context.parent = repo.createCommit();
-			
-			commit.addParent(parent, this.callback);
+			var parent = this.context.parent = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
+
+			commit.addParent(parent);
+			return true;
 		},
 		
-		"adds parent correctly": function(res) {
-			assert.isTrue(res);
+		"adds parent correctly": function() {
 			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
 		}
 	},
@@ -316,7 +320,6 @@ vows.describe("Commit").addBatch({
 		
 		"commit object is not redundant": function() {
 			var commit = this.context.commit;
-			console.log(commit);
 			assert.isTrue(commit === repo.getCommit(commit.id));
 		}
 	},

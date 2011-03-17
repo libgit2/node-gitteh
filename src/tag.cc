@@ -259,7 +259,9 @@ void* Tag::loadInitData() {
 
 	repository_->lockRepository();
 	const git_oid *tagOid = git_tag_id(tag_);
-	const git_oid *targetId = git_object_id(const_cast<git_object*>(git_tag_target(tag_)));
+	git_object *object;
+	git_tag_target(&object, tag_);
+	const git_oid *targetId = git_object_id(const_cast<git_object*>(object));
 
 	git_oid_fmt(data->id, tagOid);
 	git_oid_fmt(data->targetId, targetId);
