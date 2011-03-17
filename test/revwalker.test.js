@@ -31,47 +31,199 @@
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 
 vows.describe("RevWalker").addBatch({
-	"RevWalker from second commit": {
+	"Creating a RevWalker *asynchronously*": {
 		topic: function() {
-			//return repo.createWalker();
 			repo.createWalker(this.callback);
+		},
+		
+		"gives us a walker": function(walker) {
+			assert.isTrue(!!walker);
+		}
+	},
+	
+	"Creating a RevWalker *synchronously*": {
+		topic: function() {
+			return repo.createWalker();
 		},
 
 		"gives us a walker": function(walker) {
 			assert.isTrue(!!walker);
+		}
+	},
+	
+	"Pushing a commit object onto revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.push(repo.getCommit(fixtureValues.FIRST_COMMIT.id), this.callback);
 		},
 		
-		"pushing second commit works": function(walker) {
-			walker.sort(gitteh.SORT_TIME);
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Pushing a commit object onto revwalker *synchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.push(repo.getCommit(fixtureValues.FIRST_COMMIT.id), this.callback);
+			};
+		},
+		
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		}
+	},
+	
+	"Pushing a commit ID onto revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.push(fixtureValues.FIRST_COMMIT.id, this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Pushing a commit ID onto revwalker *synchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.push(fixtureValues.FIRST_COMMIT.id, this.callback);
+			};
+		},
+
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		}
+	},
+	
+	"Getting a commit from revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
 			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+			walker.next(this.callback);
 		},
 		
-		"calling *next*": { 
-			topic: function(walker) {
-				var commit = walker.next();
-				this.context.walker = walker;
-				return commit;
-			},
-			
-			"gives us second commit": function(commit) {
-				assert.equal(commit.id, fixtureValues.SECOND_COMMIT.id);
-			},
-			
-			"commit is not redundant": function(commit) {
-				assert.isTrue(commit === repo.getCommit(fixtureValues.SECOND_COMMIT.id));
-			},
-			
-			"calling *next()* gives us first commit.": function() {
-				var walker = this.context.walker;
-				var commit = walker.next();
-				assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
-			},
-			
-			"calling *next()* gives us null.": function() {
-				var walker = this.context.walker;
-				var commit = walker.next();
-				assert.isNull(commit);
-			}
+		"gives us correct commit": function(commit) {
+			assert.equal(commit.id, fixtureValues.SECOND_COMMIT.id);
+		},
+		
+		"commit is not redundant": function(commit) {
+			assert.isTrue(commit === repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+		}
+	},
+	
+	"Getting a commit from revwalker *synchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+			return walker.next();
+		},
+		
+		"gives us correct commit": function(commit) {
+			assert.equal(commit.id, fixtureValues.SECOND_COMMIT.id);
+		},
+		
+		"commit is not redundant": function(commit) {
+			assert.isTrue(commit === repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+		}
+	},
+	
+	"Hiding a commit id from revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.hide(fixtureValues.SECOND_COMMIT.id, this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Hiding a commit id from revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.hide(fixtureValues.SECOND_COMMIT.id);
+			};
+		},
+		
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		}
+	},
+	
+	"Hiding a commit object from revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.hide(repo.getCommit(fixtureValues.SECOND_COMMIT.id), this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Hiding a commit object from revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.hide(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
+			};
+		},
+		
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		}
+	},
+	
+	"Sorting a revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.sort(gitteh.SORT_TIME, this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Sorting a revwalker *synchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.sort(gitteh.SORT_TIME);
+			};
+		},
+		
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		}
+	},
+	
+	"Resetting a revwalker *asynchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			walker.reset(this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		}
+	},
+	
+	"Resetting a revwalker *synchronously*": {
+		topic: function() {
+			var walker = repo.createWalker();
+			return function() {
+				walker.reset();
+			};
+		},
+		
+		"works": function(fn) {
+			assert.doesNotThrow(fn, Error);
 		}
 	},
 

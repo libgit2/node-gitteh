@@ -35,6 +35,12 @@ private:
 
 	static int EIO_Next(eio_req*);
 	static int EIO_AfterNext(eio_req*);
+
+	static int EIO_Sort(eio_req*);
+	static int EIO_AfterSort(eio_req*);
+
+	static int EIO_Reset(eio_req*);
+	static int EIO_AfterReset(eio_req*);
 };
 
 } // namespace gitteh

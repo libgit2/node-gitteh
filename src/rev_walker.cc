@@ -37,6 +37,18 @@ struct walker_request {
 	int error;
 };
 
+struct sort_request {
+	Persistent<Function> callback;
+	RevWalker *walker;
+	int sorting;
+	int error;
+};
+
+struct reset_request {
+	Persistent<Function> callback;
+	RevWalker *walker;
+};
+
 Persistent<FunctionTemplate> RevWalker::constructor_template;
 
 void RevWalker::Init(Handle<Object> target) {
@@ -98,7 +110,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 		}
 		else {
 			request->commit = NULL;
-			request->id = new std::string();
+			request->id = new std::string(*String::Utf8Value(args[0]));
 		}
 
 		walker->Ref();
@@ -206,7 +218,7 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 		}
 		else {
 			request->commit = NULL;
-			request->id = new std::string();
+			request->id = new std::string(*String::Utf8Value(args[0]));
 		}
 
 		walker->Ref();
@@ -341,13 +353,49 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 int RevWalker::EIO_Next(eio_req *req) {
 	walker_request *reqData = static_cast<walker_request*>(req->data);
 
+	git_oid id;
+	reqData->walker->repo_->lockRepository();
+	reqData->error = git_revwalk_next(&id, reqData->walker->walker_);
+	reqData->walker->repo_->unlockRepository();
 
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->error = git_commit_lookup(&reqData->commit,
+				reqData->walker->repo_->repo_, &id);
+	}
 
 	return 0;
 }
 
 int RevWalker::EIO_AfterNext(eio_req *req) {
+	HandleScope scope;
+	walker_request *reqData = static_cast<walker_request*>(req->data);
 
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->walker->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error == GIT_EREVWALKOVER) {
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Null();
+ 		TRIGGER_CALLBACK();
+ 		reqData->callback.Dispose();
+	}
+	else if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't get next commit."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+
+ 		TRIGGER_CALLBACK();
+ 		reqData->callback.Dispose();
+	}
+	else {
+		reqData->walker->repo_->commitFactory_->asyncRequestObject(
+				reqData->commit, reqData->callback);
+	}
+
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {
@@ -358,24 +406,123 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
 
-	int result = git_revwalk_sorting(walker->walker_, sorting);
-	if(result != GIT_SUCCESS)
-		THROW_GIT_ERROR("Couldn't sort rev walker.", result);
+	if(HAS_CALLBACK_ARG) {
+		sort_request *request = new sort_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->walker = walker;
+		request->sorting = sorting;
 
-	return Undefined();
+		walker->Ref();
+		eio_custom(EIO_Sort, EIO_PRI_DEFAULT, EIO_AfterSort, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+
+		walker->repo_->lockRepository();
+		int result = git_revwalk_sorting(walker->walker_, sorting);
+		walker->repo_->unlockRepository();
+		if(result != GIT_SUCCESS)
+			THROW_GIT_ERROR("Couldn't sort rev walker.", result);
+
+		return Undefined();
+	}
+}
+
+int RevWalker::EIO_Sort(eio_req *req) {
+	sort_request *reqData = static_cast<sort_request*>(req->data);
+
+	reqData->walker->repo_->lockRepository();
+	reqData->error = git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
+	reqData->walker->repo_->unlockRepository();
+
+	return 0;
+}
+
+int RevWalker::EIO_AfterSort(eio_req *req) {
+	HandleScope scope;
+	sort_request *reqData = static_cast<sort_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->walker->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't set sorting."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+ 		callbackArgs[0] = Undefined();
+ 		callbackArgs[1] = True();
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> RevWalker::Reset(const Arguments& args) {
 	HandleScope scope;
-	
 	RevWalker *walker = ObjectWrap::Unwrap<RevWalker>(args.This());
-	git_revwalk_reset(walker->walker_);
+	
+	if(HAS_CALLBACK_ARG) {
+		reset_request *request = new reset_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->walker = walker;
 
-	return scope.Close(Undefined());
+		walker->Ref();
+		eio_custom(EIO_Reset, EIO_PRI_DEFAULT, EIO_AfterReset, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		walker->repo_->lockRepository();
+		git_revwalk_reset(walker->walker_);
+		walker->repo_->unlockRepository();
+
+		return scope.Close(Undefined());
+	}
+}
+
+int RevWalker::EIO_Reset(eio_req *req) {
+	reset_request *reqData = static_cast<reset_request*>(req->data);
+
+	reqData->walker->repo_->lockRepository();
+	git_revwalk_reset(reqData->walker->walker_);
+	reqData->walker->repo_->unlockRepository();
+
+	return 0;
+}
+
+int RevWalker::EIO_AfterReset(eio_req *req) {
+	HandleScope scope;
+	reset_request *reqData = static_cast<reset_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->walker->Unref();
+
+	Handle<Value> callbackArgs[2];
+	callbackArgs[0] = Undefined();
+	callbackArgs[1] = True();
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 RevWalker::~RevWalker() {
+	repo_->lockRepository();
 	git_revwalk_free(walker_);
+	repo_->unlockRepository();
 }
 
 } // namespace gitteh
