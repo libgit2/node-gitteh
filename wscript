@@ -20,7 +20,7 @@ def configure_libgit2(ctx):
 	
 	if not ctx.check(lib = "git2", uselib_store = "GIT2"):
 		# Checkout libgit2 submodule if it isn't already.
-		if not exists(".git"): 
+		if exists(".git"): 
 			if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
 				print "Checking out libgit2 submodule."
 				if Popen("{0} submodule update --init".format(ctx.env.GIT), shell = True).wait() != 0:

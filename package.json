@@ -14,7 +14,7 @@
     },
     "scripts": {
 		"preinstall": "node-waf configure",
-		"install": "node-waf build install",
+		"install": "node-waf build",
     	"test": "vows test/*.test.js --spec"
 	},
     "main": "./build/default/gitteh"
