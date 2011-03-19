@@ -72,6 +72,7 @@ public:
 
 		//return scope.Close(managedObject->object->handle_);
 		*dest = managedObject->object;
+
 		return newlyCreated;
 	}
 
