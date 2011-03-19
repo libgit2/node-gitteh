@@ -19,11 +19,12 @@ def configure_libgit2(ctx):
 	o = Options.options
 	
 	if not ctx.check(lib = "git2", uselib_store = "GIT2"):
-		# Checkout libgit2 submodule if it isn't already. 
-		if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
-			print "Checking out libgit2 submodule."
-			if Popen("{0} submodule update --init".format(ctx.env.GIT), shell = True).wait() != 0:
-				ctx.fatal("Couldn't initialize libgit2 submodule.")
+		# Checkout libgit2 submodule if it isn't already.
+		if not exists(".git"): 
+			if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
+				print "Checking out libgit2 submodule."
+				if Popen("{0} submodule update --init".format(ctx.env.GIT), shell = True).wait() != 0:
+					ctx.fatal("Couldn't initialize libgit2 submodule.")
 		
 		print "Configuring libgit2..."
 		command = "./waf configure"
