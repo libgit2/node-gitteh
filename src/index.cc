@@ -34,8 +34,19 @@ struct index_data {
 	int entryCount;
 };
 
+struct entry_request {
+	Persistent<Function> callback;
+	Index *indexObj;
+	int index;
+	git_index_entry *entry;
+	int error;
+};
 
 Persistent<FunctionTemplate> Index::constructor_template;
+
+Index::Index() {
+	entryFactory_ = new ObjectFactory<Index, IndexEntry, git_index_entry>(this);
+}
 
 Index::~Index() {
 	repository_->notifyIndexDead();
@@ -49,13 +60,12 @@ void Index::Init(Handle<Object> target) {
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("Index"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
 }
 
 Handle<Value> Index::New(const Arguments& args) {
 	HandleScope scope;
-
-	//REQ_ARGS(1);
-	//REQ_EXT_ARG(0, theIndex);
 
 	Index *index = new Index();
 	index->Wrap(args.This());
@@ -63,23 +73,77 @@ Handle<Value> Index::New(const Arguments& args) {
 	return args.This();
 }
 
-Handle<Value> Index::EntriesGetter(uint32_t i, const AccessorInfo& info) {
+Handle<Value> Index::GetEntry(const Arguments& args) {
 	HandleScope scope;
+	Index *index = ObjectWrap::Unwrap<Index>(args.This());
 
-	Index *index = ObjectWrap::Unwrap<Index>(Local<Object>::Cast(info.This()->GetInternalField(0)));
+	REQ_ARGS(1)
+	REQ_INT_ARG(0, indexArg);
 
-	if(i >= index->entryCount_) {
-		return ThrowException(Exception::Error(String::New("Index index out of bounds.")));
+	if(HAS_CALLBACK_ARG) {
+		entry_request *request = new entry_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		request->indexObj = index;
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->index = indexArg;
+		request->entry = NULL;
+
+		index->Ref();
+		eio_custom(EIO_GetEntry, EIO_PRI_DEFAULT, EIO_AfterGetEntry, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		index->repository_->lockRepository();
+		git_index_entry *entry = git_index_get(index->index_, indexArg);
+		index->repository_->unlockRepository();
+
+		if(entry == NULL) {
+			THROW_ERROR("Invalid entry.");
+		}
+
+		IndexEntry *entryObject = index->entryFactory_->syncRequestObject(entry);
+		return scope.Close(entryObject->handle_);
+	}
+}
+
+int Index::EIO_GetEntry(eio_req *req) {
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	reqData->indexObj->repository_->lockRepository();
+	reqData->entry = git_index_get(reqData->indexObj->index_, reqData->index);
+	reqData->indexObj->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Index::EIO_AfterGetEntry(eio_req *req) {
+	HandleScope scope;
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->indexObj->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->entry == NULL) {
+ 		Handle<Value> error = Exception::Error(String::New("Couldn't get index entry."));
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+
+ 		TRIGGER_CALLBACK();
+
+ 		reqData->callback.Dispose();
+	}
+	else {
+		reqData->indexObj->entryFactory_->asyncRequestObject(
+				reqData->entry, reqData->callback);
 	}
 
-	git_index_entry *entry = git_index_get(index->index_, i);
+	delete reqData;
 
-	IndexEntry *entryObject;
-	if(index->entryStore_.getObjectFor(entry, &entryObject)) {
-
-	}
-
-	return scope.Close(entryObject->handle_);
+	return 0;
 }
 
 void Index::processInitData(void *data) {

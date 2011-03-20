@@ -38,7 +38,6 @@ vows.describe("RevWalker").addBatch({
 		},
 		
 		"gives us an Index": function(index) {
-		console.log(index);
 			assert.isTrue(!!index);
 		},
 	},
@@ -49,7 +48,6 @@ vows.describe("RevWalker").addBatch({
 		},
 		
 		"gives us an Index": function(index) {
-			console.log(index);
 			assert.isTrue(!!index);
 		},
 	},
@@ -60,7 +58,6 @@ vows.describe("RevWalker").addBatch({
 		},
 		
 		"gives us an Index": function(index) {
-			console.log(index);
 			assert.isTrue(!!index);
 		},
 	},
@@ -71,8 +68,29 @@ vows.describe("RevWalker").addBatch({
 		},
 		
 		"gives us an Index": function(index) {
-			console.log(index);
 			assert.isTrue(!!index);
 		},
+	},
+	
+	"Getting an index entry from checked out repo *asynchronously*": {
+		topic: function() {
+			var index = workingRepo.getIndex();
+			index.getEntry(0, this.callback);
+		},
+		
+		"gives us an entry": function(entry) {
+			assert.isTrue(!!entry);
+		}
+	},
+	
+	"Getting an index entry from checked out repo *synchronously*": {
+		topic: function() {
+			var index = workingRepo.getIndex();
+			return index.getEntry(0);
+		},
+		
+		"gives us an entry": function(entry) {
+			assert.isTrue(!!entry);
+		}
 	}
 }).export(module);
