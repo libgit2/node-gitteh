@@ -28,7 +28,7 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 	git_signature *sig = git_signature_new(*sigName,
 			*sigEmail, sigTime, 0);
 
-	return NULL;
+	return sig;
 }
 
 } // namespace gitteh
