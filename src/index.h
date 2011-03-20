@@ -21,6 +21,8 @@ public:
 
 	void setOwner(void*);
 
+	int initError_;
+
 protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> EntriesGetter(uint32_t, const AccessorInfo&);

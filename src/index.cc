@@ -26,12 +26,19 @@
 #include "index_entry.h"
 #include "repository.h"
 
+#define LENGTH_PROPERTY String::NewSymbol("entryCount")
+
 namespace gitteh {
+
+struct index_data {
+	int entryCount;
+};
+
 
 Persistent<FunctionTemplate> Index::constructor_template;
 
 Index::~Index() {
-
+	repository_->notifyIndexDead();
 	git_index_free(index_);
 }
 
@@ -47,25 +54,12 @@ void Index::Init(Handle<Object> target) {
 Handle<Value> Index::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theIndex);
+	//REQ_ARGS(1);
+	//REQ_EXT_ARG(0, theIndex);
 
 	Index *index = new Index();
-	index->index_ = (git_index*)theIndex->Value();
-
-	git_index_read(index->index_);
-	index->entryCount_ = git_index_entrycount(index->index_);
-
-	Handle<ObjectTemplate> entriesTemplate = ObjectTemplate::New();
-	entriesTemplate->SetInternalFieldCount(1);
-	entriesTemplate->SetIndexedPropertyHandler(EntriesGetter);
-
-	Handle<Object> entriesObject = entriesTemplate->NewInstance();
-	entriesObject->SetInternalField(0, args.This());
-	entriesObject->Set(String::New("length"), Integer::New(index->entryCount_));
-
-	args.This()->Set(String::New("entries"), entriesObject);
 	index->Wrap(args.This());
+
 	return args.This();
 }
 
@@ -89,11 +83,39 @@ Handle<Value> Index::EntriesGetter(uint32_t i, const AccessorInfo& info) {
 }
 
 void Index::processInitData(void *data) {
+	if(data != NULL) {
+		index_data *indexData = static_cast<index_data*>(data);
 
+		entryCount_ = indexData->entryCount;
+		handle_->Set(LENGTH_PROPERTY, Integer::New(indexData->entryCount),
+				(PropertyAttribute)(ReadOnly | DontDelete));
+
+		delete indexData;
+	}
 }
 
 void *Index::loadInitData() {
+	repository_->lockRepository();
+	initError_ = git_repository_index(&index_, repository_->repo_);
+	repository_->unlockRepository();
+	if(initError_ == GIT_EBAREINDEX) {
+		repository_->lockRepository();
+		initError_ = git_index_open_bare(&index_, repository_->path_);
+		repository_->unlockRepository();
+	}
 
+	if(initError_ != GIT_SUCCESS) {
+		return NULL;
+	}
+
+	index_data *data = new index_data;
+
+	repository_->lockRepository();
+	git_index_read(index_);
+	data->entryCount = git_index_entrycount(index_);
+	repository_->unlockRepository();
+
+	return data;
 }
 
 void Index::setOwner(void *owner) {
