@@ -1,6 +1,6 @@
 {
 	"name": "gitteh",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "Bindings to libgit2.",
 	"keywords": "git, libgit2, bindings",
 	"author": "Sam Day <sam.c.day@gmail.com>",
@@ -14,7 +14,7 @@
     },
     "scripts": {
 		"preinstall": "node-waf configure",
-		"install": "node-waf build install",
+		"install": "node-waf build",
     	"test": "vows test/*.test.js --spec"
 	},
     "main": "./build/default/gitteh"

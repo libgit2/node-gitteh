@@ -47,7 +47,7 @@ public:
 
 		// Quick check for the managed object.
 		LOCK_MUTEX(objectsLock);
-		managedObject  = objects[(int)ref];
+		managedObject  = objects[(size_t)ref];
 		UNLOCK_MUTEX(objectsLock);
 
 		if(managedObject == NULL) {
@@ -64,7 +64,7 @@ public:
 			managedObject->handle.MakeWeak(managedObject, WeakCallback);
 
 			LOCK_MUTEX(objectsLock);
-			objects[(int)ref] = managedObject;
+			objects[(size_t)ref] = managedObject;
 			UNLOCK_MUTEX(objectsLock);
 
 			newlyCreated = true;
@@ -80,14 +80,14 @@ public:
 		ManagedObject<T, S> *managedObject;
 
 		LOCK_MUTEX(objectsLock);
-		managedObject = objects[(int)ref];
+		managedObject = objects[(size_t)ref];
 		if(!managedObject) return;
 
 		managedObject->handle.ClearWeak();
 		managedObject->handle.Dispose();
 
-		typename std::map<int, ManagedObject<T,S>* >::iterator it;
-		it = objects.find((int)ref);
+		typename std::map<size_t, ManagedObject<T,S>* >::iterator it;
+		it = objects.find((size_t)ref);
 		objects.erase(it);
 		UNLOCK_MUTEX(objectsLock);
 	}
@@ -95,7 +95,7 @@ public:
 	inline bool objectExistsFor(S* ref) {
 		bool exists = false;
 		LOCK_MUTEX(objectsLock);
-		if(objects[(int)ref] != NULL) exists = true;
+		if(objects[(size_t)ref] != NULL) exists = true;
 		UNLOCK_MUTEX(objectsLock);
 
 		return exists;
@@ -111,8 +111,8 @@ public:
 		// ... Later. Probably after another day of debugging stupid shit.
 		LOCK_MUTEX(objectsLock);
 
-		typename std::map<int, ManagedObject<T,S>* >::const_iterator it = objects.begin();
-		typename std::map<int, ManagedObject<T,S>* >::const_iterator end = objects.end();
+		typename std::map<size_t, ManagedObject<T,S>* >::const_iterator it = objects.begin();
+		typename std::map<size_t, ManagedObject<T,S>* >::const_iterator end = objects.end();
 		ManagedObject<T,S>* managedObject;
 
 		while(it != end) {
@@ -137,8 +137,8 @@ private:
 
 		LOCK_MUTEX(store->objectsLock);
 
-		typename std::map<int, ManagedObject<T,S>* >::iterator it;
-		it = store->objects.find((int)managedObject->ref);
+		typename std::map<size_t, ManagedObject<T,S>* >::iterator it;
+		it = store->objects.find((size_t)managedObject->ref);
 		store->objects.erase(it);
 
 		managedObject->handle.Dispose();
@@ -147,7 +147,7 @@ private:
 		UNLOCK_MUTEX(store->objectsLock);
 	}
 
-	std::map<int, ManagedObject<T, S>*> objects;
+	std::map<size_t, ManagedObject<T, S>*> objects;
 	gitteh_lock objectsLock;
 };
 

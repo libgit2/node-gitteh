@@ -19,13 +19,11 @@ Or you could, you know, manually execute `git` CLI commands and parse stdout. Ha
 
 ## How?
 
-You need to [install libgit2](http://libgit2.github.com/#install) first. 
-
-Installation can be done via npm. 
+Installation can be done via npm.
 
 	npm install gitteh
 	
-Gitteh on NPM requires the latest version of libgit2 - v0.10.0 "Very Disco".
+Gitteh will automatically build the correct version of libgit2 if you don't already have it installed on your computer. If you do install libgit2 yourself however, please note that libgit2 v0.10.0 is required for the current release.
 
 Documentation coming soon to a Markdown README near you. In the meantime, check out the examples, you can also look at some of the stress tests and test code I wrote.
 
