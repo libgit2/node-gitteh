@@ -531,7 +531,10 @@ Handle<Value> Tree::Save(const Arguments& args) {
 		tree->repository_->lockRepository();
 		const git_oid *treeOid = git_tree_id(tree->tree_);
 		tree->repository_->unlockRepository();
-		args.This()->ForceSet(String::New("id"), String::New(git_oid_allocfmt(treeOid)), ReadOnly);
+		char oidStr[40];
+		git_oid_fmt(oidStr, treeOid);
+		args.This()->ForceSet(String::New("id"), String::New(oidStr, 40),
+				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		return Undefined();
 	}

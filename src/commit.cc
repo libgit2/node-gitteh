@@ -469,10 +469,11 @@ Handle<Value> Commit::Save(const Arguments& args) {
 
 		commit->repository_->lockRepository();
 		const git_oid *commitId = git_commit_id(commit->commit_);
-		const char* oidStr = git_oid_allocfmt(commitId);
+		char oidStr[40];
+		git_oid_fmt(oidStr, commitId);
 		commit->repository_->unlockRepository();
 
-		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr, 40), (PropertyAttribute)(ReadOnly | DontDelete));
 
 		return True();
 	}
@@ -511,9 +512,10 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	else {
 		reqData->commit->repository_->lockRepository();
 		const git_oid *commitId = git_commit_id(reqData->commit->commit_);
-		const char* oidStr = git_oid_allocfmt(commitId);
+		char oidStr[40];
+		git_oid_fmt(oidStr, commitId);
 		reqData->commit->repository_->unlockRepository();
-		reqData->commit->handle_->ForceSet(ID_PROPERTY, String::New(oidStr),
+		reqData->commit->handle_->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
  		callbackArgs[0] = Null();

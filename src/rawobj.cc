@@ -92,8 +92,10 @@ Handle<Value> RawObject::Save(const Arguments& args) {
 	if(res != GIT_SUCCESS)
 		THROW_GIT_ERROR("Couldn't save raw object.", res);
 
-	const char* oidStr = git_oid_allocfmt(&newId);
-	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+	char oidStr[40];
+	git_oid_fmt(oidStr, &newId);
+	args.This()->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
 	return Undefined();
 }

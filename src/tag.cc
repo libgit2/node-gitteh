@@ -147,8 +147,10 @@ Handle<Value> Tag::Save(const Arguments& args) {
 		// Update tag id and type.
 		args.This()->ForceSet(TARGET_TYPE_PROPERTY, String::New(git_object_type2string(git_tag_type(tag->tag_))), (PropertyAttribute)(ReadOnly | DontDelete));
 		const git_oid *tagOid = git_tag_id(tag->tag_);
-		char *oidStr = git_oid_allocfmt(tagOid);
-		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr), (PropertyAttribute)(ReadOnly | DontDelete));
+		char oidStr[40];
+		git_oid_fmt(oidStr, tagOid);
+		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
+				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		return Undefined();
 	}
@@ -204,8 +206,9 @@ int Tag::EIO_AfterSave(eio_req *req) {
 				String::New(git_object_type2string(git_tag_type(reqData->tag->tag_))),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 		const git_oid *tagOid = git_tag_id(reqData->tag->tag_);
-		char *oidStr = git_oid_allocfmt(tagOid);
-		reqData->tag->handle_->ForceSet(ID_PROPERTY, String::New(oidStr),
+		char oidStr[40];
+		git_oid_fmt(oidStr, tagOid);
+		reqData->tag->handle_->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		reqData->tag->repository_->unlockRepository();
