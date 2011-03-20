@@ -285,8 +285,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
-
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
+	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -605,23 +605,29 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	}
 }
 
-Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
+Handle<Value> Repository::GetIndex(const Arguments& args) {
 	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	Repository *repo = ObjectWrap::Unwrap<Repository>(info.This());
-	if(repo->index_ == NULL) {
-		git_index *index;
-		int result = git_repository_index(&index, repo->repo_);
-		if(result == GIT_EBAREINDEX) {
-			git_index_open_bare(&index, repo->path_);
+	if(HAS_CALLBACK_ARG) {
+		THROW_ERROR("Unimplemented.");
+	}
+	else {
+		if(repo->index_ == NULL) {
+			git_index *index;
+			int result = repo->getIndex(&index);
+
+			if(result != GIT_SUCCESS) {
+				THROW_GIT_ERROR("Couldn't load index file.", result);
+			}
+
+			Handle<Value> arg = External::New(index);
+			Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(1, &arg);
+			repo->index_ = ObjectWrap::Unwrap<Index>(instance);
 		}
 
-		Handle<Value> arg = External::New(index);
-		Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(1, &arg);
-		repo->index_ = ObjectWrap::Unwrap<Index>(instance);
+		return scope.Close(repo->index_->handle_);
 	}
-
-	return repo->index_->handle_;
 }
 
 Handle<Value> Repository::GetReference(const Arguments& args) {
@@ -1056,6 +1062,19 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	(*rawObj)->type = GIT_OBJ_BAD;
 
 	return GIT_SUCCESS;
+}
+
+int Repository::getIndex(git_index **index) {
+	lockRepository();
+	int result = git_repository_index(index, repo_);
+	unlockRepository();
+	if(result == GIT_EBAREINDEX) {
+		lockRepository();
+		result = git_index_open_bare(index, path_);
+		unlockRepository();
+	}
+
+	return result;
 }
 
 void Repository::lockRepository() {

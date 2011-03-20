@@ -24,10 +24,16 @@
 
 #include "index.h"
 #include "index_entry.h"
+#include "repository.h"
 
 namespace gitteh {
 
 Persistent<FunctionTemplate> Index::constructor_template;
+
+Index::~Index() {
+
+	git_index_free(index_);
+}
 
 void Index::Init(Handle<Object> target) {
 	HandleScope scope;
@@ -80,6 +86,18 @@ Handle<Value> Index::EntriesGetter(uint32_t i, const AccessorInfo& info) {
 	}
 
 	return scope.Close(entryObject->handle_);
+}
+
+void Index::processInitData(void *data) {
+
+}
+
+void *Index::loadInitData() {
+
+}
+
+void Index::setOwner(void *owner) {
+	repository_ = static_cast<Repository*>(owner);
 }
 
 } // namespace gitteh

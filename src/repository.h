@@ -53,7 +53,7 @@ protected:
 	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
 
-	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
+	static Handle<Value> GetIndex(const Arguments&);
 
 	static Handle<Value> Exists(const Arguments&);
 
@@ -78,6 +78,8 @@ private:
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
 	int getRawObject(git_oid*, git_rawobj**);
+
+	int getIndex(git_index**);
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
