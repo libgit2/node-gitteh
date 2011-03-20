@@ -28,6 +28,7 @@
 #include "tree.h"
 #include <time.h>
 #include <stdlib.h>
+#include "signature.h"
 
 #define CLASS_NAME String::NewSymbol("Commit")
 
@@ -432,8 +433,16 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	}
 
 	// TODO: memory leak here if committer fails, as author won't be cleaned up.
-	GET_SIGNATURE_PROPERTY(AUTHOR_PROPERTY, author);
-	GET_SIGNATURE_PROPERTY(COMMITTER_PROPERTY, committer);
+	git_signature *author = GetSignatureFromProperty(args.This(), AUTHOR_PROPERTY);
+	if(author == NULL) {
+		THROW_ERROR("Author property is invalid.");
+	}
+
+	git_signature *committer = GetSignatureFromProperty(args.This(), COMMITTER_PROPERTY);
+	if(committer == NULL) {
+		git_signature_free(author);
+		THROW_ERROR("Committer property is invalid.");
+	}
 
 	if(HAS_CALLBACK_ARG) {
 		save_commit_request *request = new save_commit_request;

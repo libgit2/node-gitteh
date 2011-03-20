@@ -24,6 +24,7 @@
 
 #include "tag.h"
 #include "repository.h"
+#include "signature.h"
 
 #define MESSAGE_PROPERTY String::NewSymbol("message")
 #define NAME_PROPERTY String::NewSymbol("name")
@@ -89,13 +90,18 @@ Handle<Value> Tag::Save(const Arguments& args) {
 	if(name->Length() == 0) {
 		THROW_ERROR("Name must not be empty.");
 	}
-	GET_SIGNATURE_PROPERTY(TAGGER_PROPERTY, tagger);
-	Handle<String> targetIdStr = args.This()->Get(TARGET_PROPERTY)->ToString();
 
+	Handle<String> targetIdStr = args.This()->Get(TARGET_PROPERTY)->ToString();
 	git_oid targetId;
 	int res = git_oid_mkstr(&targetId, *String::Utf8Value(targetIdStr));
-	if(res != GIT_SUCCESS)
+	if(res != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Target id is invalid.", res);
+	}
+
+	git_signature *tagger = GetSignatureFromProperty(args.This(), TAGGER_PROPERTY);
+	if(tagger == NULL) {
+		THROW_ERROR("Tagger property is invalid.");
+	}
 
 	if(HAS_CALLBACK_ARG) {
 		save_request *request = new save_request;
@@ -126,12 +132,15 @@ Handle<Value> Tag::Save(const Arguments& args) {
 
 		git_object *targetObj;
 		res = git_object_lookup(&targetObj, tag->repository_->repo_, &targetId, GIT_OBJ_ANY);
-		if(res != GIT_SUCCESS)
+		if(res != GIT_SUCCESS) {
+			git_signature_free(tagger);
 			THROW_GIT_ERROR("Couldn't get target object.", res);
+		}
 
 		git_tag_set_target(tag->tag_, targetObj);
 		git_tag_set_name(tag->tag_, *String::Utf8Value(name));
 		git_tag_set_tagger(tag->tag_, tagger);
+		git_signature_free(tagger);
 
 		if((!args.This()->Get(MESSAGE_PROPERTY)->IsUndefined()) &&
 				(!args.This()->Get(MESSAGE_PROPERTY)->IsNull())) {
