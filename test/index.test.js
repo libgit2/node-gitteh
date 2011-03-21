@@ -26,10 +26,11 @@ var vows = require("vows"),
 	assert = require("assert"),
 	gitteh = require("../build/default/gitteh"),
 	path = require("path"),
-	fixtureValues = require("./fixtures/values");
+	fixtureValues = require("./fixtures/values"),
+	fs = require("fs");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
-var workingRepo = gitteh.openRepository(path.join(__dirname, "..", ".git"));
+var workingRepo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
 
 vows.describe("Index").addBatch({
 	"Opening index on bare repo *asynchronously*": {
@@ -92,5 +93,65 @@ vows.describe("Index").addBatch({
 		"gives us an entry": function(entry) {
 			assert.isTrue(!!entry);
 		}
+	},
+	
+	"Adding an entry from checked out repo *asynchronously*": {
+		topic: function() {
+			var repo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
+			var index = this.context.index = workingRepo.getIndex();
+			
+			this.context.oldIndexCount = index.entryCount;
+			index.addEntry("unstaged.txt", 1, this.callback);
+		},
+		
+		"works correctly": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"index entry count incremented": function() {
+			assert.equal(this.context.index.entryCount, this.context.oldIndexCount + 1);
+		},
+		
+		"new entry has correct values": function() {
+			var entry = this.context.index.getEntry(this.context.oldIndexCount);
+			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR_PATH, "..", "unstaged.txt"));
+
+			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
+			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
+			assert.equal(entry.ino, stats.ino);
+			assert.equal(entry.mode, stats.mode);
+			assert.equal(entry.path, "unstaged.txt");
+			assert.equal(entry.file_size, stats.size);
+		}			
+	},
+	
+	"Adding an entry from checked out repo *synchronously*": {
+		topic: function() {
+			var repo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
+			var index = this.context.index = workingRepo.getIndex();
+			
+			this.context.oldIndexCount = index.entryCount;
+			return index.addEntry("unstaged.txt", 1);
+		},
+		
+		"works correctly": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"index entry count incremented": function() {
+			assert.equal(this.context.index.entryCount, this.context.oldIndexCount + 1);
+		},
+		
+		"new entry has correct values": function() {
+			var entry = this.context.index.getEntry(this.context.oldIndexCount);
+			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR_PATH, "..", "unstaged.txt"));
+
+			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
+			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
+			assert.equal(entry.ino, stats.ino);
+			assert.equal(entry.mode, stats.mode);
+			assert.equal(entry.path, "unstaged.txt");
+			assert.equal(entry.file_size, stats.size);
+		}			
 	}
 }).export(module);

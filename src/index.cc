@@ -48,6 +48,21 @@ struct entry_request {
 	int error;
 };
 
+struct add_entry_request {
+	Persistent<Function> callback;
+	Index *indexObj;
+	std::string *path;
+	int stage;
+	int error;
+};
+
+struct insert_entry_request {
+	Persistent<Function> callback;
+	Index *indexObj;
+	git_index_entry entry;
+	int error;
+};
+
 Persistent<FunctionTemplate> Index::constructor_template;
 
 Index::Index() {
@@ -68,6 +83,7 @@ void Index::Init(Handle<Object> target) {
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
+	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
 	NODE_SET_PROTOTYPE_METHOD(t, "write", Write);
 
 	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_NAMEMASK);
@@ -94,8 +110,8 @@ Handle<Value> Index::GetEntry(const Arguments& args) {
 	REQ_INT_ARG(0, indexArg);
 
 	if(HAS_CALLBACK_ARG) {
-		entry_request *request = new entry_request;
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		entry_request *request = new entry_request;
 
 		request->indexObj = index;
 		request->callback = Persistent<Function>::New(callbackArg);
@@ -159,6 +175,84 @@ int Index::EIO_AfterGetEntry(eio_req *req) {
 	return 0;
 }
 
+Handle<Value> Index::AddEntry(const Arguments &args) {
+	HandleScope scope;
+	Index *index = ObjectWrap::Unwrap<Index>(args.This());
+
+	REQ_ARGS(2);
+	REQ_STR_ARG(0, pathArg);
+	REQ_INT_ARG(1, stageArg);
+
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		add_entry_request *request = new add_entry_request;
+
+		request->indexObj = index;
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->path = new std::string(*pathArg);
+		request->stage = stageArg;
+
+		index->Ref();
+		eio_custom(EIO_AddEntry, EIO_PRI_DEFAULT, EIO_AfterAddEntry, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		index->repository_->lockRepository();
+		int result = git_index_add(index->index_, *pathArg, stageArg);
+		index->repository_->unlockRepository();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't add index entry.", result);
+		}
+
+ 	 	index->updateEntryCount();
+
+		return True();
+	}
+}
+
+int Index::EIO_AddEntry(eio_req *req) {
+	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
+
+	reqData->indexObj->repository_->lockRepository();
+	reqData->error = git_index_add(reqData->indexObj->index_, reqData->path->c_str(),
+			reqData->stage);
+	reqData->indexObj->repository_->unlockRepository();
+
+	delete reqData->path;
+
+	return 0;
+}
+
+int Index::EIO_AfterAddEntry(eio_req *req) {
+	HandleScope scope;
+	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->indexObj->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't add entry."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+ 		callbackArgs[0] = Undefined();
+ 		callbackArgs[1] = True();
+
+ 	 	reqData->indexObj->updateEntryCount();
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
+}
+
 Handle<Value> Index::Write(const Arguments& args) {
 	HandleScope scope;
 	Index *index = ObjectWrap::Unwrap<Index>(args.This());
@@ -184,6 +278,8 @@ Handle<Value> Index::Write(const Arguments& args) {
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't write index.", result);
 		}
+
+		return True();
 	}
 }
 
@@ -220,6 +316,17 @@ int Index::EIO_AfterWrite(eio_req *req) {
 	delete reqData;
 
 	return 0;
+}
+
+void Index::updateEntryCount() {
+	HandleScope scope;
+
+	repository_->lockRepository();
+	entryCount_ = git_index_entrycount(index_);
+	repository_->unlockRepository();
+
+	handle_->ForceSet(LENGTH_PROPERTY, Integer::New(entryCount_),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 }
 
 void Index::processInitData(void *data) {
