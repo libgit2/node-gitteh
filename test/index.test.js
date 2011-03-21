@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
- 
- var vows = require("vows"),
+
+var vows = require("vows"),
 	assert = require("assert"),
 	gitteh = require("../build/default/gitteh"),
 	path = require("path"),
@@ -31,7 +31,7 @@
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 var workingRepo = gitteh.openRepository(path.join(__dirname, "..", ".git"));
 
-vows.describe("RevWalker").addBatch({
+vows.describe("Index").addBatch({
 	"Opening index on bare repo *asynchronously*": {
 		topic: function() {
 			repo.getIndex(this.callback);

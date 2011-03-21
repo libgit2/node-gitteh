@@ -30,6 +30,11 @@ protected:
 	static Handle<Value> New(const Arguments&);
 
 	static Handle<Value> GetEntry(const Arguments&);
+	static Handle<Value> FindEntry(const Arguments&);
+	static Handle<Value> AddEntry(const Arguments&);
+	static Handle<Value> InsertEntry(const Arguments&);
+	static Handle<Value> RemoveEntry(const Arguments&);
+	static Handle<Value> Write(const Arguments&);
 
 	void processInitData(void*);
 	void *loadInitData();
@@ -41,6 +46,9 @@ protected:
 private:
 	static int EIO_GetEntry(eio_req*);
 	static int EIO_AfterGetEntry(eio_req*);
+
+	static int EIO_Write(eio_req*);
+	static int EIO_AfterWrite(eio_req*);
 
 	Repository *repository_;
 };

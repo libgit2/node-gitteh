@@ -34,6 +34,12 @@ struct index_data {
 	int entryCount;
 };
 
+struct index_request {
+	Persistent<Function> callback;
+	Index *indexObj;
+	int error;
+};
+
 struct entry_request {
 	Persistent<Function> callback;
 	Index *indexObj;
@@ -62,6 +68,13 @@ void Index::Init(Handle<Object> target) {
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
+	NODE_SET_PROTOTYPE_METHOD(t, "write", Write);
+
+	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_NAMEMASK);
+	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_STAGEMASK);
+	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_EXTENDED);
+	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_VALID);
+	NODE_DEFINE_CONSTANT(t, GIT_IDXENTRY_STAGESHIFT);
 }
 
 Handle<Value> Index::New(const Arguments& args) {
@@ -141,6 +154,69 @@ int Index::EIO_AfterGetEntry(eio_req *req) {
 				reqData->entry, reqData->callback);
 	}
 
+	delete reqData;
+
+	return 0;
+}
+
+Handle<Value> Index::Write(const Arguments& args) {
+	HandleScope scope;
+	Index *index = ObjectWrap::Unwrap<Index>(args.This());
+
+	if(HAS_CALLBACK_ARG) {
+		index_request *request = new index_request;
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		request->indexObj = index;
+		request->callback = Persistent<Function>::New(callbackArg);
+
+		index->Ref();
+		eio_custom(EIO_Write, EIO_PRI_DEFAULT, EIO_AfterWrite, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		index->repository_->lockRepository();
+		int result = git_index_write(index->index_);
+		index->repository_->unlockRepository();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't write index.", result);
+		}
+	}
+}
+
+int Index::EIO_Write(eio_req *req) {
+	index_request *reqData = static_cast<index_request*>(req->data);
+
+	reqData->indexObj->repository_->lockRepository();
+	reqData->error = git_index_write(reqData->indexObj->index_);
+	reqData->indexObj->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Index::EIO_AfterWrite(eio_req *req) {
+	HandleScope scope;
+	index_request *reqData = static_cast<index_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->indexObj->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't write index."), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+ 		callbackArgs[0] = Undefined();
+ 		callbackArgs[1] = True();
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
 	delete reqData;
 
 	return 0;
