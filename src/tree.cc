@@ -286,8 +286,8 @@ Handle<Value> Tree::RemoveEntry(const Arguments& args) {
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
 
 	if(HAS_CALLBACK_ARG) {
-		entry_request *request = new entry_request;
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		entry_request *request = new entry_request;
 
 		request->tree = tree;
 		request->callback = Persistent<Function>::New(callbackArg);

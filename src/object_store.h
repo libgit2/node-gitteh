@@ -81,14 +81,15 @@ public:
 
 		LOCK_MUTEX(objectsLock);
 		managedObject = objects[(size_t)ref];
-		if(!managedObject) return;
+		if(managedObject) {
+			managedObject->handle.ClearWeak();
+			managedObject->handle.Dispose();
 
-		managedObject->handle.ClearWeak();
-		managedObject->handle.Dispose();
+			typename std::map<size_t, ManagedObject<T,S>* >::iterator it;
+			it = objects.find((size_t)ref);
+			objects.erase(it);
+		}
 
-		typename std::map<size_t, ManagedObject<T,S>* >::iterator it;
-		it = objects.find((size_t)ref);
-		objects.erase(it);
 		UNLOCK_MUTEX(objectsLock);
 	}
 

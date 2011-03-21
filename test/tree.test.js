@@ -371,7 +371,7 @@ vows.describe("Tree").addBatch({
 	"Deleting an entry *asynchronously*": {
 		topic: function() {
 			var tree = this.context.tree = repo.createTree();
-			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asynceleteme", 100);
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asyncdeleteme", 100);
 			tree.removeEntry(0, this.callback);
 		},
 		
@@ -387,7 +387,7 @@ vows.describe("Tree").addBatch({
 	"Deleting an entry *synchronously*": {
 		topic: function() {
 			var tree = this.context.tree = repo.createTree();
-			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "asynceleteme", 100);
+			tree.addEntry("47ee7698c336ba5b163c193ae6309f0a7d7e9662", "syncdeleteme", 100);
 			return tree.removeEntry(0);
 		},
 		
