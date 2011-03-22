@@ -218,7 +218,7 @@
 			newObject(object)->handle_);
 
 #define OPEN2_GITDIR_PROPERTY String::NewSymbol("gitDirectory")
-#define OPEN2_OBJDIR_PROPERTY String::NewSymbol("objDirectory")
+#define OPEN2_OBJDIR_PROPERTY String::NewSymbol("objectDirectory")
 #define OPEN2_INDEXFILE_PROPERTY String::NewSymbol("indexFile")
 #define OPEN2_WORKTREE_PROPERTY String::NewSymbol("workTree")
 
@@ -304,6 +304,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
+	NODE_SET_METHOD(target, "openRepository2", OpenRepository2);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
 }
 
@@ -398,14 +399,23 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 		open_repo2_request *request = new open_repo2_request;
 		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
 		request->gitDir = new std::string(*gitDir);
-		if(objDir.length()) {
+		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
 			request->objectDir = new std::string(*objDir);
 		}
-		if(indexFile.length()) {
+		else {
+			request->objectDir = NULL;
+		}
+		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
 			request->indexFile = new std::string(*indexFile);
 		}
-		if(workTree.length()) {
+		else {
+			request->indexFile = NULL;
+		}
+		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
 			request->workTree = new std::string(*workTree);
+		}
+		else {
+			request->workTree = NULL;
 		}
 
 		eio_custom(EIO_OpenRepository2, EIO_PRI_DEFAULT, EIO_AfterOpenRepository2, request);
@@ -418,15 +428,15 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 
 		const char *_gitDir = *gitDir;
 		const char *_objDir = NULL;
-		if(objDir.length()) {
+		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
 			_objDir = *objDir;
 		}
 		const char *_indexFile = NULL;
-		if(indexFile.length()) {
+		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
 			_indexFile = *indexFile;
 		}
 		const char *_workTree = NULL;
-		if(workTree.length()) {
+		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
 			_workTree = *workTree;
 		}
 
@@ -438,7 +448,7 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 
 		Handle<Value> constructorArgs[2] = {
 			External::New(repo),
-			args[0]
+			pathsObj->Get(OPEN2_GITDIR_PROPERTY)
 		};
 
 		return scope.Close(Repository::constructor_template->GetFunction()

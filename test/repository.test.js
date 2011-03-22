@@ -30,7 +30,7 @@
 
 vows.describe("Repository").addBatch({
 	"Opening an existing bare repository *synchronously*": {
-		topic: function() {
+		topic: function() {	
 			var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 			this.context.repo = repo;
 			
@@ -91,4 +91,32 @@ vows.describe("Repository").addBatch({
 			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
 		}
 	},
+	
+	"Opening a repository with custom options *asynchronously*": {
+		topic: function() {
+			gitteh.openRepository2(fixtureValues.WORKING_DIR, this.callback);
+		},
+		
+		"gives us a Repository": function(repo) {
+			assert.isTrue(!!repo);
+		},
+		
+		"with correct path": function(repo) {
+			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
+		}
+	},
+	
+	"Opening a repository with custom options *synchronously*": {
+		topic: function() {
+			return gitteh.openRepository2(fixtureValues.WORKING_DIR);
+		},
+		
+		"gives us a Repository": function(repo) {
+			assert.isTrue(!!repo);
+		},
+		
+		"with correct path": function(repo) {
+			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
+		}
+	}
 }).export(module);
