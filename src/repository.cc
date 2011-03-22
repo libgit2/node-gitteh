@@ -217,6 +217,11 @@
 	return scope.Close(repo->FACTORY->										\
 			newObject(object)->handle_);
 
+#define OPEN2_GITDIR_PROPERTY String::NewSymbol("gitDirectory")
+#define OPEN2_OBJDIR_PROPERTY String::NewSymbol("objDirectory")
+#define OPEN2_INDEXFILE_PROPERTY String::NewSymbol("indexFile")
+#define OPEN2_WORKTREE_PROPERTY String::NewSymbol("workTree")
+
 namespace gitteh {
 
 struct object_request {
@@ -241,6 +246,16 @@ struct open_repo_request {
 	Persistent<Function> callback;
 	int error;
 	String::Utf8Value *path;
+	git_repository *repo;
+};
+
+struct open_repo2_request {
+	Persistent<Function> callback;
+	int error;
+	std::string *gitDir;
+	std::string *objectDir;
+	std::string *indexFile;
+	std::string *workTree;
 	git_repository *repo;
 };
 
@@ -359,6 +374,139 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
  	delete reqData;
  	ev_unref(EV_DEFAULT_UC);
 	return 0;
+}
+
+Handle<Value> Repository::OpenRepository2(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	if(!args[0]->IsObject()) {
+		THROW_ERROR("Please provide an object containing paths.");
+	}
+
+	Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
+	if(pathsObj->Get(OPEN2_GITDIR_PROPERTY)->Equals(Null())) {
+		THROW_ERROR("Git directory is required.");
+	}
+
+	String::Utf8Value gitDir(pathsObj->Get(OPEN2_GITDIR_PROPERTY));
+	String::Utf8Value objDir(pathsObj->Get(OPEN2_OBJDIR_PROPERTY));
+	String::Utf8Value indexFile(pathsObj->Get(OPEN2_INDEXFILE_PROPERTY));
+	String::Utf8Value workTree(pathsObj->Get(OPEN2_WORKTREE_PROPERTY));
+
+	if(HAS_CALLBACK_ARG) {
+		open_repo2_request *request = new open_repo2_request;
+		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+		request->gitDir = new std::string(*gitDir);
+		if(objDir.length()) {
+			request->objectDir = new std::string(*objDir);
+		}
+		if(indexFile.length()) {
+			request->indexFile = new std::string(*indexFile);
+		}
+		if(workTree.length()) {
+			request->workTree = new std::string(*workTree);
+		}
+
+		eio_custom(EIO_OpenRepository2, EIO_PRI_DEFAULT, EIO_AfterOpenRepository2, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		git_repository* repo;
+
+		const char *_gitDir = *gitDir;
+		const char *_objDir = NULL;
+		if(objDir.length()) {
+			_objDir = *objDir;
+		}
+		const char *_indexFile = NULL;
+		if(indexFile.length()) {
+			_indexFile = *indexFile;
+		}
+		const char *_workTree = NULL;
+		if(workTree.length()) {
+			_workTree = *workTree;
+		}
+
+		int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
+				_workTree);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't open repository.", result);
+		}
+
+		Handle<Value> constructorArgs[2] = {
+			External::New(repo),
+			args[0]
+		};
+
+		return scope.Close(Repository::constructor_template->GetFunction()
+				->NewInstance(2, constructorArgs));
+	}
+}
+
+int Repository::EIO_OpenRepository2(eio_req *req) {
+	GET_REQUEST_DATA(open_repo2_request);
+
+	const char *_gitDir = reqData->gitDir->c_str();
+	const char *_objDir = NULL;
+	if(reqData->objectDir) {
+		_objDir = reqData->objectDir->c_str();
+	}
+	const char *_indexFile = NULL;
+	if(reqData->indexFile) {
+		_indexFile = reqData->indexFile->c_str();
+	}
+	const char *_workTree = NULL;
+	if(reqData->workTree) {
+		_workTree = reqData->workTree->c_str();
+	}
+
+	reqData->error = git_repository_open2(&reqData->repo, _gitDir, _objDir,
+			_indexFile, _workTree);
+
+	if(reqData->objectDir) {
+		delete reqData->objectDir;
+	}
+	if(reqData->indexFile) {
+		delete reqData->indexFile;
+	}
+	if(reqData->workTree) {
+		delete reqData->workTree;
+	}
+
+	return 0;
+}
+
+int Repository::EIO_AfterOpenRepository2(eio_req *req) {
+	HandleScope scope;
+		GET_REQUEST_DATA(open_repo2_request);
+
+		Handle<Value> callbackArgs[2];
+	 	if(reqData->error) {
+	 		Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
+	 		callbackArgs[0] = error;
+	 		callbackArgs[1] = Null();
+		}
+		else {
+			Handle<Value> constructorArgs[2] = {
+				External::New(reqData->repo),
+				String::New(reqData->gitDir->c_str())
+			};
+			callbackArgs[0] = Null();
+			callbackArgs[1] = Repository::constructor_template->GetFunction()
+							->NewInstance(2, constructorArgs);
+
+			delete reqData->gitDir;
+		}
+
+	 	TRIGGER_CALLBACK();
+
+	    reqData->callback.Dispose();
+	 	delete reqData;
+	 	ev_unref(EV_DEFAULT_UC);
+		return 0;
 }
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
