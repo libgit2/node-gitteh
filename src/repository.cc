@@ -1283,6 +1283,10 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	return GIT_SUCCESS;
 }
 
+void Repository::notifyIndexDead() {
+	index_ = NULL;
+}
+
 void Repository::lockRepository() {
 	LOCK_MUTEX(gitLock_);
 }

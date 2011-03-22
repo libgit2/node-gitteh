@@ -30,7 +30,7 @@ var vows = require("vows"),
 	fs = require("fs");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
-var workingRepo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
+var workingRepo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
 
 vows.describe("Index").addBatch({
 	"Opening index on bare repo *asynchronously*": {
@@ -97,7 +97,7 @@ vows.describe("Index").addBatch({
 	
 	"Adding an entry from checked out repo *asynchronously*": {
 		topic: function() {
-			var repo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
+			var repo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
 			var index = this.context.index = workingRepo.getIndex();
 			
 			this.context.oldIndexCount = index.entryCount;
@@ -114,7 +114,7 @@ vows.describe("Index").addBatch({
 		
 		"new entry has correct values": function() {
 			var entry = this.context.index.getEntry(this.context.oldIndexCount);
-			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR_PATH, "..", "unstaged.txt"));
+			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR.gitDirectory, "..", "unstaged.txt"));
 
 			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
 			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
@@ -127,7 +127,7 @@ vows.describe("Index").addBatch({
 	
 	"Adding an entry from checked out repo *synchronously*": {
 		topic: function() {
-			var repo = gitteh.openRepository(fixtureValues.WORKING_DIR_PATH);
+			var repo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
 			var index = this.context.index = workingRepo.getIndex();
 			
 			this.context.oldIndexCount = index.entryCount;
@@ -144,7 +144,7 @@ vows.describe("Index").addBatch({
 		
 		"new entry has correct values": function() {
 			var entry = this.context.index.getEntry(this.context.oldIndexCount);
-			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR_PATH, "..", "unstaged.txt"));
+			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR.gitDirectory, "..", "unstaged.txt"));
 
 			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
 			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
