@@ -46,6 +46,7 @@ public:
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);
+	static Handle<Value> OpenRepository2(const Arguments&);
 	static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);
@@ -93,6 +94,9 @@ private:
 
 	static int EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
+
+	static int EIO_OpenRepository2(eio_req*);
+	static int EIO_AfterOpenRepository2(eio_req*);
 
 	static int EIO_InitRepository(eio_req*);
 	static int EIO_AfterInitRepository(eio_req*);
