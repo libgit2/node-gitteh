@@ -2,25 +2,63 @@
 #define GITTEH_INDEX_H
 
 #include "gitteh.h"
-#include "object_store.h"
+#include "ts_objectwrap.h"
+#include "object_factory.h"
 
 namespace gitteh {
 
 class IndexEntry;
+class Repository;
+template <class, class, class> class ObjectFactory;
 
-class Index : public ObjectWrap {
+class Index : public ThreadSafeObjectWrap {
 public:
+	template<class, class,class> friend class ObjectFactory;
+
 	static Persistent<FunctionTemplate> constructor_template;
+
+	Index();
+	~Index();
+
 	static void Init(Handle<Object>);
-	IndexEntry *wrapIndexEntry(git_index_entry*);
+
+	void setOwner(void*);
+
+	int initError_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> EntriesGetter(uint32_t, const AccessorInfo&);
+
+	static Handle<Value> GetEntry(const Arguments&);
+	static Handle<Value> FindEntry(const Arguments&);
+	static Handle<Value> AddEntry(const Arguments&);
+	static Handle<Value> InsertEntry(const Arguments&);
+	static Handle<Value> RemoveEntry(const Arguments&);
+	static Handle<Value> Write(const Arguments&);
+
+	void processInitData(void*);
+	void *loadInitData();
 
 	git_index *index_;
-	ObjectStore<IndexEntry, git_index_entry> entryStore_;
+	ObjectFactory<Index, IndexEntry, git_index_entry> *entryFactory_;
 	unsigned int entryCount_;
+
+private:
+	void updateEntryCount();
+
+	static int EIO_GetEntry(eio_req*);
+	static int EIO_AfterGetEntry(eio_req*);
+
+	static int EIO_Write(eio_req*);
+	static int EIO_AfterWrite(eio_req*);
+
+	static int EIO_AddEntry(eio_req*);
+	static int EIO_AfterAddEntry(eio_req*);
+
+	static int EIO_FindEntry(eio_req*);
+	static int EIO_AfterFindEntry(eio_req*);
+
+	Repository *repository_;
 };
 
 } // namespace gitteh

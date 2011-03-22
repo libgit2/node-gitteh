@@ -38,8 +38,11 @@ public:
 	ObjectFactory<Repository, RawObject, git_rawobj> *rawObjFactory_;
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
 
+	void notifyIndexDead();
+
 	git_repository *repo_;
 	git_odb *odb_;
+	char *path_;
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);
@@ -54,7 +57,7 @@ protected:
 	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
 
-	static Handle<Value> IndexGetter(Local<String>, const AccessorInfo&);
+	static Handle<Value> GetIndex(const Arguments&);
 
 	static Handle<Value> Exists(const Arguments&);
 
@@ -70,8 +73,6 @@ protected:
 
 	void close();
 
-	Index *index_;
-	char *path_;
 
 private:
 	int getTree(git_oid*, git_tree**);
@@ -126,6 +127,11 @@ private:
 
 	static int EIO_GetRefList(eio_req*);
 	static int EIO_AfterGetRefList(eio_req*);
+
+	static int EIO_InitIndex(eio_req*);
+	static int EIO_ReturnIndex(eio_req*);
+
+	Index *index_;
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,

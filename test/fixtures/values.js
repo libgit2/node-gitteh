@@ -1,7 +1,8 @@
 module.exports.REPO_PATH = require("path").join(__dirname, "gitrepo");
 
 module.exports.WORKING_DIR = {
-	gitDirectory: require("path").join(__dirname, "workingdir", "dotgit/")
+	gitDirectory: require("path").join(__dirname, "workingdir", "dotgit"),
+	workTree: require("path").join(__dirname, "workingdir")
 };
 
 module.exports.FIRST_COMMIT = {

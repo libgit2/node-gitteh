@@ -275,6 +275,11 @@ struct reflist_request {
 	git_strarray refList;
 };
 
+struct index_request {
+	Persistent<Function> callback;
+	Repository *repo;
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 void Repository::Init(Handle<Object> target) {
@@ -300,8 +305,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
-
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
+	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "openRepository2", OpenRepository2);
@@ -763,23 +768,83 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	}
 }
 
-Handle<Value> Repository::IndexGetter(Local<String>, const AccessorInfo& info) {
+Handle<Value> Repository::GetIndex(const Arguments& args) {
 	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	Repository *repo = ObjectWrap::Unwrap<Repository>(info.This());
 	if(repo->index_ == NULL) {
-		git_index *index;
-		int result = git_repository_index(&index, repo->repo_);
-		if(result == GIT_EBAREINDEX) {
-			git_index_open_bare(&index, repo->path_);
-		}
-
-		Handle<Value> arg = External::New(index);
-		Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(1, &arg);
+		Handle<Object> instance = Index::constructor_template->GetFunction()->NewInstance(0, NULL);
 		repo->index_ = ObjectWrap::Unwrap<Index>(instance);
+		repo->index_->setOwner(repo);
 	}
 
-	return repo->index_->handle_;
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+
+		if(!repo->index_->isInitialized()) {
+			CREATE_ASYNC_REQUEST(index_request);
+			repo->index_->registerInitInterest();
+			REQUEST_DETACH(repo, EIO_InitIndex, EIO_ReturnIndex);
+		}
+		else {
+			Handle<Value> callbackArgs[2];
+			callbackArgs[0] = Null();
+			callbackArgs[1] = Local<Object>::New(repo->index_->handle_);
+			callbackArg->Call(Context::GetCurrent()->Global(), 2, callbackArgs);
+		}
+
+		return Undefined();
+	}
+	else {
+		if(!repo->index_->isInitialized()) {
+			repo->index_->registerInitInterest();
+			repo->index_->waitForInitialization();
+			repo->index_->removeInitInterest();
+			repo->index_->ensureInitDone();
+		}
+
+		if(repo->index_->initError_ != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get index.", repo->index_->initError_);
+		}
+
+		return scope.Close(repo->index_->handle_);
+	}
+}
+
+int Repository::EIO_InitIndex(eio_req *req) {
+	GET_REQUEST_DATA(index_request);
+	reqData->repo->index_->waitForInitialization();
+	return 0;
+}
+
+int Repository::EIO_ReturnIndex(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(index_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	reqData->repo->index_->removeInitInterest();
+	reqData->repo->index_->ensureInitDone();
+
+	Handle<Value> callbackArgs[2];
+
+	if(reqData->repo->index_->initError_ != GIT_SUCCESS) {
+		Handle<Value> e = CreateGitError(String::New("Couldn't get ref list."),
+				reqData->repo->index_->initError_);
+		callbackArgs[0] = e;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(reqData->repo->index_->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
 }
 
 Handle<Value> Repository::GetReference(const Arguments& args) {
@@ -1084,6 +1149,8 @@ Repository::Repository() {
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
 	rawObjFactory_ = new ObjectFactory<Repository, RawObject, git_rawobj>(this);
+
+	index_ = NULL;
 }
 
 Repository::~Repository() {
@@ -1214,6 +1281,10 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 	(*rawObj)->type = GIT_OBJ_BAD;
 
 	return GIT_SUCCESS;
+}
+
+void Repository::notifyIndexDead() {
+	index_ = NULL;
 }
 
 void Repository::lockRepository() {
