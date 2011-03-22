@@ -55,6 +55,9 @@ private:
 	static int EIO_AddEntry(eio_req*);
 	static int EIO_AfterAddEntry(eio_req*);
 
+	static int EIO_FindEntry(eio_req*);
+	static int EIO_AfterFindEntry(eio_req*);
+
 	Repository *repository_;
 };
 

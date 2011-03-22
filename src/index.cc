@@ -44,6 +44,7 @@ struct entry_request {
 	Persistent<Function> callback;
 	Index *indexObj;
 	int index;
+	std::string *name;
 	git_index_entry *entry;
 	int error;
 };
@@ -83,6 +84,7 @@ void Index::Init(Handle<Object> target) {
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
+	NODE_SET_PROTOTYPE_METHOD(t, "findEntry", FindEntry);
 	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
 	NODE_SET_PROTOTYPE_METHOD(t, "write", Write);
 
@@ -164,6 +166,95 @@ int Index::EIO_AfterGetEntry(eio_req *req) {
  		TRIGGER_CALLBACK();
 
  		reqData->callback.Dispose();
+	}
+	else {
+		reqData->indexObj->entryFactory_->asyncRequestObject(
+				reqData->entry, reqData->callback);
+	}
+
+	delete reqData;
+
+	return 0;
+}
+
+Handle<Value> Index::FindEntry(const Arguments& args) {
+	HandleScope scope;
+	Index *indexObj = ObjectWrap::Unwrap<Index>(args.This());
+
+	REQ_ARGS(1)
+	REQ_STR_ARG(0, nameArg);
+
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		entry_request *request = new entry_request;
+
+		request->indexObj = indexObj;
+		request->callback = Persistent<Function>::New(callbackArg);
+		request->name = new std::string(*nameArg);
+		request->entry = NULL;
+
+		indexObj->Ref();
+		eio_custom(EIO_FindEntry, EIO_PRI_DEFAULT, EIO_AfterFindEntry, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		return Undefined();
+	}
+	else {
+		indexObj->repository_->lockRepository();
+		int index = git_index_find(indexObj->index_, *nameArg);
+
+		if(index == GIT_ENOTFOUND) {
+			indexObj->repository_->unlockRepository();
+			THROW_ERROR("Invalid path.");
+		}
+
+		git_index_entry *entry = git_index_get(indexObj->index_, index);
+		indexObj->repository_->unlockRepository();
+
+		if(entry == NULL) {
+			THROW_ERROR("Unknown error.");
+		}
+
+		IndexEntry *entryObject = indexObj->entryFactory_->syncRequestObject(entry);
+		return scope.Close(entryObject->handle_);
+	}
+}
+
+int Index::EIO_FindEntry(eio_req *req) {
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	reqData->indexObj->repository_->lockRepository();
+	int index = git_index_find(reqData->indexObj->index_, reqData->name->c_str());
+
+	if(index != GIT_ENOTFOUND) {
+		reqData->entry = git_index_get(reqData->indexObj->index_, index);
+	}
+	else {
+		reqData->entry = NULL;
+	}
+
+	delete reqData->name;
+	reqData->indexObj->repository_->unlockRepository();
+
+	return 0;
+}
+
+int Index::EIO_AfterFindEntry(eio_req *req) {
+	HandleScope scope;
+	entry_request *reqData = static_cast<entry_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->indexObj->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->entry == NULL) {
+		Handle<Value> error = Exception::Error(String::New("Couldn't find index entry."));
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+
+		TRIGGER_CALLBACK();
+
+		reqData->callback.Dispose();
 	}
 	else {
 		reqData->indexObj->entryFactory_->asyncRequestObject(

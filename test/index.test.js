@@ -95,6 +95,36 @@ vows.describe("Index").addBatch({
 		}
 	},
 	
+	"Finding an index entry by path *asynchronously*": {
+		topic: function() {
+			var index = workingRepo.getIndex();
+			index.findEntry("file.txt", this.callback);
+		},
+		
+		"gives us an entry": function(entry) {
+			assert.isTrue(!!entry);
+		},
+		
+		"with the correct path": function(entry) {
+			assert.equal(entry.path, "file.txt");
+		}
+	},
+	
+	"Finding an index entry by path *synchronously*": {
+		topic: function() {
+			var index = workingRepo.getIndex();
+			return index.findEntry("file.txt");
+		},
+		
+		"gives us an entry": function(entry) {
+			assert.isTrue(!!entry);
+		},
+		
+		"with the correct path": function(entry) {
+			assert.equal(entry.path, "file.txt");
+		}
+	},
+	
 	"Adding an entry from checked out repo *asynchronously*": {
 		topic: function() {
 			var repo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
