@@ -116,7 +116,7 @@ private:
 		return 0;
 	}
 
-	static inline void ReturnWrappedObject(ThreadSafeObjectWrap *obj,
+	static inline void ReturnWrappedObject(GitObjectWrap *obj,
 		Persistent<Function>& callback) {
 		Handle<Value> callbackArgs[2];
 		callbackArgs[0] = Null();

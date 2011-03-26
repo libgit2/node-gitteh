@@ -2,13 +2,13 @@
 #define GITTEH_TAG_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
 
 class Repository;
 
-class Tag : public ThreadSafeObjectWrap {
+class Tag : public GitObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);

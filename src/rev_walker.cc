@@ -399,6 +399,7 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	REQ_ARGS(1);
@@ -429,8 +430,10 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 
 		return Undefined();
 	}
+#endif
 }
 
+#ifdef FIXME
 int RevWalker::EIO_Sort(eio_req *req) {
 	sort_request *reqData = static_cast<sort_request*>(req->data);
 
@@ -465,6 +468,7 @@ int RevWalker::EIO_AfterSort(eio_req *req) {
 
 	return 0;
 }
+#endif
 
 Handle<Value> RevWalker::Reset(const Arguments& args) {
 	HandleScope scope;

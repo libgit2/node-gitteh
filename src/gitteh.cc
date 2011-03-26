@@ -48,7 +48,9 @@ extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
 	Repository::Init(target);
+#ifdef FIXME
 	RawObject::Init(target);
+#endif
 	Commit::Init(target);
 	Tree::Init(target);
 	TreeEntry::Init(target);

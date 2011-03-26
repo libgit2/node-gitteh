@@ -28,9 +28,12 @@
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
-#include "rawobj.h"
 #include "ref.h"
 #include "object_factory.h"
+
+#ifdef FIXME
+#include "rawobj.h"
+#endif
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.
@@ -196,6 +199,7 @@
 	if(res != GIT_SUCCESS) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
+	std::cout << "commit: " << object << "\n"; \
 	return scope.Close(repo->FACTORY->										\
 			syncRequestObject(object)->handle_);
 
@@ -293,11 +297,15 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
+#ifdef FIXME
 	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
+#endif
 	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
+#ifdef FIXME
 	NODE_SET_PROTOTYPE_METHOD(t, "createRawObject", CreateRawObject);
+#endif
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
@@ -645,12 +653,23 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, commitObjArg);
+
+	Handle<Value> callback = Null();
 	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(Commit::SaveObject(commitObjArg, repo, callback, true));
+
+	/*if(HAS_CALLBACK_ARG) {
 		ASYNC_PREPARE_CREATE_OBJECT(Commit);
 	}
 	else {
 		SYNC_CREATE_OBJECT(Commit, git_commit, commitFactory_);
-	}
+	}*/
 }
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
@@ -722,6 +741,7 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	}
 }
 
+#ifdef FIXME
 Handle<Value> Repository::GetRawObject(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -748,6 +768,7 @@ Handle<Value> Repository::CreateRawObject(const Arguments& args) {
 		SYNC_CREATE_OBJECT(RawObject, git_rawobj, rawObjFactory_);
 	}
 }
+#endif
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	HandleScope scope;
@@ -1081,9 +1102,11 @@ FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tag, git_tag, tagFactory_)
 // =============
 // RAWOBJECT EIO
 // =============
+#ifdef FIXME
 FN_ASYNC_GET_OID_OBJECT(RawObject, git_rawobj)
 FN_ASYNC_CREATE_OBJECT(RawObject, git_rawobj)
 FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(RawObject, git_rawobj, rawObjFactory_)
+#endif
 
 // =======
 // REF EIO
@@ -1148,7 +1171,10 @@ Repository::Repository() {
 	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
+
+#ifdef FIXME
 	rawObjFactory_ = new ObjectFactory<Repository, RawObject, git_rawobj>(this);
+#endif
 
 	index_ = NULL;
 }
@@ -1158,8 +1184,9 @@ Repository::~Repository() {
 	delete referenceFactory_;
 	delete treeFactory_;
 	delete tagFactory_;
+#ifdef FIXME
 	delete rawObjFactory_;
-
+#endif
 	close();
 }
 
@@ -1179,6 +1206,7 @@ int Repository::getCommit(git_oid *id, git_commit **commit) {
 }
 
 int Repository::createCommit(git_commit **commit) {
+#ifdef FIXME
 	int result;
 	
 	LOCK_MUTEX(gitLock_);
@@ -1186,9 +1214,11 @@ int Repository::createCommit(git_commit **commit) {
 	UNLOCK_MUTEX(gitLock_);
 
 	return result;
+#endif
 }
 
 int Repository::createTree(git_tree **tree) {
+#ifdef FIXME
 	int result;
 	
 	LOCK_MUTEX(gitLock_);
@@ -1196,6 +1226,7 @@ int Repository::createTree(git_tree **tree) {
 	UNLOCK_MUTEX(gitLock_);
 	
 	return result;
+#endif
 }
 
 int Repository::getTree(git_oid *id, git_tree **tree) {
@@ -1209,6 +1240,7 @@ int Repository::getTree(git_oid *id, git_tree **tree) {
 }
 
 int Repository::createTag(git_tag **tag) {
+#ifdef FIXME
 	int result;
 
 	LOCK_MUTEX(gitLock_);
@@ -1216,6 +1248,7 @@ int Repository::createTag(git_tag **tag) {
 	UNLOCK_MUTEX(gitLock_);
 
 	return result;
+#endif
 }
 
 int Repository::getTag(git_oid *id, git_tag **tag) {
@@ -1238,6 +1271,7 @@ int Repository::getReference(const char* name, git_reference** ref) {
 	return result;
 }
 
+#ifdef FIXME
 int Repository::getRawObject(git_oid *id, git_rawobj **objPtr) {
 	int result;
 
@@ -1252,6 +1286,7 @@ int Repository::getRawObject(git_oid *id, git_rawobj **objPtr) {
 
 	return result;
 }
+#endif
 
 int Repository::createRevWalker(git_revwalk **walker) {
 	int result;
@@ -1275,6 +1310,7 @@ RevWalker *Repository::wrapRevWalker(git_revwalk *walker) {
 	return walkerObj;
 }
 
+#ifdef FIXME
 int Repository::createRawObject(git_rawobj** rawObj) {
 	*rawObj = new git_rawobj;
 	(*rawObj)->len = 0;
@@ -1282,6 +1318,7 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 
 	return GIT_SUCCESS;
 }
+#endif
 
 void Repository::notifyIndexDead() {
 	index_ = NULL;

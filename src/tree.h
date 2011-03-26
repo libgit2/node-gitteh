@@ -2,7 +2,7 @@
 #define GITTEH_TREE_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 #include "object_factory.h"
 
 namespace gitteh {
@@ -15,7 +15,7 @@ class Repository;
 
 template <class, class, class> class ObjectFactory;
 
-class Tree : public ThreadSafeObjectWrap {
+class Tree : public GitObjectWrap {
 public:
 	template<class, class,class> friend class ObjectFactory;
 

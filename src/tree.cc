@@ -195,6 +195,7 @@ int Tree::EIO_AfterGetEntry(eio_req *req) {
 }
 
 Handle<Value> Tree::AddEntry(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	REQ_ARGS(3);
@@ -236,8 +237,10 @@ Handle<Value> Tree::AddEntry(const Arguments& args) {
 
 		return scope.Close(tree->entryFactory_->syncRequestObject(entry)->handle_);
 	}
+#endif
 }
 
+#ifdef FIXME
 int Tree::EIO_AddEntry(eio_req *req) {
 	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
 
@@ -276,8 +279,10 @@ int Tree::EIO_AfterAddEntry(eio_req *req) {
 	delete reqData;
 	return 0;
 }
+#endif
 
 Handle<Value> Tree::RemoveEntry(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	REQ_ARGS(1);
@@ -354,8 +359,10 @@ Handle<Value> Tree::RemoveEntry(const Arguments& args) {
 
 		return scope.Close(True());
 	}
+#endif
 }
 
+#ifdef FIXME
 int Tree::EIO_RemoveEntry(eio_req *req) {
 	entry_request *reqData = static_cast<entry_request*>(req->data);
 
@@ -431,8 +438,10 @@ int Tree::EIO_AfterRemoveEntry(eio_req *req) {
 	delete reqData;
 	return 0;
 }
+#endif
 
 Handle<Value> Tree::Clear(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
@@ -465,8 +474,10 @@ Handle<Value> Tree::Clear(const Arguments& args) {
 
 		return scope.Close(Undefined());
 	}
+#endif
 }
 
+#ifdef FIXME
 int Tree::EIO_ClearEntries(eio_req *req) {
 	entry_request *reqData = static_cast<entry_request*>(req->data);
 
@@ -501,8 +512,10 @@ int Tree::EIO_AfterClearEntries(eio_req *req) {
 
 	return 0;
 }
+#endif
 
 Handle<Value> Tree::Save(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
@@ -538,8 +551,10 @@ Handle<Value> Tree::Save(const Arguments& args) {
 
 		return Undefined();
 	}
+#endif
 }
 
+#ifdef FIXME
 int Tree::EIO_Save(eio_req *req) {
 	save_request *reqData = static_cast<save_request*>(req->data);
 
@@ -584,6 +599,7 @@ int Tree::EIO_AfterSave(eio_req *req) {
 	delete reqData;
 	return 0;
 }
+#endif
 
 Tree::Tree() {
 	entryFactory_ = new ObjectFactory<Tree, TreeEntry, git_tree_entry>(this);

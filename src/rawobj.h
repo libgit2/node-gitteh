@@ -2,7 +2,7 @@
 #define GITTEH_RAWOBJ_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
 
@@ -11,7 +11,7 @@ namespace gitteh {
 
 class Repository;
 
-class RawObject : public ThreadSafeObjectWrap {
+class RawObject : public GitObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
@@ -29,7 +29,9 @@ protected:
 	void processInitData(void*);
 	void* loadInitData();
 
+#ifdef FIXME
 	git_rawobj *obj_;
+#endif
 };
 
 } // namespace gitteh

@@ -35,7 +35,10 @@ public:
 	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
 	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
+
+#ifdef FIXME
 	ObjectFactory<Repository, RawObject, git_rawobj> *rawObjFactory_;
+#endif
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
 
 	void notifyIndexDead();
@@ -79,14 +82,18 @@ private:
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
+#ifdef FIXME
 	int getRawObject(git_oid*, git_rawobj**);
+#endif
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
 	int createTree(git_tree**);
 	int createCommit(git_commit**);
 	int createTag(git_tag**);
+#ifdef FIXME
 	int createRawObject(git_rawobj**);
+#endif
 	int createRevWalker(git_revwalk**);
 
 	static int EIO_Exists(eio_req*);

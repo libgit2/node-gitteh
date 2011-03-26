@@ -6,9 +6,9 @@
 
 namespace gitteh {
 
-class ThreadSafeObjectWrap : public ObjectWrap {
+class GitObjectWrap : public ObjectWrap {
 public:
-	ThreadSafeObjectWrap() : ObjectWrap() {
+	GitObjectWrap() : ObjectWrap() {
 		CREATE_MUTEX(gatekeeperLock_);
 		initialized_ = 0;
 		initInterest_ = 0;

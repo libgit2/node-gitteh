@@ -15,7 +15,12 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 	Handle<Date> sigDate = Handle<Date>::Cast(sigObj->Get(SIG_TIME_PROPERTY));
 	if(!sigDate->IsDate())
 		return NULL;
-	time_t sigTime = sigDate->NumberValue();
+	time_t sigTime = NODE_V8_UNIXTIME(sigDate);
+
+	int offset = 0;
+	if(sigObj->Has(SIG_OFFSET_PROPERTY)) {
+		offset = sigObj->Get(SIG_OFFSET_PROPERTY)->IntegerValue();
+	}
 
 	String::Utf8Value sigName(sigObj->Get(SIG_NAME_PROPERTY));
 	if(!sigName.length())
@@ -26,7 +31,7 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 		return NULL;
 
 	git_signature *sig = git_signature_new(*sigName,
-			*sigEmail, sigTime, 0);
+			*sigEmail, sigTime, offset);
 
 	return sig;
 }

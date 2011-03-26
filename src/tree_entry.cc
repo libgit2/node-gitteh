@@ -58,6 +58,7 @@ Handle<Value> TreeEntry::New(const Arguments& args) {
 }
 
 Handle<Value> TreeEntry::SetterHandler(Local<String> property, Local<Value> value, const AccessorInfo& info) {
+#ifdef FIXME
 	HandleScope scope;
 
 	TreeEntry *entry = ObjectWrap::Unwrap<TreeEntry>(info.This());
@@ -89,8 +90,8 @@ Handle<Value> TreeEntry::SetterHandler(Local<String> property, Local<Value> valu
 	if(result != GIT_SUCCESS) {
 		THROW_GIT_ERROR("Failed to set property.", result);
 	}
-
 	return scope.Close(Handle<Value>());
+#endif
 }
 
 TreeEntry::~TreeEntry() {

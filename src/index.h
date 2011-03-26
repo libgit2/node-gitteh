@@ -2,7 +2,7 @@
 #define GITTEH_INDEX_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 #include "object_factory.h"
 
 namespace gitteh {
@@ -11,7 +11,7 @@ class IndexEntry;
 class Repository;
 template <class, class, class> class ObjectFactory;
 
-class Index : public ThreadSafeObjectWrap {
+class Index : public GitObjectWrap {
 public:
 	template<class, class,class> friend class ObjectFactory;
 

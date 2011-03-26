@@ -81,6 +81,7 @@ Handle<Value> Tag::New(const Arguments& args) {
 }
 
 Handle<Value> Tag::Save(const Arguments& args) {
+#ifdef FIXME
 	HandleScope scope;
 
 	Tag *tag = ObjectWrap::Unwrap<Tag>(args.This());
@@ -163,8 +164,10 @@ Handle<Value> Tag::Save(const Arguments& args) {
 
 		return Undefined();
 	}
+#endif
 }
 
+#ifdef FIXME
 int Tag::EIO_Save(eio_req *req) {
 	save_request *reqData = static_cast<save_request*>(req->data);
 
@@ -232,6 +235,7 @@ int Tag::EIO_AfterSave(eio_req *req) {
 
 	return 0;
 }
+#endif
 
 void Tag::processInitData(void *data) {
 	HandleScope scope;

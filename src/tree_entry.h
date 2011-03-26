@@ -2,13 +2,13 @@
 #define GITTEH_TREE_ENTRY_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
 
 class Tree;
 
-class TreeEntry : public ThreadSafeObjectWrap {
+class TreeEntry : public GitObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object> target);

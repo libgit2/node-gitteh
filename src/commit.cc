@@ -32,13 +32,12 @@
 
 #define CLASS_NAME String::NewSymbol("Commit")
 
-#define ID_PROPERTY String::NewSymbol("id")
-#define MESSAGE_PROPERTY String::NewSymbol("message")
-#define TIME_PROPERTY String::NewSymbol("time")
-#define AUTHOR_PROPERTY String::NewSymbol("author")
-#define COMMITTER_PROPERTY String::NewSymbol("committer")
-#define TREE_PROPERTY String::NewSymbol("tree")
-#define PARENTCOUNT_PROPERTY String::NewSymbol("parentCount")
+static Persistent<String> id_symbol;
+static Persistent<String> message_symbol;
+static Persistent<String> author_symbol;
+static Persistent<String> committer_symbol;
+static Persistent<String> tree_symbol;
+static Persistent<String> parents_symbol;
 
 namespace gitteh {
 
@@ -48,6 +47,8 @@ struct commit_data {
 	git_signature *author;
 	git_signature *committer;
 	int parentCount;
+	std::string **parentIds;
+	std::string *treeId;
 };
 
 struct parent_request {
@@ -67,11 +68,18 @@ struct tree_request {
 
 struct save_commit_request {
 	Persistent<Function> callback;
+	Repository *repo;
+	Persistent<Object> repoHandle;
 	Commit *commit;
 	int error;
+	bool isNew;
+	char id[40];
 	std::string *message;
 	git_signature *author;
 	git_signature *committer;
+	int parentCount;
+	git_oid *parentIds;
+	git_oid treeId;
 };
 
 Persistent<FunctionTemplate> Commit::constructor_template;
@@ -84,11 +92,14 @@ void Commit::Init(Handle<Object> target) {
 	constructor_template->SetClassName(CLASS_NAME);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "setTree", SetTree);
-	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
-	NODE_SET_PROTOTYPE_METHOD(t, "addParent", AddParent);
-	NODE_SET_PROTOTYPE_METHOD(t, "getParent", GetParent);
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	id_symbol = NODE_PSYMBOL("id");
+	message_symbol = NODE_PSYMBOL("message");
+	author_symbol = NODE_PSYMBOL("author");
+	committer_symbol = NODE_PSYMBOL("committer");
+	tree_symbol = NODE_PSYMBOL("tree");
+	parents_symbol = NODE_PSYMBOL("parents");
 }
 
 Handle<Value> Commit::New(const Arguments& args) {
@@ -104,324 +115,166 @@ Handle<Value> Commit::New(const Arguments& args) {
 	return args.This();
 }
 
-Handle<Value> Commit::GetTree(const Arguments& args) {
+static int SaveCommit() {
+
+}
+
+Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
+		Handle<Value> callback, bool isNew) {
+	int result, parentCount, i;
+	git_oid treeId;
+	git_oid *parentIds;
+
 	HandleScope scope;
-	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
 
-	// TODO: You know... we could cache the js object once we've got it...
+	if(!commitObject->Has(message_symbol)) {
+		THROW_ERROR("Message is required.");
+	}
 
-	if(HAS_CALLBACK_ARG) {
-		tree_request *request = new tree_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+	if(!commitObject->Has(author_symbol)) {
+		THROW_ERROR("Author is required.");
+	}
 
-		request->commit = commit;
-		request->callback = Persistent<Function>::New(callbackArg);
+	if(!commitObject->Has(committer_symbol)) {
+		THROW_ERROR("Committer is required.");
+	}
 
-		commit->Ref();
-		eio_custom(EIO_GetTree, EIO_PRI_DEFAULT, EIO_AfterGetTree, request);
+	if(!commitObject->Has(tree_symbol)) {
+		THROW_ERROR("Tree is required.");
+	}
+
+	String::Utf8Value message(commitObject->Get(message_symbol));
+	if(!message.length()) {
+		THROW_ERROR("Message is required.");
+	}
+
+	String::Utf8Value treeIdStr(commitObject->Get(tree_symbol));
+	if(!treeIdStr.length()) {
+		THROW_ERROR("Tree is required.");
+	}
+
+	treeId;
+	result = git_oid_mkstr(&treeId, *treeIdStr);
+	if(result != GIT_SUCCESS) {
+		THROW_ERROR("Tree ID is invalid.");
+	}
+
+	Handle<Array> parents;
+	if(commitObject->Has(parents_symbol)) {
+		Handle<Value> parentProperty = commitObject->Get(parents_symbol);
+
+		if(!parentProperty->IsArray()) {
+			if(!parentProperty->IsNull()) {
+				parents = Array::New(1);
+				parents->Set(0, parentProperty);
+			}
+			else {
+				parents = Array::New(0);
+			}
+		}
+		else {
+			parents = Local<Array>::New(Handle<Array>::Cast(parentProperty));
+		}
+	}
+
+	parentCount = parents->Length();
+	parentIds = new git_oid[parentCount];
+	for(i = 0; i < parentCount; i++) {
+		result = git_oid_mkstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
+		if(result != GIT_SUCCESS) {
+			delete [] parentIds;
+			THROW_ERROR("Parent id is invalid.");
+		}
+	}
+
+	git_signature *committer = GetSignatureFromProperty(commitObject, committer_symbol);
+	if(committer == NULL) {
+		delete [] parentIds;
+		THROW_ERROR("Committer is not a valid signature.");
+	}
+
+	git_signature *author = GetSignatureFromProperty(commitObject, author_symbol);
+	if(author == NULL) {
+		delete [] parentIds;
+		git_signature_free(committer);
+		THROW_ERROR("Author is not a valid signature.");
+	}
+
+	// Okay, we're ready to make this happen. Are we doing it asynchronously
+	// or synchronously?
+	if(callback->IsFunction()) {
+		save_commit_request *request = new save_commit_request;
+		request->message = new std::string(*message);
+		request->parentCount = parentCount;
+		request->parentIds = parentIds;
+		memcpy(&request->treeId, &treeId, sizeof(git_oid));
+		request->committer = committer;
+		request->author = author;
+
+		request->isNew = isNew;
+		if(!request->isNew) {
+			request->commit = ObjectWrap::Unwrap<Commit>(commitObject);
+		}
+		request->callback = Persistent<Function>::New(Handle<Function>::Cast(callback));
+		request->repo = repo;
+		request->repoHandle = Persistent<Object>::New(repo->handle_);
+
+		eio_custom(EIO_Save, EIO_PRI_DEFAULT, EIO_AfterSave, request);
 		ev_ref(EV_DEFAULT_UC);
 
 		return Undefined();
 	}
 	else {
-		git_tree *tree;
+		git_oid newId;
 
-		commit->repository_->lockRepository();
-		int result = git_commit_tree(&tree, commit->commit_);
-		commit->repository_->unlockRepository();
+		const git_oid **parentIdsPtr;
+		parentIdsPtr = new const git_oid*[parentCount];
+		for(i = 0; i < parentCount; i++) {
+			parentIdsPtr[i] = &parentIds[i];
+		}
+		result = git_commit_create(&newId, repo->repo_, NULL, author, committer,
+				*message, &treeId, parentCount, parentIdsPtr);
+
+		git_signature_free(author);
+		git_signature_free(committer);
+		delete [] parentIdsPtr;
+		delete [] parentIds;
 
 		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't get commit tree.", result);
+			THROW_GIT_ERROR("Couldn't save commit.", result);
 		}
 
-		return commit->repository_->treeFactory_->
-				syncRequestObject(const_cast<git_tree*>(tree))->handle_;
-	}
-}
-
-int Commit::EIO_GetTree(eio_req *req) {
-	tree_request *reqData = static_cast<tree_request*>(req->data);
-
-	reqData->commit->repository_->lockRepository();
-	reqData->error = git_commit_tree(&reqData->tree, reqData->commit->commit_);
-	reqData->commit->repository_->unlockRepository();
-
-	return 0;
-}
-
-int Commit::EIO_AfterGetTree(eio_req *req) {
-	HandleScope scope;
-	tree_request *reqData = static_cast<tree_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
- 	reqData->commit->Unref();
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
- 		Handle<Value> error = CreateGitError(String::New("Couldn't get commit tree."), reqData->error);
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
-
- 		TRIGGER_CALLBACK();
-
- 		reqData->callback.Dispose();
-	}
-	else {
-		reqData->commit->repository_->treeFactory_->asyncRequestObject(
-				reqData->tree, reqData->callback);
-	}
-
-	delete reqData;
-
-	return 0;
-}
-
-Handle<Value> Commit::SetTree(const Arguments& args) {
-	HandleScope scope;
-	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
-
-	git_tree *tree;
-	if(args[0]->IsString()) {
-		git_oid treeId;
-		int res = git_oid_mkstr(&treeId, *String::Utf8Value(args[0]));
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Id is invalid", res);
+		char newIdStr[40];
+		git_oid_fmt(newIdStr, &newId);
+		if(isNew) {
+			Handle<Function> getCommitFn = Handle<Function>::Cast(
+					repo->handle_->Get(String::New("getCommit")));
+			Handle<Value> arg = String::New(newIdStr, 40);
+			return scope.Close(getCommitFn->Call(repo->handle_, 1,
+					&arg));
 		}
+		else {
+			commitObject->Set(id_symbol, String::New(newIdStr, 40),
+					(PropertyAttribute)(ReadOnly | DontDelete));
 
-		commit->repository_->lockRepository();
-		res = git_tree_lookup(&tree, commit->repository_->repo_, &treeId);
-		commit->repository_->unlockRepository();
-
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Error locating tree", res);
+			return scope.Close(True());
 		}
 	}
-	else if(Tree::constructor_template->HasInstance(args[0])) {
-		Tree *treeObj = ObjectWrap::Unwrap<Tree>(Handle<Object>::Cast(args[0]));
-		tree = treeObj->tree_;
-	}
-
-	if(HAS_CALLBACK_ARG) {
-		tree_request *request = new tree_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-
-		request->commit = commit;
-		request->callback = Persistent<Function>::New(callbackArg);
-		request->tree = tree;
-
-		commit->Ref();
-		eio_custom(EIO_SetTree, EIO_PRI_DEFAULT, EIO_AfterSetTree, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		commit->repository_->lockRepository();
-		git_commit_set_tree(commit->commit_, tree);
-		commit->repository_->unlockRepository();
-	}
-
-	return Undefined();
-}
-
-int Commit::EIO_SetTree(eio_req *req) {
-	tree_request *reqData = static_cast<tree_request*>(req->data);
-
-	reqData->commit->repository_->lockRepository();
-	git_commit_set_tree(reqData->commit->commit_, reqData->tree);
-	reqData->commit->repository_->unlockRepository();
-
-	return 0;
-}
-
-int Commit::EIO_AfterSetTree(eio_req *req) {
-	HandleScope scope;
-	tree_request *reqData = static_cast<tree_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
-	reqData->commit->Unref();
-
-	Handle<Value> callbackArgs[2];
-	callbackArgs[0] = Null();
-	callbackArgs[1] = True();
-	TRIGGER_CALLBACK();
-	reqData->callback.Dispose();
-	delete reqData;
-
-	return 0;
-}
-
-Handle<Value> Commit::GetParent(const Arguments& args) {
-	HandleScope scope;
-	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
-
-	REQ_ARGS(1);
-	REQ_INT_ARG(0, indexArg);
-
-	if(indexArg >= commit->parentCount_) {
-		THROW_ERROR("Parent commit index is out of bounds.");
-	}
-
-	if(HAS_CALLBACK_ARG) {
-		parent_request *request = new parent_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-
-		request->commit = commit;
-		request->callback = Persistent<Function>::New(callbackArg);
-		request->index = indexArg;
-
-		commit->Ref();
-		eio_custom(EIO_GetParent, EIO_PRI_DEFAULT, EIO_AfterGetParent, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		commit->repository_->lockRepository();
-		git_commit *parent;
-		int result = git_commit_parent(&parent, commit->commit_, indexArg);
-		commit->repository_->unlockRepository();
-
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Error getting parent.", result);
-		}
-
-		Commit *parentObject = commit->repository_->commitFactory_->syncRequestObject(parent);
-		return scope.Close(parentObject->handle_);
-	}
-}
-
-int Commit::EIO_GetParent(eio_req *req) {
-	parent_request *reqData = static_cast<parent_request*>(req->data);
-
-	reqData->commit->repository_->lockRepository();
-	reqData->error = git_commit_parent(&reqData->parent, reqData->commit->commit_, reqData->index);
-	reqData->commit->repository_->unlockRepository();
-
-	return 0;
-}
-
-int Commit::EIO_AfterGetParent(eio_req *req) {
-	HandleScope scope;
-	parent_request *reqData = static_cast<parent_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
- 	reqData->commit->Unref();
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
- 		Handle<Value> error = CreateGitError(String::New("Couldn't get parent commit."), reqData->error);
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
-
- 		TRIGGER_CALLBACK();
-
- 		reqData->callback.Dispose();
-	}
-	else {
-		reqData->commit->repository_->commitFactory_->asyncRequestObject(
-				reqData->parent, reqData->callback);
-	}
-
-	delete reqData;
-
-	return 0;
-}
-
-Handle<Value> Commit::AddParent(const Arguments& args) {
-	HandleScope scope;
-	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
-
-	REQ_ARGS(1);
-
-	git_commit *parentCommit;
-	if(args[0]->IsString()) {
-		git_oid commitId;
-		int res = git_oid_mkstr(&commitId, *String::Utf8Value(args[0]));
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Id is invalid", res);
-		}
-
-		res = git_commit_lookup(&parentCommit, commit->repository_->repo_, &commitId);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Error locating commit", res);
-		}
-	}
-	else if(constructor_template->HasInstance(args[0])) {
-		Commit *otherCommit = ObjectWrap::Unwrap<Commit>(Handle<Object>::Cast(args[0]));
-		parentCommit = otherCommit->commit_;
-	}
-	else {
-		THROW_ERROR("Invalid argument.");
-	}
-
-	if(HAS_CALLBACK_ARG) {
-		parent_request *request = new parent_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-
-		request->commit = commit;
-		request->callback = Persistent<Function>::New(callbackArg);
-		request->parent = parentCommit;
-
-		commit->Ref();
-		eio_custom(EIO_AddParent, EIO_PRI_DEFAULT, EIO_AfterAddParent, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		commit->repository_->lockRepository();
-		int result = git_commit_add_parent(commit->commit_, parentCommit);
-		commit->repository_->unlockRepository();
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't add parent.", result);
-		}
-		args.This()->ForceSet(String::New("parentCount"), Integer::New(++commit->parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
-
-	return scope.Close(Undefined());
-}
-
-int Commit::EIO_AddParent(eio_req *req) {
-	parent_request *reqData = static_cast<parent_request*>(req->data);
-
-	reqData->commit->repository_->lockRepository();
-	reqData->error = git_commit_add_parent(reqData->commit->commit_, reqData->parent);
-	reqData->commit->repository_->unlockRepository();
-
-	return 0;
-}
-
-int Commit::EIO_AfterAddParent(eio_req *req) {
-	HandleScope scope;
-	parent_request *reqData = static_cast<parent_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
- 	reqData->commit->Unref();
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
- 		Handle<Value> error = Exception::Error(String::New("Couldn't add parent commit."));
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
-	}
-	else {
-		reqData->commit->handle_->ForceSet(String::New("parentCount"),
-				Integer::New(++reqData->commit->parentCount_),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-
- 		callbackArgs[0] = Null();
- 		callbackArgs[1] = True();
-	}
-
-	reqData->callback.Dispose();
-	TRIGGER_CALLBACK();
-	delete reqData;
-
-	return 0;
 }
 
 Handle<Value> Commit::Save(const Arguments& args) {
+	HandleScope scope;
+	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(SaveObject(args.This(), commit->repository_, callback, false));
+
+#ifdef FIXME
 	HandleScope scope;
 
 	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
@@ -486,19 +339,32 @@ Handle<Value> Commit::Save(const Arguments& args) {
 
 		return True();
 	}
+#endif
 }
 
 int Commit::EIO_Save(eio_req *req) {
 	save_commit_request *reqData = static_cast<save_commit_request*>(req->data);
 
-	reqData->commit->repository_->lockRepository();
-	git_commit_set_message(reqData->commit->commit_, reqData->message->c_str());
-	git_commit_set_committer(reqData->commit->commit_, reqData->committer);
-	git_commit_set_author(reqData->commit->commit_, reqData->author);
-	reqData->error = git_object_write((git_object *)reqData->commit->commit_);
-	reqData->commit->repository_->unlockRepository();
+	const git_oid **parentIdsPtr;
+	parentIdsPtr = new const git_oid*[reqData->parentCount];
+	for(int i = 0; i < reqData->parentCount; i++) {
+		parentIdsPtr[i] = &reqData->parentIds[i];
+	}
 
+	git_oid newId;
+	reqData->repo->lockRepository();
+	reqData->error = git_commit_create(&newId, reqData->repo->repo_, NULL,
+			reqData->author, reqData->committer, reqData->message->c_str(),
+			&reqData->treeId, reqData->parentCount, parentIdsPtr);
+	reqData->repo->unlockRepository();
+
+	if(reqData->error == GIT_SUCCESS) {
+		git_oid_fmt(reqData->id, &newId);
+	}
+
+	delete [] parentIdsPtr;
 	delete reqData->message;
+	delete [] reqData->parentIds;
 	git_signature_free(reqData->committer);
 	git_signature_free(reqData->author);
 
@@ -509,6 +375,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	HandleScope scope;
 	save_commit_request *reqData = static_cast<save_commit_request*>(req->data);
 
+	reqData->repoHandle.Dispose();
 	ev_unref(EV_DEFAULT_UC);
  	reqData->commit->Unref();
 
@@ -524,7 +391,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
 		char oidStr[40];
 		git_oid_fmt(oidStr, commitId);
 		reqData->commit->repository_->unlockRepository();
-		reqData->commit->handle_->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
+		reqData->commit->handle_->ForceSet(id_symbol, String::New(oidStr, 40),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
  		callbackArgs[0] = Null();
@@ -547,6 +414,25 @@ void* Commit::loadInitData() {
 	data->author = git_signature_dup(git_commit_author(commit_));
 	data->committer = git_signature_dup(git_commit_committer(commit_));
 	data->parentCount = git_commit_parentcount(commit_);
+	data->parentIds = new std::string*[data->parentCount];
+
+	for(int i = 0; i< data->parentCount; i++) {
+		git_commit *parent;
+		git_commit_parent(&parent, commit_, i);
+
+		const git_oid *oid = git_commit_id(parent);
+		char oidStr[40];
+		git_oid_fmt(oidStr, oid);
+
+		data->parentIds[i] = new std::string(oidStr, 40);
+	}
+
+	git_tree *commitTree;
+	git_commit_tree(&commitTree, commit_);
+	const git_oid *treeOid = git_tree_id(commitTree);
+	char treeOidStr[40];
+	git_oid_fmt(treeOidStr, treeOid);
+	data->treeId = new std::string(treeOidStr, 40);
 
 	repository_->unlockRepository();
 
@@ -560,31 +446,43 @@ void Commit::processInitData(void *data) {
 	if(data != NULL) {
 		commit_data *commitData = static_cast<commit_data*>(data);
 
-		jsObj->Set(ID_PROPERTY, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, String::New(commitData->message->c_str()));
+		jsObj->Set(id_symbol, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObj->Set(message_symbol, String::New(commitData->message->c_str()));
+		delete commitData->message;
 
 		CREATE_PERSON_OBJ(authorObj, commitData->author);
-		jsObj->Set(AUTHOR_PROPERTY, authorObj);
+		jsObj->Set(author_symbol, authorObj);
+		git_signature_free(commitData->author);
 
 		CREATE_PERSON_OBJ(committerObj, commitData->committer);
-		jsObj->Set(COMMITTER_PROPERTY, committerObj);
+		jsObj->Set(committer_symbol, committerObj);
+		git_signature_free(commitData->committer);
 
 		parentCount_ = commitData->parentCount;
-		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(parentCount_), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		git_signature_free(commitData->author);
-		git_signature_free(commitData->committer);
-		delete commitData->message;
+		Handle<Array> parentsArray = Array::New(parentCount_);
+		for(int i = 0; i < parentCount_; i++) {
+			parentsArray->Set(i, String::New(commitData->parentIds[i]->c_str()));
+			delete commitData->parentIds[i];
+		}
+		delete [] commitData->parentIds;
+		jsObj->Set(parents_symbol, parentsArray);
+
+		jsObj->Set(tree_symbol, String::New(commitData->treeId->c_str()));
+		delete commitData->treeId;
+
 		delete commitData;
 	}
 	else {
 		// This is a new commit.
-		jsObj->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(MESSAGE_PROPERTY, Null());
-		jsObj->Set(AUTHOR_PROPERTY, Null());
-		jsObj->Set(COMMITTER_PROPERTY, Null());
+		jsObj->Set(id_symbol, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
+		jsObj->Set(message_symbol, Null());
+		jsObj->Set(author_symbol, Null());
+		jsObj->Set(committer_symbol, Null());
+		jsObj->Set(parents_symbol, Array::New(0));
+		jsObj->Set(tree_symbol, Null());
 		parentCount_ = 0;
-		jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
+		//jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
 	}
 }
 
@@ -592,7 +490,7 @@ void Commit::setOwner(void *owner) {
 	repository_ = static_cast<Repository*>(owner);
 }
 
-Commit::Commit() : ThreadSafeObjectWrap() {
+Commit::Commit() : GitObjectWrap() {
 }
 
 Commit::~Commit() {

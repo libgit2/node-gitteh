@@ -2,13 +2,13 @@
 #define GITTEH_REF_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
 
 class Repository;
 
-class Reference : public ThreadSafeObjectWrap {
+class Reference : public GitObjectWrap {
 public:
 	Reference();
 
