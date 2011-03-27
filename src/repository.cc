@@ -199,7 +199,6 @@
 	if(res != GIT_SUCCESS) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
-	std::cout << "commit: " << object << "\n"; \
 	return scope.Close(repo->FACTORY->										\
 			syncRequestObject(object)->handle_);
 

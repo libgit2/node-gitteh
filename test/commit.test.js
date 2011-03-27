@@ -26,7 +26,8 @@
 	assert = require("assert"),
 	gitteh = require("gitteh"),
 	path = require("path"),
-	fixtureValues = require("./fixtures/values");
+	fixtureValues = require("./fixtures/values"),
+	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 
@@ -77,42 +78,20 @@ var createCommitTests = function(topic, commitFixture) {
 		},
 
 		"has correct tree": function(commit) {
-			assert.isTrue(!!commit.getTree());
-			assert.equal(commit.getTree().id, commitFixture.tree);
-		},
-		
-		"tree is not redundant": function(commit) {
-			assert.isTrue(commit.getTree() === commit.getTree());
+			assert.equal(commit.tree, commitFixture.tree);
 		}
 	};
 	
 	if(commitFixture.parents) {
 		context["has correct number of parents"] = function(commit) {
-			assert.equal(commit.parentCount, commitFixture.parents.length);
+			assert.length(commit.parents, commitFixture.parents.length);
 		};
 		
 		context["parents are correct"] = function(commit) {
 			commitFixture.parents.forEach(function(commitFixtureParent, i) {
-				assert.equal(commit.getParent(i).id, commitFixtureParent);
+				assert.equal(commit.parents[i], commitFixtureParent);
 			});
 		};
-		
-		context["parent length is immutable"] = function(commit) {
-			commit.parentCount = -1;
-			assert.equal(commit.parentCount, commitFixture.parents.length);
-		};
-		
-		context["parent length cannot be deleted"] = function(commit) {
-			delete commit.parentCount;
-			assert.equal(commit.parentCount, commitFixture.parents.length);
-		};
-
-		commitFixture.parents.forEach(function(commitFixtureParent, i) {
-			context["parent *" + commitFixtureParent + "* is not redundant"] = function(commit) {
-				assert.isTrue(commit.getParent(i) === commit.getParent(i));
-				assert.isTrue(commit.getParent(i) === repo.getCommit(commitFixtureParent));
-			};
-		});
 	}
 	
 	return context;
@@ -130,7 +109,7 @@ var createSyncCommitTests = function(commitFixture) {
 };
 
 vows.describe("Commit").addBatch({
-	"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
+	/*"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
 	"Second commit (async)": createAsyncCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit (async)": createAsyncCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit (async)": createAsyncCommitTests(fixtureValues.FOURTH_COMMIT),
@@ -140,8 +119,54 @@ vows.describe("Commit").addBatch({
 	"Second commit (sync)": createSyncCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit (sync)": createSyncCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit (sync)": createSyncCommitTests(fixtureValues.FOURTH_COMMIT),
-	"Fifth commit (sync)": createSyncCommitTests(fixtureValues.FIFTH_COMMIT),
-	
+	"Fifth commit (sync)": createSyncCommitTests(fixtureValues.FIFTH_COMMIT),*/
+}).addBatch({
+	startup: function() {
+		var gitRepo = helpers.createTestRepo();
+		
+		var addRepoToAllTests = function(test) {
+			console.log(test);
+			if(test.context) test.context.env.repo = gitRepo;
+			test.context && test.context.tests && Object.keys(test.context.tests).forEach(function(testName) {
+				
+				if(typeof(test.context.tests[testName]) == "object") {
+					addRepoToAllTests(test.context.tests[testName]);
+				}
+			});
+		};
+		
+		addRepoToAllTests(this);
+	},
+
+	teardown: function() {
+		this.context.gitRepo = helpers.cleanupTestRepo(this.context.gitRepo);
+	},
+
+	"Creating a new root commit *asynchronously*": {
+		topic: function() {
+		console.log(arguments);
+			var sig = {
+				name: "Sam",
+				email: "sam@test.com",
+				time: new Date()
+			};
+			
+			console.log(require("util").inspect(this, false, null));
+			/*
+			this.context.gitRepo.createCommit({
+				message: "Test async commit.",
+				author: sig,
+				committer: sig,
+				tree: fixtureValues.FIRST_TREE.id
+			}, this.callback);*/
+		},
+		
+		"gives us the new commit": function(commit) {
+			console.log(commit);
+		}
+	}
+
+/*
 	"Creating a new commit *synchronously*": {
 		topic: function() {
 			return repo.createCommit();
@@ -340,5 +365,5 @@ vows.describe("Commit").addBatch({
 		"adds correctly": function(commit) {
 			assert.isTrue(commit.getParent(0) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
 		}
-	}
+	}*/
 }).export(module);

@@ -24,5 +24,18 @@ Object.prototype.clone = function() {
 };
 
 //var newCommitData = commit.clone();
-var newCommit = repository.createCommit(commit);
+var newCommit = repository.createCommit({
+	message: "Hello.",
+	author: {
+		name: "Sam",
+		email: "sam@day.com",
+		time: new Date()
+	},
+	committer: {
+		name: "Sam",
+		email: "sam@day.com",
+		time: new Date()
+	},
+	tree: commit.tree
+});
 console.log(newCommit);

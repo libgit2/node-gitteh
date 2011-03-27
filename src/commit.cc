@@ -176,6 +176,9 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 			parents = Local<Array>::New(Handle<Array>::Cast(parentProperty));
 		}
 	}
+	else {
+		parents = Array::New(0);
+	}
 
 	parentCount = parents->Length();
 	parentIds = new git_oid[parentCount];
@@ -214,7 +217,12 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		request->isNew = isNew;
 		if(!request->isNew) {
 			request->commit = ObjectWrap::Unwrap<Commit>(commitObject);
+			request->commit->Ref();
 		}
+		else {
+			request->commit = NULL;
+		}
+
 		request->callback = Persistent<Function>::New(Handle<Function>::Cast(callback));
 		request->repo = repo;
 		request->repoHandle = Persistent<Object>::New(repo->handle_);
@@ -377,7 +385,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
 
 	reqData->repoHandle.Dispose();
 	ev_unref(EV_DEFAULT_UC);
- 	reqData->commit->Unref();
+ 	if(reqData->commit != NULL) reqData->commit->Unref();
 
 	Handle<Value> callbackArgs[2];
  	if(reqData->error != GIT_SUCCESS) {
@@ -386,16 +394,19 @@ int Commit::EIO_AfterSave(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		reqData->commit->repository_->lockRepository();
-		const git_oid *commitId = git_commit_id(reqData->commit->commit_);
-		char oidStr[40];
-		git_oid_fmt(oidStr, commitId);
-		reqData->commit->repository_->unlockRepository();
-		reqData->commit->handle_->ForceSet(id_symbol, String::New(oidStr, 40),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-
  		callbackArgs[0] = Null();
- 		callbackArgs[1] = True();
+
+		if(reqData->isNew) {
+			Handle<Function> getCommitFn = Handle<Function>::Cast(
+					reqData->repo->handle_->Get(String::New("getCommit")));
+			Handle<Value> arg = String::New(reqData->id, 40);
+	 		callbackArgs[1] = getCommitFn->Call(reqData->repo->handle_, 1, &arg);
+		}
+		else {
+			reqData->commit->handle_->ForceSet(id_symbol, String::New(reqData->id, 40),
+					(PropertyAttribute)(ReadOnly | DontDelete));
+			callbackArgs[1] = True();
+		}
 	}
 
 	reqData->callback.Dispose();
