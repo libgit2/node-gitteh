@@ -13,6 +13,7 @@ class Index;
 class RawObject;
 class Reference;
 class RevWalker;
+class Blob;
 
 template <class, class, class> class ObjectFactory;
 
@@ -35,11 +36,8 @@ public:
 	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
 	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
-
-#ifdef FIXME
-	ObjectFactory<Repository, RawObject, git_rawobj> *rawObjFactory_;
-#endif
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
+	ObjectFactory<Repository, Blob, git_blob> *blobFactory_;
 
 	void notifyIndexDead();
 
@@ -59,6 +57,7 @@ protected:
 	static Handle<Value> GetTag(const Arguments&);
 	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
+	static Handle<Value> GetBlob(const Arguments&);
 
 	static Handle<Value> GetIndex(const Arguments&);
 
@@ -71,6 +70,7 @@ protected:
 	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> CreateSymbolicRef(const Arguments&);
 	static Handle<Value> CreateOidRef(const Arguments&);
+	static Handle<Value> CreateBlob(const Arguments&);
 
 	static Handle<Value> ListReferences(const Arguments&);
 
@@ -82,18 +82,12 @@ private:
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
-#ifdef FIXME
-	int getRawObject(git_oid*, git_rawobj**);
-#endif
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
 	int createTree(git_tree**);
 	int createCommit(git_commit**);
 	int createTag(git_tag**);
-#ifdef FIXME
-	int createRawObject(git_rawobj**);
-#endif
 	int createRevWalker(git_revwalk**);
 
 	static int EIO_Exists(eio_req*);
@@ -137,6 +131,9 @@ private:
 
 	static int EIO_InitIndex(eio_req*);
 	static int EIO_ReturnIndex(eio_req*);
+
+	static int EIO_GetBlob(eio_req*);
+	static int EIO_AfterGetBlob(eio_req*);
 
 	Index *index_;
 

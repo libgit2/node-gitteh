@@ -123,10 +123,10 @@ vows.describe("Commit").addBatch({
 }).addBatch({
 	startup: function() {
 		var gitRepo = helpers.createTestRepo();
-		
+
 		var addRepoToAllTests = function(test) {
 			console.log(test);
-			if(test.context) test.context.env.repo = gitRepo;
+			if(test.context) test.context.repo = gitRepo;
 			test.context && test.context.tests && Object.keys(test.context.tests).forEach(function(testName) {
 				
 				if(typeof(test.context.tests[testName]) == "object") {
@@ -136,15 +136,18 @@ vows.describe("Commit").addBatch({
 		};
 		
 		addRepoToAllTests(this);
+		console.log(require("util").inspect(this, false, null));
 	},
 
 	teardown: function() {
+	console.log("teardown.");
 		this.context.gitRepo = helpers.cleanupTestRepo(this.context.gitRepo);
 	},
 
 	"Creating a new root commit *asynchronously*": {
 		topic: function() {
-		console.log(arguments);
+		console.log("ME", this);
+		return "asdf";
 			var sig = {
 				name: "Sam",
 				email: "sam@test.com",

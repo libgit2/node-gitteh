@@ -29,11 +29,8 @@
 #include "tag.h"
 #include "rev_walker.h"
 #include "ref.h"
+#include "blob.h"
 #include "object_factory.h"
-
-#ifdef FIXME
-#include "rawobj.h"
-#endif
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.

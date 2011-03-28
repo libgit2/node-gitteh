@@ -51,21 +51,6 @@ struct commit_data {
 	std::string *treeId;
 };
 
-struct parent_request {
-	Persistent<Function> callback;
-	Commit *commit;
-	int index;
-	git_commit *parent;
-	int error;
-};
-
-struct tree_request {
-	Persistent<Function> callback;
-	Commit *commit;
-	git_tree *tree;
-	int error;
-};
-
 struct save_commit_request {
 	Persistent<Function> callback;
 	Repository *repo;
@@ -113,10 +98,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 	commit->Wrap(args.This());
 
 	return args.This();
-}
-
-static int SaveCommit() {
-
 }
 
 Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
@@ -281,73 +262,6 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	}
 
 	return scope.Close(SaveObject(args.This(), commit->repository_, callback, false));
-
-#ifdef FIXME
-	HandleScope scope;
-
-	Commit *commit = ObjectWrap::Unwrap<Commit>(args.This());
-
-	CHECK_PROPERTY(MESSAGE_PROPERTY);
-	Handle<String> message = args.This()->Get(MESSAGE_PROPERTY)->ToString();
-	if(message->Length() == 0) {
-		THROW_ERROR("Message must not be empty.");
-	}
-
-	// TODO: memory leak here if committer fails, as author won't be cleaned up.
-	git_signature *author = GetSignatureFromProperty(args.This(), AUTHOR_PROPERTY);
-	if(author == NULL) {
-		THROW_ERROR("Author property is invalid.");
-	}
-
-	git_signature *committer = GetSignatureFromProperty(args.This(), COMMITTER_PROPERTY);
-	if(committer == NULL) {
-		git_signature_free(author);
-		THROW_ERROR("Committer property is invalid.");
-	}
-
-	if(HAS_CALLBACK_ARG) {
-		save_commit_request *request = new save_commit_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		request->commit = commit;
-		request->callback = Persistent<Function>::New(callbackArg);
-		request->author = author;
-		request->committer = committer;
-		request->message = new std::string(*String::Utf8Value(message));
-
-		commit->Ref();
-		eio_custom(EIO_Save, EIO_PRI_DEFAULT, EIO_AfterSave, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		commit->repository_->lockRepository();
-		git_commit_set_message(commit->commit_, *String::Utf8Value(message));
-		git_commit_set_committer(commit->commit_, committer);
-		git_commit_set_author(commit->commit_, author);
-
-		int result = git_object_write((git_object *)commit->commit_);
-
-		git_signature_free(committer);
-		git_signature_free(author);
-
-		commit->repository_->unlockRepository();
-
-		if(result != GIT_SUCCESS) {
-			return ThrowException(Exception::Error(String::New("Failed to save commit object.")));
-		}
-
-		commit->repository_->lockRepository();
-		const git_oid *commitId = git_commit_id(commit->commit_);
-		char oidStr[40];
-		git_oid_fmt(oidStr, commitId);
-		commit->repository_->unlockRepository();
-
-		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr, 40), (PropertyAttribute)(ReadOnly | DontDelete));
-
-		return True();
-	}
-#endif
 }
 
 int Commit::EIO_Save(eio_req *req) {
@@ -454,47 +368,34 @@ void Commit::processInitData(void *data) {
 	HandleScope scope;
 	Handle<Object> jsObj = handle_;
 
-	if(data != NULL) {
-		commit_data *commitData = static_cast<commit_data*>(data);
+	commit_data *commitData = static_cast<commit_data*>(data);
 
-		jsObj->Set(id_symbol, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(message_symbol, String::New(commitData->message->c_str()));
-		delete commitData->message;
+	jsObj->Set(id_symbol, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+	jsObj->Set(message_symbol, String::New(commitData->message->c_str()));
+	delete commitData->message;
 
-		CREATE_PERSON_OBJ(authorObj, commitData->author);
-		jsObj->Set(author_symbol, authorObj);
-		git_signature_free(commitData->author);
+	CREATE_PERSON_OBJ(authorObj, commitData->author);
+	jsObj->Set(author_symbol, authorObj);
+	git_signature_free(commitData->author);
 
-		CREATE_PERSON_OBJ(committerObj, commitData->committer);
-		jsObj->Set(committer_symbol, committerObj);
-		git_signature_free(commitData->committer);
+	CREATE_PERSON_OBJ(committerObj, commitData->committer);
+	jsObj->Set(committer_symbol, committerObj);
+	git_signature_free(commitData->committer);
 
-		parentCount_ = commitData->parentCount;
+	parentCount_ = commitData->parentCount;
 
-		Handle<Array> parentsArray = Array::New(parentCount_);
-		for(int i = 0; i < parentCount_; i++) {
-			parentsArray->Set(i, String::New(commitData->parentIds[i]->c_str()));
-			delete commitData->parentIds[i];
-		}
-		delete [] commitData->parentIds;
-		jsObj->Set(parents_symbol, parentsArray);
-
-		jsObj->Set(tree_symbol, String::New(commitData->treeId->c_str()));
-		delete commitData->treeId;
-
-		delete commitData;
+	Handle<Array> parentsArray = Array::New(parentCount_);
+	for(int i = 0; i < parentCount_; i++) {
+		parentsArray->Set(i, String::New(commitData->parentIds[i]->c_str()));
+		delete commitData->parentIds[i];
 	}
-	else {
-		// This is a new commit.
-		jsObj->Set(id_symbol, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObj->Set(message_symbol, Null());
-		jsObj->Set(author_symbol, Null());
-		jsObj->Set(committer_symbol, Null());
-		jsObj->Set(parents_symbol, Array::New(0));
-		jsObj->Set(tree_symbol, Null());
-		parentCount_ = 0;
-		//jsObj->Set(PARENTCOUNT_PROPERTY, Integer::New(0), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
+	delete [] commitData->parentIds;
+	jsObj->Set(parents_symbol, parentsArray);
+
+	jsObj->Set(tree_symbol, String::New(commitData->treeId->c_str()));
+	delete commitData->treeId;
+
+	delete commitData;
 }
 
 void Commit::setOwner(void *owner) {
@@ -505,8 +406,9 @@ Commit::Commit() : GitObjectWrap() {
 }
 
 Commit::~Commit() {
-	// TODO: don't think we ever need to free commits as they're handled by the repo, even newly created ones
-	// (I think), probably need to look into this.
+	repository_->lockRepository();
+	git_commit_close(commit_);
+	repository_->unlockRepository();
 }
 
 } // namespace gitteh
