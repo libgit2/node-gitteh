@@ -9,6 +9,16 @@ Persistent<FunctionTemplate> Blob::constructor_template;
 static Persistent<String> id_symbol;
 static Persistent<String> data_symbol;
 
+Blob::Blob() : GitObjectWrap() {
+
+}
+
+Blob::~Blob() {
+	repository_->lockRepository();
+	git_object_close((git_object*)blob_);
+	repository_->unlockRepository();
+}
+
 void Blob::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -34,6 +44,17 @@ Handle<Value> Blob::New(const Arguments &args) {
 	blob->blob_ = static_cast<git_blob*>(blobArg->Value());
 
 	return args.This();
+}
+
+Handle<Value> Blob::SaveObject(Handle<Object> blobObject, Repository *repo,
+		Handle<Value> callback, bool isNew) {
+	HandleScope scope;
+
+	if(!blobObject->Has(data_symbol)) {
+		THROW_ERROR("Data is required.");
+	}
+
+
 }
 
 Handle<Value> Blob::Save(const Arguments &args) {

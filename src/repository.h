@@ -82,6 +82,7 @@ private:
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
+	int getBlob(git_oid*, git_blob**);
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
@@ -133,7 +134,7 @@ private:
 	static int EIO_ReturnIndex(eio_req*);
 
 	static int EIO_GetBlob(eio_req*);
-	static int EIO_AfterGetBlob(eio_req*);
+	static int EIO_ReturnBlob(eio_req*);
 
 	Index *index_;
 

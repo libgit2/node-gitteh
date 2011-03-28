@@ -27,7 +27,6 @@
 #include "commit.h"
 #include "tree.h"
 #include "tree_entry.h"
-#include "rawobj.h"
 #include "repository.h"
 #include "index.h"
 #include "index_entry.h"
@@ -35,6 +34,7 @@
 #include "rev_walker.h"
 #include "error.h"
 #include "ref.h"
+#include "blob.h"
 
 namespace gitteh {
 
@@ -48,9 +48,7 @@ extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
 	Repository::Init(target);
-#ifdef FIXME
-	RawObject::Init(target);
-#endif
+
 	Commit::Init(target);
 	Tree::Init(target);
 	TreeEntry::Init(target);
@@ -59,6 +57,7 @@ init(Handle<Object> target) {
 	Tag::Init(target);
 	RevWalker::Init(target);
 	Reference::Init(target);
+	Blob::Init(target);
 
 	ErrorInit(target);
 

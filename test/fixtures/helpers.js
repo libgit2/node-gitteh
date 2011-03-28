@@ -28,7 +28,7 @@ module.exports.createTestRepo = function() {
 	return repo;
 };
 
-module.exports.cleanupTemporaryRepo = function(repo) {
+module.exports.cleanupTestRepo = function(repo) {
 	try {
 		wrench.rmdirSyncRecursive(repo.path);
 	}

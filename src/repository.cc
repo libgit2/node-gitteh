@@ -293,17 +293,13 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
-#ifdef FIXME
-	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
-#endif
 	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
+	NODE_SET_PROTOTYPE_METHOD(t, "getBlob", GetBlob);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
-#ifdef FIXME
-	NODE_SET_PROTOTYPE_METHOD(t, "createRawObject", CreateRawObject);
-#endif
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlob", CreateBlob);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidRef);
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
@@ -659,13 +655,22 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	}
 
 	return scope.Close(Commit::SaveObject(commitObjArg, repo, callback, true));
+}
 
-	/*if(HAS_CALLBACK_ARG) {
-		ASYNC_PREPARE_CREATE_OBJECT(Commit);
+Handle<Value> Repository::CreateBlob(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, blobObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
 	}
-	else {
-		SYNC_CREATE_OBJECT(Commit, git_commit, commitFactory_);
-	}*/
+
+	return scope.Close(Blob::SaveObject(blobObjArg, repo, callback, true));
 }
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
@@ -736,35 +741,6 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 		SYNC_GET_OID_OBJECT(Tag, git_tag, tagFactory_);
 	}
 }
-
-#ifdef FIXME
-Handle<Value> Repository::GetRawObject(const Arguments& args) {
-	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-
-	REQ_ARGS(1);
-	REQ_OID_ARG(0, oidArg);
-
-	if(args.Length() == 2) {
-		ASYNC_PREPARE_GET_OID_OBJECT(RawObject, git_rawobj);
-	}
-	else {
-		SYNC_GET_OID_OBJECT(RawObject, git_rawobj, rawObjFactory_);
-	}
-}
-
-Handle<Value> Repository::CreateRawObject(const Arguments& args) {
-	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-
-	if(args.Length() > 0) {
-		ASYNC_PREPARE_CREATE_OBJECT(RawObject);
-	}
-	else {
-		SYNC_CREATE_OBJECT(RawObject, git_rawobj, rawObjFactory_);
-	}
-}
-#endif
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	HandleScope scope;
@@ -876,6 +852,21 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 	}
 	else {
 		SYNC_GET_NAMED_OBJECT(Reference, git_reference, referenceFactory_);
+	}
+}
+
+Handle<Value> Repository::GetBlob(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, oidArg);
+
+	if(args.Length() == 2) {
+		ASYNC_PREPARE_GET_OID_OBJECT(Blob, git_blob);
+	}
+	else {
+		SYNC_GET_OID_OBJECT(Blob, git_blob, blobFactory_);
 	}
 }
 
@@ -1095,14 +1086,11 @@ FN_ASYNC_GET_OID_OBJECT(Tag, git_tag)
 FN_ASYNC_CREATE_OBJECT(Tag, git_tag)
 FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tag, git_tag, tagFactory_)
 
-// =============
-// RAWOBJECT EIO
-// =============
-#ifdef FIXME
-FN_ASYNC_GET_OID_OBJECT(RawObject, git_rawobj)
-FN_ASYNC_CREATE_OBJECT(RawObject, git_rawobj)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(RawObject, git_rawobj, rawObjFactory_)
-#endif
+// ========
+// BLOB EIO
+// ========
+FN_ASYNC_GET_OID_OBJECT(Blob, git_blob)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Blob, git_blob, blobFactory_)
 
 // =======
 // REF EIO
@@ -1167,10 +1155,7 @@ Repository::Repository() {
 	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
-
-#ifdef FIXME
-	rawObjFactory_ = new ObjectFactory<Repository, RawObject, git_rawobj>(this);
-#endif
+	blobFactory_ = new ObjectFactory<Repository, Blob, git_blob>(this);
 
 	index_ = NULL;
 }
@@ -1180,9 +1165,8 @@ Repository::~Repository() {
 	delete referenceFactory_;
 	delete treeFactory_;
 	delete tagFactory_;
-#ifdef FIXME
-	delete rawObjFactory_;
-#endif
+	delete blobFactory_;
+
 	close();
 }
 
@@ -1245,6 +1229,16 @@ int Repository::createTag(git_tag **tag) {
 
 	return result;
 #endif
+}
+
+int Repository::getBlob(git_oid *id, git_blob **blob) {
+	int result;
+
+	LOCK_MUTEX(gitLock_);
+	result = git_blob_lookup(blob, repo_, id);
+	UNLOCK_MUTEX(gitLock_);
+
+	return result;
 }
 
 int Repository::getTag(git_oid *id, git_tag **tag) {

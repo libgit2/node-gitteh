@@ -13,6 +13,7 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 
 	static void Init(Handle<Object>);
+	static Handle<Value> SaveObject(Handle<Object>, Repository*, Handle<Value>, bool);
 
 	Blob();
 	~Blob();
