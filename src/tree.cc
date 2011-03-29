@@ -54,25 +54,6 @@ struct save_request {
 	char id[40];
 };
 
-struct entry_request {
-	Persistent<Function> callback;
-	Tree *tree;
-	int index;
-	std::string *name;
-	git_tree_entry *entry;
-	int error;
-};
-
-struct add_entry_request {
-	Persistent<Function> callback;
-	Tree *tree;
-	git_oid id;
-	int attributes;
-	std::string *filename;
-	int error;
-	git_tree_entry *entry;
-};
-
 Persistent<FunctionTemplate> Tree::constructor_template;
 
 void Tree::Init(Handle<Object> target) {
@@ -108,43 +89,9 @@ Handle<Value> Tree::New(const Arguments& args) {
 }
 
 Handle<Value> Tree::Save(const Arguments& args) {
-#ifdef FIXME
 	HandleScope scope;
 
-	Tree *tree = ObjectWrap::Unwrap<Tree>(args.This());
-
-	if(HAS_CALLBACK_ARG) {
-		save_request *request = new save_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-
-		request->tree = tree;
-		request->callback = Persistent<Function>::New(callbackArg);
-
-		tree->Ref();
-		eio_custom(EIO_Save, EIO_PRI_DEFAULT, EIO_AfterSave, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		tree->repository_->lockRepository();
-		int result = git_object_write((git_object *)tree->tree_);
-		tree->repository_->unlockRepository();
-		if(result != GIT_SUCCESS) {
-			return ThrowException(CreateGitError(String::New("Error saving tree."), result));
-		}
-
-		tree->repository_->lockRepository();
-		const git_oid *treeOid = git_tree_id(tree->tree_);
-		tree->repository_->unlockRepository();
-		char oidStr[40];
-		git_oid_fmt(oidStr, treeOid);
-		args.This()->ForceSet(String::New("id"), String::New(oidStr, 40),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-
-		return Undefined();
-	}
-#endif
+	THROW_ERROR("Not yet implemented.");
 }
 
 #ifdef FIXME
