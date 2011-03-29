@@ -26,9 +26,14 @@
 	assert = require("assert"),
 	gitteh = require("gitteh"),
 	path = require("path"),
-	fixtureValues = require("./fixtures/values");
+	fixtureValues = require("./fixtures/values"),
+	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH); 
+var testRepo = helpers.createTestRepo();
+var testBlob = testRepo.createBlob({
+	data: new Buffer("")
+});
 
 var createTagTestContext = function(topic, tagFixture) {
 	var context = {
@@ -92,10 +97,14 @@ var createAsyncTagTestContext = function(tagFixture) {
 vows.describe("Tag").addBatch({
 	"Tag *test_tag*, *asynchronously*": createAsyncTagTestContext(fixtureValues.TEST_TAG),
 	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
+}).addBatch({
+	teardown: function() {
+		helpers.cleanupTestRepo(testRepo);
+	},
 	
 	"Creating a new tag *asynchronously*": {
 		topic: function() {
-			repo.createTag({
+			testRepo.createTag({
 				name: "async_test_tag",
 				message: "Async Test tag.",
 				tagger: {
@@ -103,7 +112,7 @@ vows.describe("Tag").addBatch({
 					email: "sam.c.day@gmail.com",
 					time: new Date(1988, 12, 12)
 				},
-				targetId: fixtureValues.FIRST_COMMIT.id
+				targetId: testBlob.id
 			}, this.callback);
 		},
 
@@ -117,14 +126,14 @@ vows.describe("Tag").addBatch({
 			assert.equal(tag.tagger.name, "Sam Day");
 			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
 			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
-			assert.equal(tag.targetId, fixtureValues.FIRST_COMMIT.id);
-			assert.equal(tag.targetType, "commit");
+			assert.equal(tag.targetId, testBlob.id);
+			assert.equal(tag.targetType, "blob");
 		}
 	},
 	
 	"Creating a new tag *synchronously*": {
 		topic: function() {
-			return repo.createTag({
+			return testRepo.createTag({
 				name: "sync_test_tag",
 				message: "Sync Test tag.",
 				tagger: {
@@ -132,7 +141,7 @@ vows.describe("Tag").addBatch({
 					email: "sam.c.day@gmail.com",
 					time: new Date(1988, 12, 12)
 				},
-				targetId: fixtureValues.FIRST_COMMIT.id
+				targetId: testBlob.id
 			});
 		},
 
@@ -146,8 +155,8 @@ vows.describe("Tag").addBatch({
 			assert.equal(tag.tagger.name, "Sam Day");
 			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
 			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
-			assert.equal(tag.targetId, fixtureValues.FIRST_COMMIT.id);
-			assert.equal(tag.targetType, "commit");
+			assert.equal(tag.targetId, testBlob.id);
+			assert.equal(tag.targetType, "blob");
 		}
 	}
 }).export(module);
