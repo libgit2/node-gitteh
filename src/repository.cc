@@ -176,12 +176,14 @@
 	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
 	CREATE_ASYNC_REQUEST(object_request);									\
 	memcpy(&request->oid, &oidArg, sizeof(git_oid));						\
+	request->create = false;												\
 	REQUEST_DETACH(repo, EIO_Get##TYPE, EIO_Return##TYPE);
 
 #define ASYNC_PREPARE_GET_NAMED_OBJECT(TYPE, GIT_TYPE)						\
 	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
 	CREATE_ASYNC_REQUEST(object_request);									\
 	request->name = new std::string(*nameArg);								\
+	request->create = false;												\
 	REQUEST_DETACH(repo, EIO_Get##TYPE, EIO_Return##TYPE);
 
 #define ASYNC_PREPARE_CREATE_OBJECT(TYPE)									\
