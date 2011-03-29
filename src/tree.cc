@@ -26,13 +26,10 @@
 #include "tree.h"
 #include "tree_entry.h"
 
-#define ID_PROPERTY String::NewSymbol("id")
-#define LENGTH_PROPERTY String::NewSymbol("entryCount")
-
-#define UPDATE_ENTRY_COUNT()												\
-	args.This()->ForceSet(LENGTH_PROPERTY, Integer::New(tree->entryCount_));
-
 namespace gitteh {
+
+static Persistent<String> id_symbol;
+static Persistent<String> entries_symbol;
 
 struct tree_data {
 	char id[40];
@@ -75,11 +72,10 @@ void Tree::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Tree"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
-	NODE_SET_PROTOTYPE_METHOD(t, "addEntry", AddEntry);
-	NODE_SET_PROTOTYPE_METHOD(t, "removeEntry", RemoveEntry);
-	NODE_SET_PROTOTYPE_METHOD(t, "clear", Clear);
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	id_symbol = NODE_PSYMBOL("id");
+	entries_symbol = NODE_SYMBOL("entries");
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
