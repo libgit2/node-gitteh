@@ -32,7 +32,6 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments&);
-
 	static Handle<Value> Save(const Arguments&);
 
 	void processInitData(void*);
