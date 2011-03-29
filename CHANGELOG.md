@@ -1,3 +1,6 @@
+## v0.0.4 - 29/03/11
+* Fixed issues that could cause asynchronous retrieval of objects to fail miserably.
+
 ## v0.0.3 - 20/03/11
 * Fixed up some pretty serious memory leaks stemming from how git_oid and git_signatures were being handled.
 

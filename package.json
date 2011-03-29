@@ -1,6 +1,6 @@
 {
 	"name": "gitteh",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"description": "Bindings to libgit2.",
 	"keywords": "git, libgit2, bindings",
 	"author": "Sam Day <sam.c.day@gmail.com>",
