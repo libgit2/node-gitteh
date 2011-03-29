@@ -198,6 +198,9 @@ Tree::Tree() {
 }
 
 Tree::~Tree() {
+	repository_->lockRepository();
+	git_tree_close(tree_);
+	repository_->unlockRepository();
 }
 
 void Tree::processInitData(void *data) {
