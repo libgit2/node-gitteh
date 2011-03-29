@@ -33,6 +33,10 @@ var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 var tempRepo = helpers.createTestRepo();
 
 vows.describe("Blob").addBatch({
+	teardown: function() {
+		helpers.cleanupTestRepo(tempRepo);
+	},
+
 	"Getting a blob *asynchronously*": {
 		topic: function() {
 			repo.getBlob(fixtureValues.TEST_BLOB, this.callback);
@@ -63,7 +67,7 @@ vows.describe("Blob").addBatch({
 	
 	"Creating a new blob *asynchronously*": {
 		topic: function() {
-			repo.createBlob({
+			tempRepo.createBlob({
 				data: new Buffer("Asynchronous blob creation test.")
 			}, this.callback);
 		},
@@ -74,6 +78,60 @@ vows.describe("Blob").addBatch({
 		
 		"with the correct id": function(blob) {
 			assert.equal(blob.id, helpers.getSHA1("blob 32\0Asynchronous blob creation test."));
+		}
+	},
+	
+	"Creating a new blob *synchronously*": {
+		topic: function() {
+			tempRepo.createBlob({
+				data: new Buffer("Synchronous blob creation test.")
+			}, this.callback);
+		},
+		
+		"successfully creates a blob": function(blob) {
+			assert.isTrue(!!blob);
+		},
+		
+		"with the correct id": function(blob) {
+			assert.equal(blob.id, helpers.getSHA1("blob 31\0Synchronous blob creation test."));
+		}
+	},
+
+	"Modifying a blob *asynchronously*": {
+		topic: function() {
+			var blob = this.context.blob = tempRepo.createBlob({
+				data: new Buffer("Modifying blob async.")
+			});
+			
+			blob.data = new Buffer("Modified blob async.");
+			blob.save(this.callback);
+		},
+
+		"works": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"updates blob ID correctly": function() {
+			assert.equal(this.context.blob.id, helpers.getSHA1("blob 20\0Modified blob async."))
+		}
+	},
+
+	"Modifying a blob *synchronously*": {
+		topic: function() {
+			var blob = tempRepo.createBlob({
+				data: new Buffer("Modifying blob sync.")
+			});
+			
+			blob.data = new Buffer("Modified blob sync.");
+			return blob;
+		},
+
+		"works": function(blob) {
+			assert.isTrue(blob.save());
+		},
+		
+		"updates blob ID correctly": function(blob) {
+			assert.equal(blob.id, helpers.getSHA1("blob 19\0Modified blob sync."))
 		}
 	}
 }).export(module);

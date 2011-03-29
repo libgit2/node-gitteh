@@ -91,6 +91,9 @@ Handle<Value> Blob::SaveObject(Handle<Object> blobObject, Repository *repo,
 			request->blob = ObjectWrap::Unwrap<Blob>(blobObject);
 			request->blob->Ref();
 		}
+		else {
+			request->blob = NULL;
+		}
 
 		request->data = data;
 		request->length = dataLen;
@@ -121,7 +124,7 @@ Handle<Value> Blob::SaveObject(Handle<Object> blobObject, Repository *repo,
 					&arg));
 		}
 		else {
-			blobObject->Set(id_symbol, String::New(newIdStr, 40),
+			blobObject->ForceSet(id_symbol, String::New(newIdStr, 40),
 					(PropertyAttribute)(ReadOnly | DontDelete));
 
 			return scope.Close(True());
