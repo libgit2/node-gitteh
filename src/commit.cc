@@ -243,7 +243,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 					&arg));
 		}
 		else {
-			commitObject->Set(id_symbol, String::New(newIdStr, 40),
+			commitObject->ForceSet(id_symbol, String::New(newIdStr, 40),
 					(PropertyAttribute)(ReadOnly | DontDelete));
 
 			return scope.Close(True());
