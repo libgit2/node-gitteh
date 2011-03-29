@@ -59,5 +59,21 @@ vows.describe("Blob").addBatch({
 		"with the correct data": function(blob) {
 			assert.equal(blob.data.toString(), "Hello world!\n\n");
 		}
+	},
+	
+	"Creating a new blob *asynchronously*": {
+		topic: function() {
+			repo.createBlob({
+				data: new Buffer("Asynchronous blob creation test.")
+			}, this.callback);
+		},
+		
+		"successfully creates a blob": function(blob) {
+			assert.isTrue(!!blob);
+		},
+		
+		"with the correct id": function(blob) {
+			assert.equal(blob.id, helpers.getSHA1("blob 32\0Asynchronous blob creation test."));
+		}
 	}
 }).export(module);
