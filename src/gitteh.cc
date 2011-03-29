@@ -26,7 +26,6 @@
 
 #include "commit.h"
 #include "tree.h"
-#include "tree_entry.h"
 #include "repository.h"
 #include "index.h"
 #include "index_entry.h"
@@ -51,7 +50,6 @@ init(Handle<Object> target) {
 
 	Commit::Init(target);
 	Tree::Init(target);
-	TreeEntry::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);

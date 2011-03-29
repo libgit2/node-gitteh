@@ -24,7 +24,6 @@
 
 #include "repository.h"
 #include "tree.h"
-#include "tree_entry.h"
 
 namespace gitteh {
 
