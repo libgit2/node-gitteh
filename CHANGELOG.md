@@ -1,4 +1,5 @@
 ## v0.0.4 - 29/03/11
+* Added support for working with git indexes. 
 * Fixed issues that could cause asynchronous retrieval of objects to fail miserably.
 
 ## v0.0.3 - 20/03/11
