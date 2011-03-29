@@ -11,8 +11,11 @@ class Repository;
 class Tag : public GitObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
-	static void Init(Handle<Object>);
 
+	static void Init(Handle<Object>);
+	static Handle<Value> SaveObject(Handle<Object>, Repository*, Handle<Value>, bool);
+
+	~Tag();
 	void setOwner(void*);
 
 	Repository *repository_;

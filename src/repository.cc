@@ -719,12 +719,16 @@ Handle<Value> Repository::CreateTag(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	if(args.Length() > 0) {
-		ASYNC_PREPARE_CREATE_OBJECT(Tag);
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, tagObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
 	}
-	else {
-		SYNC_CREATE_OBJECT(Tag, git_tag, tagFactory_);
-	}
+
+	return scope.Close(Tag::SaveObject(tagObjArg, repo, callback, true));
 }
 
 Handle<Value> Repository::GetTag(const Arguments& args) {

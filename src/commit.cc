@@ -191,7 +191,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		request->message = new std::string(*message);
 		request->parentCount = parentCount;
 		request->parentIds = parentIds;
-		memcpy(&request->treeId, &treeId, sizeof(git_oid));
+		request->treeId = treeId;
 		request->committer = committer;
 		request->author = author;
 
