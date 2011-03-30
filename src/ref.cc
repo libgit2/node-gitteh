@@ -26,17 +26,25 @@
 #include "repository.h"
 #include "object_factory.h"
 
-Persistent<String> name_symbol;
-Persistent<String> type_symbol;
-Persistent<String> target_symbol;
+static Persistent<String> name_symbol;
+static Persistent<String> type_symbol;
+static Persistent<String> target_symbol;
 
-#define CHECK_LOCKED_OR_INVALID()											\
-	if(ref->invalid_) { 													\
-		THROW_ERROR("Reference is invalid.");								\
-	}																		\
-	else if(ref->locked_) {													\
-		THROW_ERROR("Reference is locked.");								\
+#define CHECK_DELETED()														\
+	ref->lock();															\
+	if(ref->deleted_) { 													\
+		ref->unlock();														\
+		THROW_ERROR("Reference is deleted.");								\
 	}
+
+#define IF_ASYNC_CHECK_ISNT_DELETED()										\
+	reqData->ref->lock();													\
+	bool deleted = reqData->ref->deleted_;									\
+	if(reqData->ref->deleted_) { 											\
+		reqData->error = GIT_EINVALIDREFSTATE;								\
+		reqData->ref->unlock();												\
+	}																		\
+	else {
 
 namespace gitteh {
 
@@ -71,8 +79,16 @@ struct target_request {
 Persistent<FunctionTemplate> Reference::constructor_template;
 
 Reference::Reference() {
-	invalid_ = false;
-	locked_ = false;
+	CREATE_MUTEX(lock_);
+	deleted_ = false;
+}
+
+void Reference::lock() {
+	LOCK_MUTEX(lock_);
+}
+
+void Reference::unlock() {
+	UNLOCK_MUTEX(lock_);
 }
 
 void Reference::Init(Handle<Object> target) {
@@ -113,10 +129,11 @@ Handle<Value> Reference::New(const Arguments& args) {
 Handle<Value> Reference::Rename(const Arguments& args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	CHECK_LOCKED_OR_INVALID();
-	
+
 	REQ_ARGS(1);
 	REQ_STR_ARG(0, newNameArg);
+
+	CHECK_DELETED();
 
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
@@ -130,12 +147,17 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 		eio_custom(EIO_Rename, EIO_PRI_DEFAULT, EIO_AfterRename, request);
 		ev_ref(EV_DEFAULT_UC);
 
+		ref->unlock();
+
 		return Undefined();
 	}
 	else {
 		ref->repository_->lockRepository();
 		int result = git_reference_rename(ref->ref_, *newNameArg);
 		ref->repository_->unlockRepository();
+
+		ref->unlock();
+
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't rename ref.", result);
 		}
@@ -150,9 +172,12 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 int Reference::EIO_Rename(eio_req *req) {
 	ref_request *reqData = static_cast<ref_request*>(req->data);
 
-	reqData->ref->repository_->lockRepository();
-	reqData->error = git_reference_rename(reqData->ref->ref_, reqData->name->c_str());
-	reqData->ref->repository_->unlockRepository();
+	IF_ASYNC_CHECK_ISNT_DELETED()
+		reqData->ref->repository_->lockRepository();
+		reqData->error = git_reference_rename(reqData->ref->ref_, reqData->name->c_str());
+		reqData->ref->repository_->unlockRepository();
+		reqData->ref->unlock();
+	}
 
 	return 0;
 }
@@ -190,36 +215,88 @@ int Reference::EIO_AfterRename(eio_req *req) {
 Handle<Value> Reference::Delete(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	CHECK_LOCKED_OR_INVALID;
+
+	CHECK_DELETED();
 
 	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		ref_request *request = new ref_request;
+
+		request->ref = ref;
+		request->callback = Persistent<Function>::New(callbackArg);
+
+		ref->Ref();
+		eio_custom(EIO_Delete, EIO_PRI_DEFAULT, EIO_AfterDelete, request);
+		ev_ref(EV_DEFAULT_UC);
+
+		ref->unlock();
+
+		return Undefined();
 	}
 	else {
 		ref->repository_->lockRepository();
 		int result = git_reference_delete(ref->ref_);
-		ref->repository_->lockRepository();
+		ref->repository_->unlockRepository();
 
 		if(result != GIT_SUCCESS) {
+			ref->unlock();
 			THROW_GIT_ERROR("Couldn't delete ref.", result);
 		}
 		ref->deleted_ = true;
+		ref->unlock();
 	}
 
 	return scope.Close(True());
 }
 
-int Reference::EIO_Delete(eioname_s_req *req) {
+int Reference::EIO_Delete(eio_req *req) {
+	ref_request *reqData = static_cast<ref_request*>(req->data);
 
+	IF_ASYNC_CHECK_ISNT_DELETED()
+		reqData->ref->repository_->lockRepository();
+		reqData->error = git_reference_delete(reqData->ref->ref_);
+		reqData->ref->repository_->unlockRepository();
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->ref->deleted_ = true;
+		}
+
+		reqData->ref->unlock();
+	}
+
+	return 0;
 }
 
 int Reference::EIO_AfterDelete(eio_req *req) {
+	HandleScope scope;
+	ref_request *reqData = static_cast<ref_request*>(req->data);
 
+	ev_unref(EV_DEFAULT_UC);
+ 	reqData->ref->Unref();
+
+	Handle<Value> callbackArgs[2];
+ 	if(reqData->error != GIT_SUCCESS) {
+ 		Handle<Value> error = CreateGitError(String::New("Couldn't delete ref"), reqData->error);
+ 		callbackArgs[0] = error;
+ 		callbackArgs[1] = Null();
+	}
+	else {
+ 		callbackArgs[0] = Undefined();
+ 		callbackArgs[1] = True();
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Reference::Resolve(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	CHECK_LOCKED_OR_INVALID;
+
+	CHECK_DELETED()
 
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length()-1, callbackArg);
@@ -232,6 +309,8 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 		eio_custom(EIO_Resolve, EIO_PRI_DEFAULT, EIO_AfterResolve, request);
 		ev_ref(EV_DEFAULT_UC);
 
+		ref->unlock();
+
 		return Undefined();
 	}
 	else {
@@ -239,6 +318,8 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 		ref->repository_->lockRepository();
 		int result = git_reference_resolve(&resolvedRef, ref->ref_);
 		ref->repository_->unlockRepository();
+
+		ref->unlock();
 
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't resolve ref.", result);
@@ -252,9 +333,12 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 int Reference::EIO_Resolve(eio_req *req) {
 	resolve_request *reqData = static_cast<resolve_request*>(req->data);
 
-	reqData->ref->repository_->lockRepository();
-	reqData->error = git_reference_resolve(&reqData->resolved, reqData->ref->ref_);
-	reqData->ref->repository_->unlockRepository();
+	IF_ASYNC_CHECK_ISNT_DELETED()
+		reqData->ref->repository_->lockRepository();
+		reqData->error = git_reference_resolve(&reqData->resolved, reqData->ref->ref_);
+		reqData->ref->repository_->unlockRepository();
+		reqData->ref->unlock();
+	}
 
 	return 0;
 }
@@ -287,7 +371,7 @@ int Reference::EIO_AfterResolve(eio_req *req) {
 Handle<Value> Reference::SetTarget(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	CHECK_LOCKED_OR_INVALID;
+	CHECK_DELETED();
 	
 	REQ_ARGS(1);
 	
@@ -303,25 +387,37 @@ Handle<Value> Reference::SetTarget(const Arguments &args) {
 		eio_custom(EIO_SetTarget, EIO_PRI_DEFAULT, EIO_AfterSetTarget, request);
 		ev_ref(EV_DEFAULT_UC);
 
+		ref->unlock();
+
 		return Undefined();
 	}
 	else {
 		int result = GIT_ERROR;
 
+		// Macros ftw. I'm just gonna unlock the ref here, simply because
+		// the req_*_arg macros throw errors and don't really care about unlocking
+		// my ref.
+
 		if(ref->type_ == GIT_REF_OID) {
+			ref->unlock();
 			REQ_OID_ARG(0, oidArg);
+			CHECK_DELETED();
 			result = git_reference_set_oid(ref->ref_, &oidArg);
 		}
 		else if(ref->type_ == GIT_REF_SYMBOLIC) {
+			ref->unlock();
 			REQ_STR_ARG(0, targetArg);
+			CHECK_DELETED();
 			result = git_reference_set_target(ref->ref_, *targetArg);
 		}
+
+		ref->unlock();
 
 		if(result != GIT_SUCCESS) {
 			THROW_GIT_ERROR("Couldn't set target.", result);
 		}
 		else {
-			args.This()->ForceSet(TARGET_PROPERTY, args[0],
+			args.This()->ForceSet(target_symbol, args[0],
 					(PropertyAttribute)(ReadOnly | DontDelete));
 		}
 
@@ -332,21 +428,24 @@ Handle<Value> Reference::SetTarget(const Arguments &args) {
 int Reference::EIO_SetTarget(eio_req *req) {
 	target_request *reqData = static_cast<target_request*>(req->data);
 
-	reqData->ref->repository_->lockRepository();
-	if(reqData->ref->type_ == GIT_REF_OID) {
-		git_oid id;
-		reqData->error = git_oid_mkstr(&id, reqData->target->c_str());
+	IF_ASYNC_CHECK_ISNT_DELETED()
+		reqData->ref->repository_->lockRepository();
+		if(reqData->ref->type_ == GIT_REF_OID) {
+			git_oid id;
+			reqData->error = git_oid_mkstr(&id, reqData->target->c_str());
 
-		if(reqData->error == GIT_SUCCESS) {
-			reqData->error = git_reference_set_oid(reqData->ref->ref_, &id);
+			if(reqData->error == GIT_SUCCESS) {
+				reqData->error = git_reference_set_oid(reqData->ref->ref_, &id);
+			}
 		}
-	}
-	else if(reqData->ref->type_ == GIT_REF_SYMBOLIC) {
-		reqData->error = git_reference_set_target(reqData->ref->ref_,
-				reqData->target->c_str());
-	}
-	reqData->ref->repository_->unlockRepository();
+		else if(reqData->ref->type_ == GIT_REF_SYMBOLIC) {
+			reqData->error = git_reference_set_target(reqData->ref->ref_,
+					reqData->target->c_str());
+		}
+		reqData->ref->repository_->unlockRepository();
 
+		reqData->ref->unlock();
+	}
 
 	return 0;
 }

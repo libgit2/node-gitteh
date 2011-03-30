@@ -327,11 +327,43 @@ vows.describe("References").addBatch({
 		}
 	},
 
-	/*"Creating a ref then deleting it *asynchronously*": {
+	"Creating a ref then deleting it *asynchronously*": {
+		topic: function() {
+			var t = this;
+			var ref = repo.createOidReference("refs/heads/asyncdeleteme", testRepo.HEAD_COMMIT);
+			t.context.ref = ref;
+			ref.delete(this.callback);
+		},
+		
+		"runs fine": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"ref is completely inoperable now": function() {
+			var ref = this.context.ref;
+			assert.throws(function() {
+				ref.rename("refs/heads/oidtest");
+			}, Error);
+			
+			assert.throws(function() {
+				ref.resolve();
+			});
+			
+			assert.throws(function() {
+				ref.delete();
+			});
+			
+			assert.throws(function() {
+				ref.setTarget(fixtureValues.FIRST_COMMIT.id);
+			});
+		}
+	},
+
+	"Creating a ref then deleting it *synchronously*": {
 		topic: function() {
 			var t = this;
 			return function() {
-				var ref = repo.createOidReference("refs/heads/deleteme", testRepo.HEAD_COMMIT);
+				var ref = repo.createOidReference("refs/heads/syncdeleteme", testRepo.HEAD_COMMIT);
 				ref.delete();
 				t.context.ref = ref;
 			};
@@ -359,9 +391,8 @@ vows.describe("References").addBatch({
 				ref.setTarget(fixtureValues.FIRST_COMMIT.id);
 			});
 		}
-	},*/
-	
-	
+	},
+
 	"Loading reference list *asynchronously*": {
 		topic: function() {
 			repo.listReferences(gitteh.GIT_REF_LISTALL, this.callback);
