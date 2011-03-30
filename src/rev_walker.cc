@@ -54,11 +54,6 @@ Persistent<FunctionTemplate> RevWalker::constructor_template;
 void RevWalker::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	target->Set(String::New("SORT_NONE"), Integer::New(GIT_SORT_NONE));
-	target->Set(String::New("SORT_TOPOLOGICAL"), Integer::New(GIT_SORT_TOPOLOGICAL));
-	target->Set(String::New("SORT_TIME"), Integer::New(GIT_SORT_TIME));
-	target->Set(String::New("SORT_REVERSE"), Integer::New(GIT_SORT_REVERSE));
-
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("RevWalker"));
@@ -69,6 +64,11 @@ void RevWalker::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "next", Next);
 	NODE_SET_PROTOTYPE_METHOD(t, "sort", Sort);
 	NODE_SET_PROTOTYPE_METHOD(t, "reset", Reset);
+
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_NONE);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_TOPOLOGICAL);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_TIME);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_REVERSE);
 }
 
 Handle<Value> RevWalker::New(const Arguments& args) {
@@ -399,7 +399,6 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
 }
 
 Handle<Value> RevWalker::Sort(const Arguments& args) {
-#ifdef FIXME
 	HandleScope scope;
 
 	REQ_ARGS(1);
@@ -423,22 +422,19 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 	else {
 
 		walker->repo_->lockRepository();
-		int result = git_revwalk_sorting(walker->walker_, sorting);
+		git_revwalk_sorting(walker->walker_, sorting);
 		walker->repo_->unlockRepository();
-		if(result != GIT_SUCCESS)
-			THROW_GIT_ERROR("Couldn't sort rev walker.", result);
 
 		return Undefined();
 	}
-#endif
 }
 
-#ifdef FIXME
 int RevWalker::EIO_Sort(eio_req *req) {
 	sort_request *reqData = static_cast<sort_request*>(req->data);
 
 	reqData->walker->repo_->lockRepository();
-	reqData->error = git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
+	git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
+	reqData->error = GIT_SUCCESS;
 	reqData->walker->repo_->unlockRepository();
 
 	return 0;
@@ -468,7 +464,6 @@ int RevWalker::EIO_AfterSort(eio_req *req) {
 
 	return 0;
 }
-#endif
 
 Handle<Value> RevWalker::Reset(const Arguments& args) {
 	HandleScope scope;
