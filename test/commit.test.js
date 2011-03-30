@@ -30,6 +30,7 @@
 	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
+var tempRepo = helpers.createTestRepo("commit");
 
 var createCommitTests = function(topic, commitFixture) {
 	var context = {
@@ -109,7 +110,7 @@ var createSyncCommitTests = function(commitFixture) {
 };
 
 vows.describe("Commit").addBatch({
-	/*"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
+	"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
 	"Second commit (async)": createAsyncCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit (async)": createAsyncCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit (async)": createAsyncCommitTests(fixtureValues.FOURTH_COMMIT),
@@ -119,254 +120,70 @@ vows.describe("Commit").addBatch({
 	"Second commit (sync)": createSyncCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit (sync)": createSyncCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit (sync)": createSyncCommitTests(fixtureValues.FOURTH_COMMIT),
-	"Fifth commit (sync)": createSyncCommitTests(fixtureValues.FIFTH_COMMIT),*/
-}).addBatch({
-	startup: function() {
-		var gitRepo = helpers.createTestRepo();
-
-		var addRepoToAllTests = function(test) {
-			console.log(test);
-			if(test.context) test.context.repo = gitRepo;
-			test.context && test.context.tests && Object.keys(test.context.tests).forEach(function(testName) {
-				
-				if(typeof(test.context.tests[testName]) == "object") {
-					addRepoToAllTests(test.context.tests[testName]);
-				}
-			});
-		};
-		
-		addRepoToAllTests(this);
-		console.log(require("util").inspect(this, false, null));
-	},
-
-	teardown: function() {
-	console.log("teardown.");
-		this.context.gitRepo = helpers.cleanupTestRepo(this.context.gitRepo);
-	},
+	"Fifth commit (sync)": createSyncCommitTests(fixtureValues.FIFTH_COMMIT),
 
 	"Creating a new root commit *asynchronously*": {
 		topic: function() {
-		console.log("ME", this);
-		return "asdf";
 			var sig = {
 				name: "Sam",
 				email: "sam@test.com",
-				time: new Date()
+				time: new Date(1999, 1, 1)
 			};
+
 			
-			console.log(require("util").inspect(this, false, null));
-			/*
-			this.context.gitRepo.createCommit({
+			tempRepo.createCommit({
 				message: "Test async commit.",
 				author: sig,
 				committer: sig,
-				tree: fixtureValues.FIRST_TREE.id
-			}, this.callback);*/
+				tree: tempRepo.TEST_TREE
+			}, this.callback);
 		},
 		
 		"gives us the new commit": function(commit) {
-			console.log(commit);
+			assert.isTrue(!!commit);
+		},
+		
+		"with correct values": function(commit) {
+			assert.equal(commit.message, "Test async commit.");
+			assert.equal(commit.author.name, "Sam");
+			assert.equal(commit.author.email, "sam@test.com");
+			assert.equal(commit.author.time.getTime(), new Date(1999, 1, 1).getTime());
+			assert.equal(commit.committer.name, "Sam");
+			assert.equal(commit.committer.email, "sam@test.com");
+			assert.equal(commit.committer.time.getTime(), new Date(1999, 1, 1).getTime());
+			assert.equal(commit.tree, tempRepo.TEST_TREE);
+		}
+	},
+
+	"Creating a new root commit *synchronously*": {
+		topic: function() {
+			var sig = {
+				name: "Sam",
+				email: "sam@test.com",
+				time: new Date(1999, 1, 1)
+			};
+ 
+			return tempRepo.createCommit({
+				message: "Test sync commit.",
+				author: sig,
+				committer: sig,
+				tree: tempRepo.TEST_TREE
+			});
+		},
+		
+		"gives us the new commit": function(commit) {
+			assert.isTrue(!!commit);
+		},
+		
+		"with correct values": function(commit) {
+			assert.equal(commit.message, "Test sync commit.");
+			assert.equal(commit.author.name, "Sam");
+			assert.equal(commit.author.email, "sam@test.com");
+			assert.equal(commit.author.time.getTime(), new Date(1999, 1, 1).getTime());
+			assert.equal(commit.committer.name, "Sam");
+			assert.equal(commit.committer.email, "sam@test.com");
+			assert.equal(commit.committer.time.getTime(), new Date(1999, 1, 1).getTime());
+			assert.equal(commit.tree, tempRepo.TEST_TREE);
 		}
 	}
-
-/*
-	"Creating a new commit *synchronously*": {
-		topic: function() {
-			return repo.createCommit();
-		},
-		
-		"gives us an identity Commit": function(commit) {
-			assert.isTrue(!!commit);
-			assert.isNull(commit.id);
-			assert.isNull(commit.message);
-			assert.isNull(commit.author);
-			assert.isNull(commit.committer);
-			assert.throws(function() {
-				commit.getTree();
-			}, Error);
-		},
-	},
-	
-	"Creating a new commit *asynchronously*": {
-		topic: function() {
-			repo.createCommit(this.callback);
-		},
-		
-		"gives us an identity Commit": function(commit) {
-			assert.isTrue(!!commit);
-			assert.isNull(commit.id);
-			assert.isNull(commit.message);
-			assert.isNull(commit.author);
-			assert.isNull(commit.committer);
-			assert.throws(function() {
-				commit.getTree();
-			}, Error);
-		}
-	},
-	
-	"Getting commit tree *synchronously*": {
-		topic: function() {
-			var commit = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
-			return commit.getTree();
-		},
-		
-		"returns correct tree": function(tree) {
-			assert.isTrue(!!tree);
-			assert.equal(tree.id, fixtureValues.FIRST_TREE.id);
-		}
-	},
-	
-	"Getting commit tree *asynchronously*": {
-		topic: function() {
-			var commit = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
-			commit.getTree(this.callback);
-		},
-		
-		"returns correct tree": function(tree) {
-			assert.isTrue(!!tree);
-			assert.equal(tree.id, fixtureValues.FIRST_TREE.id);
-		}
-	},
-	
-	"Setting commit tree *asynchronously*": {
-		topic: function() {
-			var commit = this.context.commit = repo.createCommit();
-			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
-			commit.setTree(tree, this.callback);
-		},
-
-		"sets tree correctly": function() {
-			assert.isTrue(this.context.tree === this.context.commit.getTree());
-		}
-	},
-	
-	"Setting commit tree *synchronously*": {
-		topic: function() {
-			var commit = this.context.commit = repo.createCommit();
-			var tree = this.context.tree = repo.getTree(fixtureValues.FIRST_TREE.id);
-			commit.setTree(tree);
-			return true;
-		},
-		
-		"sets tree correctly": function() {
-			assert.isTrue(this.context.tree === this.context.commit.getTree());
-		}
-	},
-	
-	"Adding a parent commit *asynchronously*": {
-		topic: function() {
-			var commit = this.context.commit = repo.createCommit();
-			var parent = this.context.parent = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
-			
-			commit.addParent(parent, this.callback);
-		},
-		
-		"adds parent correctly": function(res) {
-			assert.isTrue(res);
-			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
-		}
-	},
-	
-	"Adding a parent commit *synchronously*": {
-		topic: function() {
-			var commit = this.context.commit = repo.createCommit();
-			var parent = this.context.parent = repo.getCommit(fixtureValues.FIRST_COMMIT.id);
-
-			commit.addParent(parent);
-			return true;
-		},
-		
-		"adds parent correctly": function() {
-			assert.isTrue(this.context.commit.getParent(0) === this.context.parent);
-		}
-	},
-	
-	"Newly created commit": {
-		topic: function() {
-			return repo.createCommit();
-		},
-		
-		"id is immutable": function(commit) {
-			commit.id = "foo";
-			assert.isNull(commit.id);
-		},
-
-		"saving the Commit gives us an error": function(commit) {
-			assert.throws(function() { commit.save(); }, Error);
-		},
-	},
-	
-	"Saving a commit *synchronously*": {
-		topic: function(commit) {
-			var commit = repo.createCommit();
-			
-			commit.message = "Test commit from Gitteh.";
-			commit.author = commit.committer = {
-				name: "Sam Day",
-				email: "sam.c.day@gmail.com",
-				time: new Date()
-			};
-			commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
-
-			this.context.commit = commit;
-			
-			return function() {
-				commit.save();
-			};
-		},
-		
-		"save works": function(fn) {
-			assert.doesNotThrow(fn, Error);
-		},
-		
-		"commit object is not redundant": function() {
-			var commit = this.context.commit;
-			assert.isTrue(commit === repo.getCommit(commit.id));
-		}
-	},
-	
-	"Saving a commit *asynchronously*": {
-		topic: function(commit) {
-			var commit = repo.createCommit();
-			
-			commit.message = "Test async commit save from Gitteh.";
-			commit.author = commit.committer = {
-				name: "Sam Day",
-				email: "sam.c.day@gmail.com",
-				time: new Date()
-			};
-			commit.setTree(repo.getTree(fixtureValues.FIRST_TREE.id));
-
-			this.context.commit = commit;
-			
-			commit.save(this.callback);
-		},
-		
-		"save works": function(res) {
-			assert.isTrue(res);
-		},
-		
-		"commit object is not redundant": function() {
-			var commit = this.context.commit;
-			assert.isTrue(commit === repo.getCommit(commit.id));
-		}
-	},
-	
-	"Creating a Commit and adding a parent by id": {
-		topic: function() {
-			repo.createCommit(this.callback);
-		},
-		
-		"works": function(commit) {
-			assert.doesNotThrow(function() {
-				commit.addParent(fixtureValues.FIRST_COMMIT.id);
-			}, Error);
-			
-			assert.equal(commit.parentCount, 1);
-		},
-		
-		"adds correctly": function(commit) {
-			assert.isTrue(commit.getParent(0) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
-		}
-	}*/
 }).export(module);

@@ -738,7 +738,7 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, oidArg);
 
-	if(args.Length() == 2) {
+	if(HAS_CALLBACK_ARG) {
 		ASYNC_PREPARE_GET_OID_OBJECT(Tag, git_tag);
 	}
 	else {

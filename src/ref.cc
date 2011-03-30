@@ -26,9 +26,17 @@
 #include "repository.h"
 #include "object_factory.h"
 
-#define NAME_PROPERTY String::NewSymbol("name")
-#define TYPE_PROPERTY String::NewSymbol("type")
-#define TARGET_PROPERTY String::NewSymbol("target")
+Persistent<String> name_symbol;
+Persistent<String> type_symbol;
+Persistent<String> target_symbol;
+
+#define CHECK_LOCKED_OR_INVALID()											\
+	if(ref->invalid_) { 													\
+		THROW_ERROR("Reference is invalid.");								\
+	}																		\
+	else if(ref->locked_) {													\
+		THROW_ERROR("Reference is locked.");								\
+	}
 
 namespace gitteh {
 
@@ -63,8 +71,8 @@ struct target_request {
 Persistent<FunctionTemplate> Reference::constructor_template;
 
 Reference::Reference() {
-	deleted_ = false;
-	//CREATE_MUTEX(refLock_);
+	invalid_ = false;
+	locked_ = false;
 }
 
 void Reference::Init(Handle<Object> target) {
@@ -76,9 +84,13 @@ void Reference::Init(Handle<Object> target) {
 	constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "rename", Rename);
-	//NODE_SET_PROTOTYPE_METHOD(t, "delete", Delete);
+	NODE_SET_PROTOTYPE_METHOD(t, "delete", Delete);
 	NODE_SET_PROTOTYPE_METHOD(t, "resolve", Resolve);
 	NODE_SET_PROTOTYPE_METHOD(t, "setTarget", SetTarget);
+
+	name_symbol = NODE_PSYMBOL("name");
+	type_symbol = NODE_PSYMBOL("type");
+	target_symbol = NODE_PSYMBOL("target");
 
 	NODE_DEFINE_CONSTANT(target, GIT_REF_OID);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_SYMBOLIC);
@@ -101,9 +113,7 @@ Handle<Value> Reference::New(const Arguments& args) {
 Handle<Value> Reference::Rename(const Arguments& args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	if(ref->isDeleted()) {
-		THROW_ERROR("This ref has been deleted!");
-	}
+	CHECK_LOCKED_OR_INVALID();
 	
 	REQ_ARGS(1);
 	REQ_STR_ARG(0, newNameArg);
@@ -130,7 +140,7 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't rename ref.", result);
 		}
 
-		args.This()->ForceSet(NAME_PROPERTY, String::New(*newNameArg),
+		args.This()->ForceSet(name_symbol, String::New(*newNameArg),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		return scope.Close(Undefined());
@@ -161,7 +171,7 @@ int Reference::EIO_AfterRename(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		reqData->ref->handle_->ForceSet(NAME_PROPERTY, String::New(reqData->name->c_str()),
+		reqData->ref->handle_->ForceSet(name_symbol, String::New(reqData->name->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
  		callbackArgs[0] = Undefined();
@@ -177,30 +187,39 @@ int Reference::EIO_AfterRename(eio_req *req) {
 	return 0;
 }
 
-/*Handle<Value> Reference::Delete(const Arguments &args) {
+Handle<Value> Reference::Delete(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	if(ref->isDeleted()) {
-		THROW_ERROR("This ref has already been deleted!");
+	CHECK_LOCKED_OR_INVALID;
+
+	if(HAS_CALLBACK_ARG) {
+	}
+	else {
+		ref->repository_->lockRepository();
+		int result = git_reference_delete(ref->ref_);
+		ref->repository_->lockRepository();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't delete ref.", result);
+		}
+		ref->deleted_ = true;
 	}
 
-	if()
-
-	int result = git_reference_delete(ref->ref_);
-	if(result != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Couldn't delete ref.", result);
-	}
-
-	ref->deleted_ = true;
 	return scope.Close(True());
-}*/
+}
+
+int Reference::EIO_Delete(eioname_s_req *req) {
+
+}
+
+int Reference::EIO_AfterDelete(eio_req *req) {
+
+}
 
 Handle<Value> Reference::Resolve(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	if(ref->deleted_) {
-		THROW_ERROR("This ref has been deleted!");
-	}
+	CHECK_LOCKED_OR_INVALID;
 
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length()-1, callbackArg);
@@ -268,9 +287,7 @@ int Reference::EIO_AfterResolve(eio_req *req) {
 Handle<Value> Reference::SetTarget(const Arguments &args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	if(ref->deleted_) {
-		THROW_ERROR("This ref has been deleted!");
-	}
+	CHECK_LOCKED_OR_INVALID;
 	
 	REQ_ARGS(1);
 	
@@ -351,7 +368,7 @@ int Reference::EIO_AfterSetTarget(eio_req *req) {
  		callbackArgs[0] = Undefined();
  		callbackArgs[1] = True();
 
- 		reqData->ref->handle_->ForceSet(TARGET_PROPERTY, String::New(reqData->target->c_str()),
+ 		reqData->ref->handle_->ForceSet(target_symbol, String::New(reqData->target->c_str()),
  				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
 
@@ -369,14 +386,14 @@ void Reference::processInitData(void *data) {
 
 	if(data != NULL) {
 		ref_data *refData = static_cast<ref_data*>(data);
-		jsObject->Set(NAME_PROPERTY, String::New(refData->name->c_str()),
+		jsObject->Set(name_symbol, String::New(refData->name->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		type_ = refData->type;
-		jsObject->Set(TYPE_PROPERTY, Integer::New(refData->type),
+		jsObject->Set(type_symbol, Integer::New(refData->type),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObject->Set(TARGET_PROPERTY, String::New(refData->target->c_str()),
+		jsObject->Set(target_symbol, String::New(refData->target->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		delete refData->name;
@@ -384,11 +401,11 @@ void Reference::processInitData(void *data) {
 		delete refData;
 	}
 	else {
-		jsObject->Set(NAME_PROPERTY, Null(),
+		jsObject->Set(name_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(TYPE_PROPERTY, Null(),
+		jsObject->Set(type_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(TARGET_PROPERTY, Null(),
+		jsObject->Set(target_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
 }

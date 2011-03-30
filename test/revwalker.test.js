@@ -182,7 +182,7 @@ vows.describe("RevWalker").addBatch({
 	"Sorting a revwalker *asynchronously*": {
 		topic: function() {
 			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TIME, this.callback);
+			walker.sort(gitteh.GIT_SORT_TIME, this.callback);
 		},
 		
 		"works": function(res) {
@@ -194,7 +194,7 @@ vows.describe("RevWalker").addBatch({
 		topic: function() {
 			var walker = repo.createWalker();
 			return function() {
-				walker.sort(gitteh.SORT_TIME);
+				walker.sort(gitteh.GIT_SORT_TIME);
 			};
 		},
 		
@@ -237,7 +237,7 @@ vows.describe("RevWalker").addBatch({
 		},
 
 		"calling *next()* gives us first commit.": function(walker) {
-			walker.sort(gitteh.SORT_TIME | gitteh.SORT_REVERSE);
+			walker.sort(gitteh.GIT_SORT_TIME | gitteh.GIT_SORT_REVERSE);
 			walker.push(repo.getCommit(fixtureValues.SECOND_COMMIT.id));
 			var commit = walker.next();
 			assert.equal(commit.id, fixtureValues.FIRST_COMMIT.id);
@@ -257,7 +257,7 @@ vows.describe("RevWalker").addBatch({
 	"RevWalker from fifth commit in topographical order": {
 		topic: function() {
 			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TOPOLOGICAL);
+			walker.sort(gitteh.GIT_SORT_TOPOLOGICAL);
 			walker.push(repo.getCommit(fixtureValues.FIFTH_COMMIT.id));
 			return walker;
 		},
@@ -281,7 +281,7 @@ vows.describe("RevWalker").addBatch({
 	"RevWalker with reset": {
 		topic: function() {
 			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TIME);
+			walker.sort(gitteh.GIT_SORT_TIME);
 			walker.push(fixtureValues.SECOND_COMMIT.id);
 			walker.reset();
 			walker.push(fixtureValues.FIFTH_COMMIT.id);
@@ -293,11 +293,11 @@ vows.describe("RevWalker").addBatch({
 			assert.equal(commit.id, fixtureValues.FIFTH_COMMIT.id);
 		}
 	},
-	
+
 	"RevWalker with hide": {
 		topic: function() {
 			var walker = repo.createWalker();
-			walker.sort(gitteh.SORT_TIME);
+			walker.sort(gitteh.GIT_SORT_TIME);
 			walker.push(fixtureValues.FOURTH_COMMIT.id);
 			walker.hide(fixtureValues.THIRD_COMMIT.id);
 			walker.next();
