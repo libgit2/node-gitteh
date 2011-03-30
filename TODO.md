@@ -9,3 +9,7 @@
 * Maybe add convenience methods to all existing wrapped objects to get the raw object equivalent of them.
 * Error handling in the EIO initialization stuff for objects. Not sure if something can go wrong there, but better safe than sorry.
 * Tests for initializing a new repository, bare or workingdir.
+* Stress test suite.
+* Perf tests.
+* See if we can remove the lock on repository for some serious speed.
+* Tests for ref delete race conditions.
