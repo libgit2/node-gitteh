@@ -26,12 +26,12 @@
 #include "repository.h"
 #include "signature.h"
 
-Persistent<String> message_symbol;
-Persistent<String> name_symbol;
-Persistent<String> id_symbol;
-Persistent<String> tagger_symbol;
-Persistent<String> targetId_symbol;
-Persistent<String> targetType_symbol;
+static Persistent<String> message_symbol;
+static Persistent<String> name_symbol;
+static Persistent<String> id_symbol;
+static Persistent<String> tagger_symbol;
+static Persistent<String> targetId_symbol;
+static Persistent<String> targetType_symbol;
 
 namespace gitteh {
 
