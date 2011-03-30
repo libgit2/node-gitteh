@@ -1,8 +1,6 @@
 # TODO
 
-* Delete support.
 * Integrity tests, make sure bindings don't choke or segfault on really bad data.
-* Revisit index support, expand and add tests.
 * Possibly implement custom backend support, allowing JS callbacks to provide a custom git backend.
 * Check for memory leaks
 * Support for ref deletion.
