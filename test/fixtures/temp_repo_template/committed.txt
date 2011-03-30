@@ -1,0 +1,5 @@
+This file has been committed into the repository.
+
+The commit is the HEAD commit (pointed to by refs/heads/master, and HEAD points to that).
+
+The commit also has an annotated tag.
