@@ -30,18 +30,14 @@
 	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
-var tempRepo = helpers.createTestRepo();
+var tempRepo = helpers.createTestRepo("blob");
 
 vows.describe("Blob").addBatch({
-	teardown: function() {
-		helpers.cleanupTestRepo(tempRepo);
-	},
-
 	"Getting a blob *asynchronously*": {
 		topic: function() {
 			repo.getBlob(fixtureValues.TEST_BLOB, this.callback);
 		},
-		
+
 		"gives us a Blob": function(blob) {
 			assert.isTrue(!!blob);
 		},
@@ -78,6 +74,10 @@ vows.describe("Blob").addBatch({
 		
 		"with the correct id": function(blob) {
 			assert.equal(blob.id, helpers.getSHA1("blob 32\0Asynchronous blob creation test."));
+		},
+		
+		"correct data": function(blob) {
+			assert.equal(blob.data.toString(), "Asynchronous blob creation test.");
 		}
 	},
 	
@@ -94,6 +94,10 @@ vows.describe("Blob").addBatch({
 		
 		"with the correct id": function(blob) {
 			assert.equal(blob.id, helpers.getSHA1("blob 31\0Synchronous blob creation test."));
+		},
+		
+		"correct data": function(blob) {
+			assert.equal(blob.data.toString(), "Synchronous blob creation test.");
 		}
 	},
 

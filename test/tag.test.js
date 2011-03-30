@@ -30,10 +30,7 @@
 	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH); 
-var testRepo = helpers.createTestRepo();
-var testBlob = testRepo.createBlob({
-	data: new Buffer("")
-});
+var testRepo = helpers.createTestRepo("tag");
 
 var createTagTestContext = function(topic, tagFixture) {
 	var context = {
@@ -97,10 +94,6 @@ var createAsyncTagTestContext = function(tagFixture) {
 vows.describe("Tag").addBatch({
 	"Tag *test_tag*, *asynchronously*": createAsyncTagTestContext(fixtureValues.TEST_TAG),
 	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
-}).addBatch({
-	teardown: function() {
-		helpers.cleanupTestRepo(testRepo);
-	},
 	
 	"Creating a new tag *asynchronously*": {
 		topic: function() {
@@ -112,7 +105,7 @@ vows.describe("Tag").addBatch({
 					email: "sam.c.day@gmail.com",
 					time: new Date(1988, 12, 12)
 				},
-				targetId: testBlob.id
+				targetId: testRepo.TEST_BLOB
 			}, this.callback);
 		},
 
@@ -126,7 +119,7 @@ vows.describe("Tag").addBatch({
 			assert.equal(tag.tagger.name, "Sam Day");
 			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
 			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
-			assert.equal(tag.targetId, testBlob.id);
+			assert.equal(tag.targetId, testRepo.TEST_BLOB);
 			assert.equal(tag.targetType, "blob");
 		}
 	},
@@ -141,7 +134,7 @@ vows.describe("Tag").addBatch({
 					email: "sam.c.day@gmail.com",
 					time: new Date(1988, 12, 12)
 				},
-				targetId: testBlob.id
+				targetId: testRepo.TEST_BLOB
 			});
 		},
 
@@ -155,7 +148,7 @@ vows.describe("Tag").addBatch({
 			assert.equal(tag.tagger.name, "Sam Day");
 			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
 			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
-			assert.equal(tag.targetId, testBlob.id);
+			assert.equal(tag.targetId, testRepo.TEST_BLOB);
 			assert.equal(tag.targetType, "blob");
 		}
 	}

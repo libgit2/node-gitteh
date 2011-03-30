@@ -26,9 +26,12 @@
 	assert = require("assert"),
 	gitteh = require("gitteh"),
 	path = require("path"),
-	fixtureValues = require("./fixtures/values");
+	fixtureValues = require("./fixtures/values"),
+	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
+var testRepo = helpers.createTestRepo("refs");
+
 vows.describe("References").addBatch({
 	"Getting HEAD ref *asynchronously*": {
 		topic: function() {
@@ -96,7 +99,7 @@ vows.describe("References").addBatch({
 	
 	"Creating a symbolic ref *asynchronously*": {
 		topic: function() {
-			repo.createSymbolicReference("refs/heads/asyncsymtest", "refs/heads/master", this.callback);
+			testRepo.createSymbolicReference("refs/heads/asyncsymtest", "refs/heads/master", this.callback);
 		},
 		
 		"gives us a reference": function(ref) {
@@ -116,16 +119,16 @@ vows.describe("References").addBatch({
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/asyncsymtest"));
+			assert.isTrue(ref === testRepo.getReference("refs/heads/asyncsymtest"));
 		},
 
-		"new ref resolves to same place as refs/heads/master does": function(ref) {
-			assert.isTrue(ref.resolve() === repo.getReference("refs/heads/master").resolve());
+		"new ref resolves to same ref as refs/heads/master does": function(ref) {
+			assert.isTrue(ref.resolve() === testRepo.getReference("refs/heads/master").resolve());
 		}
 	},
 	
 	"Creating a symbolic ref *synchronously*": {
-		topic: repo.createSymbolicReference("refs/heads/syncsymtest", "refs/heads/master"),
+		topic: testRepo.createSymbolicReference("refs/heads/syncsymtest", "refs/heads/master"),
 		
 		"gives us a reference": function(ref) {
 			assert.isTrue(!!ref);
@@ -144,17 +147,17 @@ vows.describe("References").addBatch({
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/syncsymtest"));
+			assert.isTrue(ref === testRepo.getReference("refs/heads/syncsymtest"));
 		},
 
 		"new ref resolves to same place as refs/heads/master does": function(ref) {
-			assert.isTrue(ref.resolve() === repo.getReference("refs/heads/master").resolve());
+			assert.isTrue(ref.resolve() === testRepo.getReference("refs/heads/master").resolve());
 		}
 	},
 
 	"Creating an OID ref *asynchronously*": {
 		topic: function() {
-			repo.createOidReference("refs/heads/asyncoidtest", fixtureValues.FIRST_COMMIT.id, this.callback);
+			testRepo.createOidReference("refs/heads/asyncoidtest", testRepo.TEST_COMMIT, this.callback);
 		},
 
 		"gives us a reference": function(ref) {
@@ -170,16 +173,16 @@ vows.describe("References").addBatch({
 		},
 
 		"and correct target": function(ref) {
-			assert.equal(ref.target, fixtureValues.FIRST_COMMIT.id);
+			assert.equal(ref.target, testRepo.TEST_COMMIT);
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/asyncoidtest"));
+			assert.isTrue(ref === testRepo.getReference("refs/heads/asyncoidtest"));
 		},
 	},
 
 	"Creating an OID ref *synchronously*": {
-		topic: repo.createOidReference("refs/heads/syncoidtest", fixtureValues.FIRST_COMMIT.id),
+		topic: testRepo.createOidReference("refs/heads/syncoidtest", testRepo.TEST_COMMIT),
 
 		"gives us a reference": function(ref) {
 			assert.isTrue(!!ref);
@@ -194,11 +197,11 @@ vows.describe("References").addBatch({
 		},
 
 		"and correct target": function(ref) {
-			assert.equal(ref.target, fixtureValues.FIRST_COMMIT.id);
+			assert.equal(ref.target, testRepo.TEST_COMMIT);
 		},
 
 		"ref is reachable from repository": function(ref) {
-			assert.isTrue(ref === repo.getReference("refs/heads/syncoidtest"));
+			assert.isTrue(ref === testRepo.getReference("refs/heads/syncoidtest"));
 		},
 	},
 	
@@ -234,7 +237,7 @@ vows.describe("References").addBatch({
 	
 	"Setting sym target *asynchronously*": {
 		topic: function() {
-			var ref = this.context.ref = repo.createSymbolicReference("refs/heads/settargetasync", "refs/heads/test");
+			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/settargetasync", "refs/heads/test");
 			ref.setTarget("refs/heads/master", this.callback);
 		},
 		
@@ -247,9 +250,9 @@ vows.describe("References").addBatch({
 		}
 	},
 	
-/*	"Setting sym target *synchronously*": {
+	"Setting sym target *synchronously*": {
 		topic: function() {
-			var ref = this.context.ref = repo.createSymbolicReference("refs/heads/settargetasync", "refs/heads/test");
+			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/settargetsync", "refs/heads/test");
 			return ref.setTarget("refs/heads/master");
 		},
 		
@@ -264,8 +267,8 @@ vows.describe("References").addBatch({
 	
 	"Setting oid target *asynchronously*": {
 		topic: function() {
-			var ref = this.context.ref = repo.createOidReference("refs/heads/setoidasync", fixtureValues.FIRST_COMMIT.id);
-			ref.setTarget(fixtureValues.SECOND_COMMIT.id, this.callback);
+			var ref = this.context.ref = testRepo.createOidReference("refs/heads/setoidasync", testRepo.TEST_COMMIT);
+			ref.setTarget(testRepo.HEAD_COMMIT, this.callback);
 		},
 		
 		"works": function(result) {
@@ -273,14 +276,14 @@ vows.describe("References").addBatch({
 		},
 		
 		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, fixtureValues.SECOND_COMMIT.id);
+			assert.equal(this.context.ref.target, testRepo.HEAD_COMMIT);
 		}
 	},
 	
 	"Setting oid target *synchronously*": {
 		topic: function() {
-			var ref = this.context.ref = repo.createOidReference("refs/heads/setoidsync", fixtureValues.FIRST_COMMIT.id);
-			return ref.setTarget(fixtureValues.SECOND_COMMIT.id);
+			var ref = this.context.ref = testRepo.createOidReference("refs/heads/setoidsync", testRepo.TEST_COMMIT);
+			return ref.setTarget(testRepo.HEAD_COMMIT);
 		},
 		
 		"works": function(result) {
@@ -288,17 +291,48 @@ vows.describe("References").addBatch({
 		},
 		
 		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, fixtureValues.SECOND_COMMIT.id);
+			assert.equal(this.context.ref.target, testRepo.HEAD_COMMIT);
 		}
 	},
 	
-	/*"Creating a ref then deleting it": {
+	"Renaming a ref *asynchronously*": {
+		topic: function() {
+			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/asyncrenametest_renameme", "refs/heads/master");
+			ref.rename("refs/heads/asyncrenametest_renamed", this.callback);
+		},
+		
+		"runs ok": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"name is correct": function() {
+			assert.equal(this.context.ref.name, "refs/heads/asyncrenametest_renamed");
+		}
+	},
+	
+	"Renaming a ref *synchronously*": {
+		topic: function() {
+			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/syncrenametest_renameme", "refs/heads/master");
+			return function() {
+				ref.rename("refs/heads/syncrenametest_renamed");
+			};
+		},
+		
+		"runs ok": function(fn) {
+			assert.doesNotThrow(fn, Error);
+		},
+		
+		"name is correct": function() {
+			assert.equal(this.context.ref.name, "refs/heads/syncrenametest_renamed");
+		}
+	},
+
+	/*"Creating a ref then deleting it *asynchronously*": {
 		topic: function() {
 			var t = this;
 			return function() {
-				var ref = repo.createOidReference("refs/heads/oidtest", fixtureValues.FIRST_COMMIT.id);
+				var ref = repo.createOidReference("refs/heads/deleteme", testRepo.HEAD_COMMIT);
 				ref.delete();
-				
 				t.context.ref = ref;
 			};
 		},
@@ -325,82 +359,8 @@ vows.describe("References").addBatch({
 				ref.setTarget(fixtureValues.FIRST_COMMIT.id);
 			});
 		}
-	},
-	
-	/*"Creating an OID ref then changing target": {
-		topic: function() {
-			var t = this;
-			return function() {
-				var ref = repo.createOidReference("refs/heads/oidchangetargettest", fixtureValues.SECOND_COMMIT.id);
-				console.log(ref);
-				ref.setTarget(fixtureValues.SECOND_COMMIT.id);
-				
-				t.context.ref = ref;
-			};
-		},
-		
-		"runs ok": function(fn) {
-			fn();
-			assert.doesNotThrow(fn, Error);
-		},
-		
-		"updates target correctly": function() {
-			assert.equal(this.context.ref.target, fixtureValues.SECOND_COMMIT.id);
-		}
 	},*/
 	
-	/*"Renaming a ref *asynchronously*": {
-		topic: function() {
-			var ref = this.context.ref = repo.createSymbolicReference("refs/heads/asyncrenametest_renameme", "refs/heads/master");
-			ref.rename("refs/heads/asyncrenametest", this.callback);
-		},
-		
-		"runs ok": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"name is correct": function() {
-			assert.equal(this.context.ref.name, "refs/heads/asyncrenametest");
-		}
-	},
-	
-	"Renaming a ref *synchronously*": {
-		topic: function() {
-			var ref = this.context.ref = repo.createSymbolicReference("refs/heads/asyncrenametest_renameme", "refs/heads/master");
-			return function() {
-				ref.rename("refs/heads/asyncrenametest");
-			};
-		},
-		
-		"runs ok": function(fn) {
-			try {fn(); } catch(e) {console.log(e);}
-			assert.doesNotThrow(fn, Error);
-		},
-		
-		"name is correct": function() {
-			assert.equal(this.context.ref.name, "refs/heads/asyncrenametest");
-		}
-	},*/
-	
-	"Creating a symbolic ref then changing target": {
-		topic: function() {
-			var t = this;
-			return function() {
-				var ref = repo.createSymbolicReference("refs/heads/symtest", "refs/heads/master");
-				ref.setTarget("refs/heads/test");
-
-				t.context.ref = ref;
-			};
-		},
-		
-		"runs ok": function(fn) {
-			assert.doesNotThrow(fn, Error);
-		},
-		
-		"updates target correctly": function() {
-			assert.equal(this.context.ref.target, "refs/heads/test");
-		}
-	},
 	
 	"Loading reference list *asynchronously*": {
 		topic: function() {
@@ -419,29 +379,12 @@ vows.describe("References").addBatch({
 		
 		"gives us an Array": function(refs) {
 			assert.isArray(refs);
+		},
+		
+		"has correct elements": function(refs) {
+			assert.equal(refs[0], "refs/heads/master");
+			assert.equal(refs[1], "refs/tags/test_tag");
+			assert.equal(refs[2], "refs/heads/test");
 		}
 	}
-})
-.addBatch({
-	/*"Creating a ref": {
-		topic: repo.createSymbolicReference("refs/heads/old", "refs/heads/master"),
-		
-		"and then renaming it": {
-			topic: function(ref) {
-				// Make sure the ref we're renaming to doesn't exist.
-				try { repo.getReference("refs/heads/new").delete(); } catch(e) {}
-				
-				ref.rename("refs/heads/new");
-				return ref;
-			},
-			
-			"gives us ref with correct name": function(ref) {
-				assert.equal(ref.name, "refs/heads/new");
-			},
-			
-			"new name is reachable from repo": function(ref) {
-				assert.isTrue(ref === repo.getReference("refs/heads/new"));
-			}
-		}
-	}*/
 }).export(module);
