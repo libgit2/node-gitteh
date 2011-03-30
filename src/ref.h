@@ -49,9 +49,6 @@ private:
 
 	static int EIO_SetTarget(eio_req*);
 	static int EIO_AfterSetTarget(eio_req*);
-
-	static int EIO_Delete(eio_req*);
-	static int EIO_AfterDelete(eio_req*);
 };
 
 } // namespace gitteh

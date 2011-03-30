@@ -33,6 +33,7 @@ Persistent<String> target_symbol;
 #define CHECK_LOCKED_OR_INVALID()											\
 	if(ref->invalid_) { 													\
 		THROW_ERROR("Reference is invalid.");								\
+	}																		\
 	else if(ref->locked_) {													\
 		THROW_ERROR("Reference is locked.");								\
 	}
@@ -112,7 +113,7 @@ Handle<Value> Reference::New(const Arguments& args) {
 Handle<Value> Reference::Rename(const Arguments& args) {
 	HandleScope scope;
 	Reference *ref = ObjectWrap::Unwrap<Reference>(args.This());
-	CHECK_LOCKED_OR_INVALID;
+	CHECK_LOCKED_OR_INVALID();
 	
 	REQ_ARGS(1);
 	REQ_STR_ARG(0, newNameArg);
@@ -139,7 +140,7 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't rename ref.", result);
 		}
 
-		args.This()->ForceSet(NAME_PROPERTY, String::New(*newNameArg),
+		args.This()->ForceSet(name_symbol, String::New(*newNameArg),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		return scope.Close(Undefined());
@@ -170,7 +171,7 @@ int Reference::EIO_AfterRename(eio_req *req) {
  		callbackArgs[1] = Null();
 	}
 	else {
-		reqData->ref->handle_->ForceSet(NAME_PROPERTY, String::New(reqData->name->c_str()),
+		reqData->ref->handle_->ForceSet(name_symbol, String::New(reqData->name->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
  		callbackArgs[0] = Undefined();
@@ -207,7 +208,7 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 	return scope.Close(True());
 }
 
-int Reference::EIO_Delete(eio_req *req) {
+int Reference::EIO_Delete(eioname_s_req *req) {
 
 }
 
@@ -367,7 +368,7 @@ int Reference::EIO_AfterSetTarget(eio_req *req) {
  		callbackArgs[0] = Undefined();
  		callbackArgs[1] = True();
 
- 		reqData->ref->handle_->ForceSet(TARGET_PROPERTY, String::New(reqData->target->c_str()),
+ 		reqData->ref->handle_->ForceSet(target_symbol, String::New(reqData->target->c_str()),
  				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
 
@@ -385,14 +386,14 @@ void Reference::processInitData(void *data) {
 
 	if(data != NULL) {
 		ref_data *refData = static_cast<ref_data*>(data);
-		jsObject->Set(NAME_PROPERTY, String::New(refData->name->c_str()),
+		jsObject->Set(name_symbol, String::New(refData->name->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		type_ = refData->type;
-		jsObject->Set(TYPE_PROPERTY, Integer::New(refData->type),
+		jsObject->Set(type_symbol, Integer::New(refData->type),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObject->Set(TARGET_PROPERTY, String::New(refData->target->c_str()),
+		jsObject->Set(target_symbol, String::New(refData->target->c_str()),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		delete refData->name;
@@ -400,11 +401,11 @@ void Reference::processInitData(void *data) {
 		delete refData;
 	}
 	else {
-		jsObject->Set(NAME_PROPERTY, Null(),
+		jsObject->Set(name_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(TYPE_PROPERTY, Null(),
+		jsObject->Set(type_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(TARGET_PROPERTY, Null(),
+		jsObject->Set(target_symbol, Null(),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 	}
 }
