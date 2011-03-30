@@ -38,7 +38,6 @@ var createTreeTestContext = function(topic, treeFixture) {
 		topic: topic,
 		
 		"gives us a Tree": function(tree) {
-		console.log(tree);
 			assert.isTrue(!!tree);
 		},
 		
