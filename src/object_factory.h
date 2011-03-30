@@ -69,6 +69,10 @@ public:
 		store_.deleteObjectFor(gitObject);
 	}
 
+	inline T **getAllObjects(int *count) {
+		return store_.getAllObjects(count);
+	}
+
 protected:
 	inline T *wrap(S *gitObj) {
 		T *object;

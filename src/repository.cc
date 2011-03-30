@@ -275,6 +275,12 @@ struct reflist_request {
 	git_strarray refList;
 };
 
+struct ref_pack_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	int error;
+};
+
 struct index_request {
 	Persistent<Function> callback;
 	Repository *repo;
@@ -855,7 +861,20 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 		ASYNC_PREPARE_GET_NAMED_OBJECT(Reference, git_reference);
 	}
 	else {
-		SYNC_GET_NAMED_OBJECT(Reference, git_reference, referenceFactory_);
+		repo->lockRefs();
+
+		git_reference *ref;
+
+		int res = repo->getReference(*nameArg, &ref);
+		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
+			THROW_GIT_ERROR("Git error.", res);
+		}
+
+		Local<Object> refObj = Local<Object>::New(repo->referenceFactory_->
+				syncRequestObject(ref)->handle_);
+		repo->unlockRefs();
+		return scope.Close(refObj);
 	}
 }
 
@@ -898,14 +917,20 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_CreateSymbolicRef, EIO_ReturnReference);
 	}
 	else {
+		repo->lockRefs();
+
 		git_reference *ref;
 		int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg);
 
 		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
 
-		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+		Local<Object> refObj = Local<Object>::New(repo->referenceFactory_->syncRequestObject(ref)->handle_);
+		repo->unlockRefs();
+
+		return scope.Close(refObj);
 	}
 }
 
@@ -931,13 +956,22 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_CreateOidRef, EIO_ReturnReference);
 	}
 	else {
+		repo->lockRefs();
+
 		git_reference *ref;
+		repo->lockRepository();
 		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
+		repo->unlockRepository();
+
 		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
 
-		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+		Local<Object> refObj = Local<Object>::New(repo->referenceFactory_->syncRequestObject(ref)->handle_);
+		repo->unlockRefs();
+
+		return scope.Close(refObj);
 	}
 }
 
@@ -1017,6 +1051,120 @@ int Repository::EIO_AfterGetRefList(eio_req *req) {
 		callbackArgs[1] = refArray;
 
 		git_strarray_free(&reqData->refList);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
+}
+
+int Repository::DoRefPacking() {
+	// Fun times abound!
+	int result;
+
+	// BIG TODO: probably not very good chance of it happening. But what should
+	// we do if the ref ptr update process fails anywhere? For now I'm just ignoring
+	// the return status and pretending nothing could go wrong, but it might.
+
+	lockRefs();
+
+	// First step, grab all the cached reference from object factory.
+	int refCount;
+	Reference **refList = referenceFactory_->getAllObjects(&refCount);
+
+	// Now we go through them all, lock them, and save what their current name is.
+	// We'll need the names for lata.
+	std::string **refNames = new std::string*[refCount];
+	for(int i = 0; i < refCount; i++) {
+		refList[i]->lock();
+		if(refList[i]->deleted_) {
+			refList[i]->unlock();
+			refNames = NULL;
+			continue;
+		}
+
+		refNames[i] = new std::string(git_reference_name(refList[i]->ref_));
+	}
+
+	// Okay. Time to make shit happen.
+	lockRepository();
+	result = git_reference_packall(repo_);
+	unlockRepository();
+
+	if(result == GIT_SUCCESS) {
+		// Mo'fuckin' success!!!! Now we update all the existing references with
+		// their ... new reference pointer to their ... reference. Awesome.
+		for(int i = 0; i < refCount; i++) {
+			if(refNames[i] != NULL) {
+				git_reference *newRef;
+				git_reference_lookup(&newRef, repo_, refNames[i]->c_str());
+				refList[i]->ref_ = newRef;
+
+				// It's now safe to unlock this ref, as it's valid once again.
+				refList[i]->unlock();
+			}
+		}
+	}
+
+	delete [] refList;
+	for(int i = 0; i < refCount; i++) {
+		if(refNames[i] != NULL) {
+			delete refNames[i];
+		}
+	}
+	delete [] refNames;
+
+	unlockRefs();
+
+	return result;
+}
+
+Handle<Value> Repository::PackReferences(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(ref_pack_request);
+
+		REQUEST_DETACH(repo, EIO_PackRefs, EIO_AfterPackRefs);
+	}
+	else {
+		int result = repo->DoRefPacking();
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't pack refs.", result);
+		}
+
+		return True();
+	}
+}
+
+int Repository::EIO_PackRefs(eio_req *req) {
+	GET_REQUEST_DATA(ref_pack_request);
+
+	reqData->error = reqData->repo->DoRefPacking();
+
+	return 0;
+}
+
+int Repository::EIO_AfterPackRefs(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(ref_pack_request);
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't pack refs."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = True();
 	}
 
 	TRIGGER_CALLBACK();
@@ -1154,6 +1302,7 @@ FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
+	CREATE_MUTEX(refLock_);
 
 	commitFactory_ = new ObjectFactory<Repository, Commit, git_commit>(this);
 	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
@@ -1324,6 +1473,14 @@ void Repository::lockRepository() {
 
 void Repository::unlockRepository() {
 	UNLOCK_MUTEX(gitLock_);
+}
+
+void Repository::lockRefs() {
+	LOCK_MUTEX(refLock_);
+}
+
+void Repository::unlockRefs() {
+	UNLOCK_MUTEX(refLock_);
 }
 
 } // namespace gitteh

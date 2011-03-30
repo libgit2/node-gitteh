@@ -33,6 +33,9 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
+	void lockRefs();
+	void unlockRefs();
+
 	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
 	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
@@ -73,6 +76,7 @@ protected:
 	static Handle<Value> CreateBlob(const Arguments&);
 
 	static Handle<Value> ListReferences(const Arguments&);
+	static Handle<Value> PackReferences(const Arguments&);
 
 	void close();
 
@@ -130,11 +134,16 @@ private:
 	static int EIO_GetRefList(eio_req*);
 	static int EIO_AfterGetRefList(eio_req*);
 
+	static int EIO_PackRefs(eio_req*);
+	static int EIO_AfterPackRefs(eio_req*);
+
 	static int EIO_InitIndex(eio_req*);
 	static int EIO_ReturnIndex(eio_req*);
 
 	static int EIO_GetBlob(eio_req*);
 	static int EIO_ReturnBlob(eio_req*);
+
+	int DoRefPacking();
 
 	Index *index_;
 
@@ -146,6 +155,13 @@ private:
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
 	gitteh_lock gitLock_;
+
+	// This lock is used during ref packing. The problem is ref packing will
+	// invalidate our previously cached pointers. Ugh. So what we do is update
+	// those pointers after we pack references right? Cool. Only thing is with
+	// async that process might get fucked if we don't stop any more refs from
+	// being opened created while we're in the process of packing. Hence this lock.
+	gitteh_lock refLock_;
 };
 
 } // namespace gitteh

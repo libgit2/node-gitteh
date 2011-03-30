@@ -242,7 +242,10 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 			ref->unlock();
 			THROW_GIT_ERROR("Couldn't delete ref.", result);
 		}
+
+		ref->repository_->referenceFactory_->deleteObject(ref->ref_);
 		ref->deleted_ = true;
+
 		ref->unlock();
 	}
 
@@ -258,6 +261,7 @@ int Reference::EIO_Delete(eio_req *req) {
 		reqData->ref->repository_->unlockRepository();
 
 		if(reqData->error == GIT_SUCCESS) {
+			reqData->ref->repository_->referenceFactory_->deleteObject(reqData->ref->ref_);
 			reqData->ref->deleted_ = true;
 		}
 
@@ -314,6 +318,8 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 		return Undefined();
 	}
 	else {
+		ref->repository_->lockRefs();
+
 		git_reference *resolvedRef;
 		ref->repository_->lockRepository();
 		int result = git_reference_resolve(&resolvedRef, ref->ref_);
@@ -322,11 +328,14 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 		ref->unlock();
 
 		if(result != GIT_SUCCESS) {
+			ref->repository_->unlockRefs();
 			THROW_GIT_ERROR("Couldn't resolve ref.", result);
 		}
 
-		return scope.Close(ref->repository_->referenceFactory_->
+		Local<Object> resolvedRefObj = Local<Object>::New(ref->repository_->referenceFactory_->
 				syncRequestObject(resolvedRef)->handle_);
+		ref->repository_->unlockRefs();
+		return scope.Close(resolvedRefObj);
 	}
 }
 
@@ -334,9 +343,11 @@ int Reference::EIO_Resolve(eio_req *req) {
 	resolve_request *reqData = static_cast<resolve_request*>(req->data);
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
+		reqData->ref->repository_->lockRefs();
 		reqData->ref->repository_->lockRepository();
 		reqData->error = git_reference_resolve(&reqData->resolved, reqData->ref->ref_);
 		reqData->ref->repository_->unlockRepository();
+		reqData->ref->repository_->unlockRefs();
 		reqData->ref->unlock();
 	}
 
@@ -352,6 +363,7 @@ int Reference::EIO_AfterResolve(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
  	if(reqData->error != GIT_SUCCESS) {
+ 		reqData->ref->repository_->unlockRefs();
  		Handle<Value> error = CreateGitError(String::New("Couldn't resolve ref"), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -361,6 +373,7 @@ int Reference::EIO_AfterResolve(eio_req *req) {
 	else {
 		reqData->ref->repository_->referenceFactory_->asyncRequestObject(
 				reqData->resolved, reqData->callback);
+		reqData->ref->repository_->unlockRefs();
 	}
 
 	delete reqData;
@@ -512,6 +525,7 @@ void Reference::processInitData(void *data) {
 void* Reference::loadInitData() {
 	ref_data *data = new ref_data;
 
+	lock();
 	repository_->lockRepository();
 
 	data->name = new std::string(git_reference_name(ref_));
@@ -527,6 +541,8 @@ void* Reference::loadInitData() {
 	}
 
 	repository_->unlockRepository();
+	unlock();
+
 	return data;
 }
 

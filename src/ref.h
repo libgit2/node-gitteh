@@ -21,6 +21,7 @@ public:
 	void unlock();
 
 	Repository *repository_;
+	git_reference *ref_;
 	bool deleted_;
 
 protected:
@@ -34,7 +35,6 @@ protected:
 	void processInitData(void *data);
 	void* loadInitData();
 
-	git_reference *ref_;
 	git_rtype type_;
 
 private:
