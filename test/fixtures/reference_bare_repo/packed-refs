@@ -1,10 +1,2 @@
-# pack-refs with: peeled 
-ca1f3314acd24c4551da8c26adaf562272db1d19 refs/heads/asyncoidtest
 38042ca303189a2e6955b92d53aab7d642cc82c2 refs/heads/master
-91ef0fd7ea773461d4d57dc1e5675a9bc83d6081 refs/heads/oidchangetargettest
-91ef0fd7ea773461d4d57dc1e5675a9bc83d6081 refs/heads/setoidasync
-91ef0fd7ea773461d4d57dc1e5675a9bc83d6081 refs/heads/setoidsync
-ca1f3314acd24c4551da8c26adaf562272db1d19 refs/heads/syncoidtest
-ca1f3314acd24c4551da8c26adaf562272db1d19 refs/heads/testbranch
 dfa48f906451815913215afb4ef58321c33824e7 refs/tags/test_tag
-^38042ca303189a2e6955b92d53aab7d642cc82c2
