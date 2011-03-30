@@ -34,7 +34,6 @@
 #include "error.h"
 #include "ref.h"
 #include "blob.h"
-#include "thread.h"
 
 namespace gitteh {
 
@@ -44,76 +43,19 @@ static void gcNotif(GCType type, GCCallbackFlags flags) {
 }
 #endif
 
-Persistent<FunctionTemplate> construct;
-class Feck : public ObjectWrap {
-public:
-	gitteh_lock myLock;
+static gitteh_lock myLock;
 
-	static int EIO_Unlock(eio_req *req) {
-		Feck *feck = static_cast<Feck*>(req->data);
-
-		std::cout << "eio start!\n";
-		sleep(2);
-		std::cout << "done sleepin'\n";
-		UNLOCK_MUTEX(feck->myLock);
-
-		return 0;
-	}
-
-	static int EIO_AfterUnlock(eio_req *req) {
-		std::cout << "afterunlock\n";
-		Feck *feck = static_cast<Feck*>(req->data);
-		feck->Unref();
-		ev_unref(EV_DEFAULT_UC);
-		return 0;
-	}
-
-	static Handle<Value> AsyncLock(const Arguments& args) {
-		HandleScope scope;
-		Feck *feck = ObjectWrap::Unwrap<Feck>(args.This());
-
-		LOCK_MUTEX(feck->myLock);
-		feck->Ref();
-
-		eio_custom(EIO_Unlock, EIO_PRI_DEFAULT, EIO_AfterUnlock, feck);
-		ev_ref(EV_DEFAULT_UC);
-		std::cout << "asynclock.\n";
-
-		return Undefined();
-	}
-
-	static Handle<Value> SyncLock(const Arguments& args) {
-		HandleScope scope;
-		Feck *feck = ObjectWrap::Unwrap<Feck>(args.This());
-
-		LOCK_MUTEX(feck->myLock);
-		UNLOCK_MUTEX(feck->myLock);
-		std::cout << "synclock done.\n";
-		return Undefined();
-	}
-
-	Feck() {
-		CREATE_MUTEX(myLock);
-	}
-
-	static Handle<Value> New(const Arguments& args) {
-		Feck *feck = new Feck();
-		feck->Wrap(args.This());
-
-		return args.This();
-	}
-
-	static void Init(Handle<Object> target) {
-		Local<FunctionTemplate> t = FunctionTemplate::New(New);
-		t->InstanceTemplate()->SetInternalFieldCount(1);
-		construct = Persistent<FunctionTemplate>::New(t);
-
-		NODE_SET_PROTOTYPE_METHOD(t, "syncLock", SyncLock);
-		NODE_SET_PROTOTYPE_METHOD(t, "asyncLock", AsyncLock);
-	}
-};
+static Handle<Value> AsyncLock(const Arguments& args) {
+	HandleScope scope;
 
 
+}
+
+static Handle<Value> SyncLock(const Arguments& args) {
+	HandleScope scope;
+
+
+}
 
 extern "C" void
 init(Handle<Object> target) {
@@ -132,8 +74,10 @@ init(Handle<Object> target) {
 	ErrorInit(target);
 
 	//V8::AddGCPrologueCallback(gcNotif);
-	Feck::Init(target);
-	target->Set(String::New("feck"), construct->GetFunction());
+
+	CREATE_MUTEX(myLock);
+	NODE_SET_METHOD(target, "syncLock", SyncLock);
+	NODE_SET_METHOD(target, "asyncLock", AsyncLock);
 }
 
 } // namespace gitteh
