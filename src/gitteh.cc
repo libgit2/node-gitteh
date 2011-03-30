@@ -43,6 +43,20 @@ static void gcNotif(GCType type, GCCallbackFlags flags) {
 }
 #endif
 
+static gitteh_lock myLock;
+
+static Handle<Value> AsyncLock(const Arguments& args) {
+	HandleScope scope;
+
+
+}
+
+static Handle<Value> SyncLock(const Arguments& args) {
+	HandleScope scope;
+
+
+}
+
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
@@ -60,6 +74,10 @@ init(Handle<Object> target) {
 	ErrorInit(target);
 
 	//V8::AddGCPrologueCallback(gcNotif);
+
+	CREATE_MUTEX(myLock);
+	NODE_SET_METHOD(target, "syncLock", SyncLock);
+	NODE_SET_METHOD(target, "asyncLock", AsyncLock);
 }
 
 } // namespace gitteh
