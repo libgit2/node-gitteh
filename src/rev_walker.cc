@@ -25,6 +25,7 @@
 #include "rev_walker.h"
 #include "commit.h"
 #include "repository.h"
+#include "gitobjectwrap.h"
 #include "object_factory.h"
 
 namespace gitteh {
@@ -346,7 +347,7 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get next commit.", result);
 		}
 
-		return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
+		//return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
 	}
 }
 
@@ -389,8 +390,8 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
  		reqData->callback.Dispose();
 	}
 	else {
-		reqData->walker->repo_->commitFactory_->asyncRequestObject(
-				reqData->commit, reqData->callback);
+/*		reqData->walker->repo_->commitFactory_->asyncRequestObject(
+				reqData->commit, reqData->callback);*/
 	}
 
 	delete reqData;

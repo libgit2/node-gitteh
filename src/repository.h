@@ -3,6 +3,7 @@
 
 #include "gitteh.h"
 #include "object_store.h"
+#include "object_cache.h"
 
 namespace gitteh {
 
@@ -36,7 +37,7 @@ public:
 	void lockRefs();
 	void unlockRefs();
 
-	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
+	WrappedGitObjectCache<Commit, git_commit> *commitFactory_;
 	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;

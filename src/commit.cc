@@ -24,7 +24,6 @@
 
 #include "commit.h"
 #include "repository.h"
-#include "object_factory.h"
 #include "tree.h"
 #include <time.h>
 #include <stdlib.h>
@@ -402,7 +401,7 @@ void Commit::setOwner(void *owner) {
 	repository_ = static_cast<Repository*>(owner);
 }
 
-Commit::Commit() : GitObjectWrap() {
+Commit::Commit() {
 }
 
 Commit::~Commit() {

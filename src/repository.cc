@@ -687,10 +687,10 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(HAS_CALLBACK_ARG) {
-		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
+//		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
 	}
 	else {
-		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
+//		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
 	}
 }
 
@@ -1220,9 +1220,9 @@ int Repository::EIO_AfterExists(eio_req *req) {
 // ==========
 // COMMIT EIO
 // ==========
-FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
+/*FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
 FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)*/
 
 // ========
 // TREE EIO
@@ -1304,7 +1304,7 @@ Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 	CREATE_MUTEX(refLock_);
 
-	commitFactory_ = new ObjectFactory<Repository, Commit, git_commit>(this);
+	commitFactory_ = new WrappedGitObjectCache<Commit, git_commit>(this);
 	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
