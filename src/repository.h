@@ -2,7 +2,7 @@
 #define GITTEH_REPO_H
 
 #include "gitteh.h"
-#include "object_store.h"
+#include "object_cache.h"
 
 namespace gitteh {
 
@@ -21,7 +21,7 @@ class Repository : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
-	template<class, class,class> friend class ObjectFactory;
+	template<class, class,class> friend class WrappedGitObjectCache;
 
 	Repository();
 	~Repository();
@@ -36,11 +36,11 @@ public:
 	void lockRefs();
 	void unlockRefs();
 
-	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
-	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
+	WrappedGitObjectCache<Repository, Commit, git_commit> *commitCache_;
+	/*ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
-	ObjectFactory<Repository, Blob, git_blob> *blobFactory_;
+	ObjectFactory<Repository, Blob, git_blob> *blobFactory_;*/
 
 	void notifyIndexDead();
 
@@ -54,6 +54,7 @@ protected:
 	static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);
+
 	static Handle<Value> GetODB(const Arguments&);
 	static Handle<Value> GetCommit(const Arguments&);
 	static Handle<Value> GetTree(const Arguments&);
@@ -145,7 +146,7 @@ private:
 
 	int DoRefPacking();
 
-	Index *index_;
+	//Index *index_;
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,

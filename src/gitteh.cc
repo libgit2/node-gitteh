@@ -25,24 +25,22 @@
 #include "gitteh.h"
 
 #include "commit.h"
-#include "tree.h"
 #include "repository.h"
+/*#include "tree.h"
 #include "index.h"
 #include "index_entry.h"
 #include "tag.h"
 #include "rev_walker.h"
-#include "error.h"
 #include "ref.h"
-#include "blob.h"
+#include "blob.h"*/
+#include "error.h"
 #include "thread.h"
 
 namespace gitteh {
 
-#if 0
 static void gcNotif(GCType type, GCCallbackFlags flags) {
 	std::cout << "gc is happening yo.\n";
 }
-#endif
 
 extern "C" void
 init(Handle<Object> target) {
@@ -50,17 +48,17 @@ init(Handle<Object> target) {
 	Repository::Init(target);
 
 	Commit::Init(target);
-	Tree::Init(target);
+	/*Tree::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);
 	RevWalker::Init(target);
 	Reference::Init(target);
-	Blob::Init(target);
+	Blob::Init(target);*/
 
 	ErrorInit(target);
 
-	//V8::AddGCPrologueCallback(gcNotif);
+	V8::AddGCPrologueCallback(gcNotif);
 }
 
 } // namespace gitteh

@@ -6,21 +6,13 @@
 
 namespace gitteh {
 
+template<class T>
 class GitObjectWrap : public ObjectWrap {
 public:
 	GitObjectWrap() : ObjectWrap() {
 		CREATE_MUTEX(gatekeeperLock_);
 		initialized_ = 0;
-		initInterest_ = 0;
 		data_ = NULL;
-	}
-
-	// Shortcut, if this is a newly allocated object for a newly created Git
-	// object, then there's not going to be any threads fighting for access,
-	// we just mark it as initialized straight up, no need to even use a mutex.
-	void forceInitialized() {
-		processInitData(NULL);
-		initialized_ = true;
 	}
 
 	bool isInitialized() {
@@ -31,27 +23,10 @@ public:
 		return initialized;
 	}
 
-	void registerInitInterest() {
-		LOCK_MUTEX(gatekeeperLock_);
-		Ref();
-		UNLOCK_MUTEX(gatekeeperLock_);
-	}
-
-	void removeInitInterest() {
-		LOCK_MUTEX(gatekeeperLock_);
-		Unref();
-		initInterest_--;
-
-		if(initInterest_ == 0) {
-			DESTROY_MUTEX(initLock_);
-		}
-		UNLOCK_MUTEX(gatekeeperLock_);
-	}
-
-	void waitForInitialization() {
+	int waitForInitialization() {
 		bool needInitialization = false;
 		LOCK_MUTEX(gatekeeperLock_);
-		if(!initInterest_++) {
+		if(!initialized_) {
 			needInitialization = true;
 			CREATE_MUTEX(initLock_);
 			LOCK_MUTEX(initLock_);
@@ -59,9 +34,18 @@ public:
 		UNLOCK_MUTEX(gatekeeperLock_);
 
 		if(needInitialization) {
-			void* data = loadInitData();
-			initializationDone(data);
-			return;
+			int result = GIT_SUCCESS;
+			void* data = loadInitData(&result);
+
+			LOCK_MUTEX(gatekeeperLock_);
+			data_ = data;
+			UNLOCK_MUTEX(gatekeeperLock_);
+
+			UNLOCK_MUTEX(initLock_);
+
+			if(result != GIT_SUCCESS) {
+				return result;
+			}
 		}
 
 		//LOCK_MUTEX(initLock_);
@@ -75,21 +59,13 @@ public:
 			usleep(1000);
 		}
 		UNLOCK_MUTEX(initLock_);
+
+		return GIT_SUCCESS;
 	}
 
 	void syncInitialize(void *data) {
 		LOCK_MUTEX(gatekeeperLock_);
 		UNLOCK_MUTEX(gatekeeperLock_);
-	}
-
-	// Signalled by the thread that is building the commit data that the data
-	// is now done and JS object can be finalized.
-	void initializationDone(void *data) {
-		LOCK_MUTEX(gatekeeperLock_);
-		data_ = data;
-		UNLOCK_MUTEX(gatekeeperLock_);
-
-		UNLOCK_MUTEX(initLock_);
 	}
 
 	// This should only be called from main thread. When one or more requests
@@ -99,10 +75,11 @@ public:
 	// the JS object. All the requests will call this, but only the first one
 	// will actually make anything meaningful happen.
 	void ensureInitDone() {
-		// FIXME? don't think any locking is necessary here as this is ONLY
-		// called from main thread.
 		LOCK_MUTEX(gatekeeperLock_);
-		if(data_ != NULL) {
+		if(!initialized_) {
+			Handle<Value> constructorArgs[1] = { External::New(this) };
+			T::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
+
 			processInitData(data_);
 			initialized_ = true;
 			data_ = NULL;
@@ -116,11 +93,10 @@ protected:
 	// This is implemented by actual object classes. Implements MUST free all
 	// resources allocated by the data on the heap.
 	virtual void processInitData(void *data) = 0;
-	virtual void* loadInitData() = 0;
+	virtual void* loadInitData(int *result) = 0;
 
 private:
 	bool initialized_;
-	int initInterest_;
 	gitteh_lock gatekeeperLock_;
 	gitteh_lock initLock_;
 	void *data_;

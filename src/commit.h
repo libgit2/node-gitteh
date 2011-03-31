@@ -8,11 +8,11 @@ namespace gitteh {
 
 class Repository;
 
-class Commit : public GitObjectWrap {
+class Commit : public GitObjectWrap<Commit> {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
-	Commit();
+	Commit(git_commit*);
 	~Commit();
 
 	static Handle<Value> SaveObject(Handle<Object>, Repository*, Handle<Value>, bool);
@@ -30,8 +30,8 @@ protected:
 	static Handle<Value> GetParent(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void *data);
-	void* loadInitData();
+	void processInitData(void*);
+	void* loadInitData(int*);
 
 	int parentCount_;
 

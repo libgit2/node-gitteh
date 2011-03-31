@@ -20,7 +20,6 @@ template<class P, class T, class S>
 class ObjectFactory {
 public:
 	ObjectFactory(P *owner) {
-		owner_ = owner;
 	}
 
 	~ObjectFactory() {
@@ -136,7 +135,6 @@ private:
 	 	CLEANUP_CALLBACK(callback);
 	}
 
-	P *owner_;
 	ObjectStore<T,S> store_;
 };
 

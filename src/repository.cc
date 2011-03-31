@@ -23,14 +23,14 @@
  */
 
 #include "repository.h"
-#include "commit.h"
+#include "commit.h"/*
 #include "tree.h"
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
 #include "ref.h"
 #include "blob.h"
-#include "object_factory.h"
+#include "object_factory.h"*/
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.
@@ -77,7 +77,7 @@
 		}
 
 
-#define FN_ASYNC_GET_OID_OBJECT(TYPE, GIT_TYPE)								\
+#define FN_ASYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, CACHE)						\
 	int Repository::EIO_Get##TYPE(eio_req *req) {							\
 		GET_REQUEST_DATA(object_request);									\
 		GIT_TYPE *object;													\
@@ -85,6 +85,13 @@
 				&object);													\
 		if(reqData->error == GIT_SUCCESS) {									\
 			reqData->object = object;										\
+			TYPE *wrappedObject = NULL;										\
+			reqData->error = reqData->repo->CACHE->asyncCacheObject(		\
+					object, &wrappedObject);								\
+					std::cout << reqData->error << "\n";					\
+			if(reqData->error == GIT_SUCCESS) {								\
+				reqData->wrappedObject = wrappedObject;						\
+			}																\
 		}																	\
 		return 0;															\
 	}
@@ -119,17 +126,20 @@
 		}																	\
 		else {																\
 			if(reqData->create) {											\
-				TYPE *obj = reqData->repo->FACTORY->newObject(				\
+				/*TYPE *obj = reqData->repo->FACTORY->newObject(				\
 					static_cast<GIT_TYPE*>(reqData->object));				\
 				callbackArgs[0] = Null();									\
 				callbackArgs[1] = obj->handle_;								\
 				TRIGGER_CALLBACK();											\
-				reqData->callback.Dispose();								\
+				reqData->callback.Dispose();*/								\
 			}																\
 			else {															\
-				reqData->repo->FACTORY->asyncRequestObject(					\
-						static_cast<GIT_TYPE*>(reqData->object),			\
-						reqData->callback);									\
+				TYPE *wrappedObject = static_cast<TYPE*>(reqData->wrappedObject);	\
+				reqData->repo->FACTORY->asyncEnsureWrapped(wrappedObject);				\
+				callbackArgs[0] = Undefined();								\
+				callbackArgs[1] = Local<Object>::New(wrappedObject->handle_);			\
+				TRIGGER_CALLBACK();												\
+				reqData->callback.Dispose();								\
 			}																\
 		}																	\
 		delete reqData;														\
@@ -190,14 +200,14 @@
 	request->create = true;													\
 	REQUEST_DETACH(repo, EIO_Create##TYPE, EIO_Return##TYPE);
 
-#define SYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
+#define SYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, CACHE)							\
 	GIT_TYPE *object;														\
 	int res = repo->get##TYPE(&oidArg, &object);							\
 	if(res != GIT_SUCCESS) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
-	return scope.Close(repo->FACTORY->										\
-			syncRequestObject(object)->handle_);
+	return scope.Close(repo->CACHE->										\
+			syncCacheObject(object));
 
 #define SYNC_GET_NAMED_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
 	GIT_TYPE *object;														\
@@ -232,6 +242,7 @@ struct object_request {
 	std::string *name;
 	std::string *target;
 	void *object;
+	void *wrappedObject;
 	bool create;
 };
 
@@ -296,7 +307,7 @@ void Repository::Init(Handle<Object> target) {
 	constructor_template->SetClassName(String::New("Repository"));
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
+	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);/*
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
@@ -312,11 +323,50 @@ void Repository::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
-	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
+	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);*/
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "openRepository2", OpenRepository2);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
+}
+
+Handle<Value> Repository::New(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(2);
+	REQ_EXT_ARG(0, repoArg);
+	REQ_STR_ARG(1, pathArg);
+
+	Repository *repo = new Repository();
+	repo->Wrap(args.This());
+
+	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
+	repo->path_ = *pathArg;
+	repo->odb_ = git_repository_database(repo->repo_);
+
+	args.This()->Set(String::New("path"), String::New(repo->path_), (PropertyAttribute)(ReadOnly | DontDelete));
+
+	// HUGE FUCKING TODO:
+	// IN MOTHER FUCKING CAPITALS.
+	// FOR SOME FUCKING REASON THE REPOSITORY IS GETTING GARBAGE COLLECTED MID
+	// RUN WHEN I DO STRESS TESTS LIKE TRAVERSING COMMIT HISTORY 1000 TIMES
+	// SIMULTANEOUSLY. THIS IS FUCKING STUPID BECAUSE THE FUCKING REPO OBJECT
+	// STILL HAS A FUCKING REF IN THE FUCKING USERLAND SCRIPT, BUT CUNTS WILL BE
+	// FUCKING CUNTS RIGHT? SO ANYWAY I FOUND THIS OUT AFTER LIKE 8 HOURS OF
+	// DEBUGGING BULLSHIT FUCKING RANDOM SEGFAULTS ALL OVER THE PLACE. YEAH.
+	// AWESOME. I GOT LUCKY IN ONE OF THE SEGFAULTS AND SAW IN GDB THAT THE CUNT
+	// WAS ALL FUCKED UP. ANYWAY, I DISCOVERED THAT IF I ATTACHED THE REPO TO
+	// THE GLOBAL PROCESS OBJECT THEN REPO WOULDN'T GET REAPO'D AND AS SUCH MY
+	// HARD WORK WOULDN'T COME UNDONE LIKE A HOOKER'S BRA CLASP. THERE MUST BE
+	// SOME SORT OF WEIRD V8 OPTIMIZATION THAT LOOKS AT LOCAL VARIABLES IN A
+	// SCRIPT AND SENSES IF THE CUNTS AREN'T BEING REFERENCED ANYMORE, THEN IT
+	// MUST CONSIDER THE LOCAL JS VARIABLE "WEAK" OR SOME SHIT. ANYWAY, IT'S
+	// FUCKED AND I DON'T LIKE IT. FOR NOW I'M ADDING REF() HERE TO MAKE SURE
+	// THAT A REPO OBJECT CAN NEVER BE MOTHERFUCKING GARBAGE COLLECTED. WHEN I
+	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
+	// THIS SUCKER.
+	repo->Ref();
+	return args.This();
 }
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
@@ -346,8 +396,11 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 			args[0]
 		};
 
-		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(2, constructorArgs));
+
+		Local<Object> repoObj = Repository::constructor_template->GetFunction()
+				->NewInstance(2, constructorArgs);
+
+		return scope.Close(Local<Object>::New(repoObj));
 	}
 }
 
@@ -608,45 +661,7 @@ int Repository::EIO_AfterInitRepository(eio_req *req) {
 	return 0;
 }
 
-Handle<Value> Repository::New(const Arguments& args) {
-	HandleScope scope;
-
-	REQ_ARGS(2);
-	REQ_EXT_ARG(0, repoArg);
-	REQ_STR_ARG(1, pathArg);
-
-	Repository *repo = new Repository();
-	repo->Wrap(args.This());
-
-	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
-	repo->path_ = *pathArg;
-	repo->odb_ = git_repository_database(repo->repo_);
-
-	args.This()->Set(String::New("path"), String::New(repo->path_), (PropertyAttribute)(ReadOnly | DontDelete));
-
-	// HUGE FUCKING TODO:
-	// IN MOTHER FUCKING CAPITALS.
-	// FOR SOME FUCKING REASON THE REPOSITORY IS GETTING GARBAGE COLLECTED MID
-	// RUN WHEN I DO STRESS TESTS LIKE TRAVERSING COMMIT HISTORY 1000 TIMES
-	// SIMULTANEOUSLY. THIS IS FUCKING STUPID BECAUSE THE FUCKING REPO OBJECT
-	// STILL HAS A FUCKING REF IN THE FUCKING USERLAND SCRIPT, BUT CUNTS WILL BE
-	// FUCKING CUNTS RIGHT? SO ANYWAY I FOUND THIS OUT AFTER LIKE 8 HOURS OF
-	// DEBUGGING BULLSHIT FUCKING RANDOM SEGFAULTS ALL OVER THE PLACE. YEAH.
-	// AWESOME. I GOT LUCKY IN ONE OF THE SEGFAULTS AND SAW IN GDB THAT THE CUNT
-	// WAS ALL FUCKED UP. ANYWAY, I DISCOVERED THAT IF I ATTACHED THE REPO TO
-	// THE GLOBAL PROCESS OBJECT THEN REPO WOULDN'T GET REAPO'D AND AS SUCH MY
-	// HARD WORK WOULDN'T COME UNDONE LIKE A HOOKER'S BRA CLASP. THERE MUST BE
-	// SOME SORT OF WEIRD V8 OPTIMIZATION THAT LOOKS AT LOCAL VARIABLES IN A
-	// SCRIPT AND SENSES IF THE CUNTS AREN'T BEING REFERENCED ANYMORE, THEN IT
-	// MUST CONSIDER THE LOCAL JS VARIABLE "WEAK" OR SOME SHIT. ANYWAY, IT'S
-	// FUCKED AND I DON'T LIKE IT. FOR NOW I'M ADDING REF() HERE TO MAKE SURE
-	// THAT A REPO OBJECT CAN NEVER BE MOTHERFUCKING GARBAGE COLLECTED. WHEN I
-	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
-	// THIS SUCKER.
-	repo->Ref();
-	return args.This();
-}
-
+#if 0
 Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -678,7 +693,7 @@ Handle<Value> Repository::CreateBlob(const Arguments& args) {
 
 	return scope.Close(Blob::SaveObject(blobObjArg, repo, callback, true));
 }
-
+#endif
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -690,9 +705,11 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
 	}
 	else {
-		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
+		SYNC_GET_OID_OBJECT(Commit, git_commit, commitCache_);
 	}
 }
+
+#if 0
 
 Handle<Value> Repository::CreateTree(const Arguments& args) {
 	HandleScope scope;
@@ -1220,10 +1237,63 @@ int Repository::EIO_AfterExists(eio_req *req) {
 // ==========
 // COMMIT EIO
 // ==========
-FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
-FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)
+FN_ASYNC_GET_OID_OBJECT(Commit, git_commit, commitCache_)
+//FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
+FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitCache_)
+#endif
 
+int Repository::EIO_GetCommit(eio_req *req) {
+	object_request *reqData = static_cast<object_request*>(req->data);
+
+	git_commit *commit;
+	int result = reqData->repo->getCommit(&reqData->oid, &commit);
+
+	reqData->wrappedObject = NULL;
+	if(result == GIT_SUCCESS) {
+		reqData->object = commit;
+
+		Commit *commitObject;
+		reqData->error = reqData->repo->commitCache_->asyncCacheObject(
+				commit, &commitObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = commitObject;
+		}
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnCommit(eio_req *req) {
+	HandleScope scope;
+	object_request *reqData = static_cast<object_request*>(req->data);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Git error."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Undefined();
+
+		Commit *wrappedCommit = static_cast<Commit*>(reqData->wrappedObject);
+		git_commit *commit = static_cast<git_commit*>(reqData->object);
+		reqData->repo->commitCache_->asyncEnsureWrapped(commit);
+		callbackArgs[1] = Local<Object>::New(wrappedCommit->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
+}
+
+#if 0
 // ========
 // TREE EIO
 // ========
@@ -1299,26 +1369,26 @@ int Repository::EIO_CreateOidRef(eio_req *req) {
 // ===========
 FN_ASYNC_CREATE_OBJECT(RevWalker, git_revwalk)
 FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
-
+#endif
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 	CREATE_MUTEX(refLock_);
 
-	commitFactory_ = new ObjectFactory<Repository, Commit, git_commit>(this);
-	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
+	commitCache_ = new WrappedGitObjectCache<Repository, Commit, git_commit>(this);
+	/*referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
-	blobFactory_ = new ObjectFactory<Repository, Blob, git_blob>(this);
+	blobFactory_ = new ObjectFactory<Repository, Blob, git_blob>(this);*/
 
-	index_ = NULL;
+	//index_ = NULL;
 }
 
 Repository::~Repository() {
-	delete commitFactory_;
-	delete referenceFactory_;
+	delete commitCache_;
+	/*delete referenceFactory_;
 	delete treeFactory_;
 	delete tagFactory_;
-	delete blobFactory_;
+	delete blobFactory_;*/
 
 	close();
 }
@@ -1338,6 +1408,7 @@ int Repository::getCommit(git_oid *id, git_commit **commit) {
 	return result;
 }
 
+#if 0
 int Repository::createCommit(git_commit **commit) {
 #ifdef FIXME
 	int result;
@@ -1463,9 +1534,12 @@ int Repository::createRawObject(git_rawobj** rawObj) {
 }
 #endif
 
+
+
 void Repository::notifyIndexDead() {
 	index_ = NULL;
 }
+#endif
 
 void Repository::lockRepository() {
 	LOCK_MUTEX(gitLock_);

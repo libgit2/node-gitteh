@@ -24,8 +24,7 @@
 
 #include "commit.h"
 #include "repository.h"
-#include "object_factory.h"
-#include "tree.h"
+//#include "tree.h"
 #include <time.h>
 #include <stdlib.h>
 #include "signature.h"
@@ -91,10 +90,9 @@ Handle<Value> Commit::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theCommit);
+	REQ_EXT_ARG(0, commitArg);
 
-	Commit *commit = new Commit();
-	commit->commit_ = (git_commit*)theCommit->Value();
+	Commit *commit = static_cast<Commit*>(commitArg->Value());
 	commit->Wrap(args.This());
 
 	return args.This();
@@ -330,11 +328,12 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	return 0;
 }
 
-void* Commit::loadInitData() {
+void* Commit::loadInitData(int *result) {
 	commit_data *data = new commit_data;
 	repository_->lockRepository();
 	const git_oid *commitId = git_commit_id(commit_);
 	git_oid_fmt(data->id, commitId);
+
 	data->message = new std::string(git_commit_message(commit_));
 	data->author = git_signature_dup(git_commit_author(commit_));
 	data->committer = git_signature_dup(git_commit_committer(commit_));
@@ -402,7 +401,8 @@ void Commit::setOwner(void *owner) {
 	repository_ = static_cast<Repository*>(owner);
 }
 
-Commit::Commit() : GitObjectWrap() {
+Commit::Commit(git_commit *commit) : GitObjectWrap<Commit>() {
+	commit_ = commit;
 }
 
 Commit::~Commit() {
