@@ -74,6 +74,47 @@ public:
 		UNLOCK_MUTEX(objectsLock_);
 	}
 
+	inline T **getAllObjects(int *countRet) {
+		LOCK_MUTEX(objectsLock_);
+		int count = *countRet = objects_.size();
+
+		typename std::map<size_t, CachedObject<T,S>* >::const_iterator it = objects_.begin();
+		typename std::map<size_t, CachedObject<T,S>* >::const_iterator end = objects_.end();
+		CachedObject<T,S>* cachedObject;
+
+		T **objectPtrs = new T*[count];
+		int i = 0;
+		while(it != end) {
+			cachedObject = it->second;
+			objectPtrs[i++] = cachedObject->object;
+			++it;
+		}
+
+		UNLOCK_MUTEX(objectsLock_);
+		return objectPtrs;
+	}
+
+	// Currently used to inform the cache to update its internal store when
+	// refs are packed, this is because ref packing invalidates old pointer and
+	// a new one is created, however it's still the same object so no need to
+	// re-wrap etc.
+	inline void updateCacheRef(S *oldRef, S *newRef) {
+		LOCK_MUTEX(objectsLock_);
+
+		// Grab the current cache entry.
+		CachedObject<T, S> *cachedObject = objects_[(size_t)oldRef];
+
+		// Delete the cache entry from store pointed to by old ref.
+		typename std::map<size_t, CachedObject<T,S>* >::iterator it;
+		it = objects_.find((size_t)oldRef);
+		objects_.erase(it);
+
+		// Reinsert with new ref.
+		objects_[(size_t)newRef] = cachedObject;
+
+		UNLOCK_MUTEX(objectsLock_);
+	}
+
 private:
 	inline int wrap(S *gitObject, T **object) {
 		int result;

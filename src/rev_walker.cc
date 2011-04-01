@@ -34,6 +34,7 @@ struct walker_request {
 	Persistent<Function> callback;
 	RevWalker *walker;
 	git_commit *commit;
+	Commit *commitObject;
 	std::string *id;
 	int error;
 };
@@ -347,6 +348,7 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get next commit.", result);
 		}
 
+		return scope.Close(walker->repo_->commitCache_->syncRequest(commit));
 		//return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
 	}
 }
@@ -362,6 +364,11 @@ int RevWalker::EIO_Next(eio_req *req) {
 	if(reqData->error == GIT_SUCCESS) {
 		reqData->error = git_commit_lookup(&reqData->commit,
 				reqData->walker->repo_->repo_, &id);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->error = reqData->walker->repo_->commitCache_->asyncRequest(
+					reqData->commit, &reqData->commitObject);
+		}
 	}
 
 	return 0;
@@ -385,14 +392,16 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't get next commit."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
-
- 		TRIGGER_CALLBACK();
- 		reqData->callback.Dispose();
 	}
 	else {
-/*		reqData->walker->repo_->commitFactory_->asyncRequestObject(
-				reqData->commit, reqData->callback);*/
+		reqData->commitObject->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(reqData->commitObject->handle_);
 	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
 
 	delete reqData;
 

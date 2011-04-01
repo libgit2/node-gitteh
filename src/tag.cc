@@ -61,6 +61,10 @@ struct save_request {
 
 Persistent<FunctionTemplate> Tag::constructor_template;
 
+Tag::Tag(git_tag *tag) {
+	tag_ = tag;
+}
+
 Tag::~Tag() {
 	repository_->lockRepository();
 	git_tag_close(tag_);
@@ -89,12 +93,13 @@ Handle<Value> Tag::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theTag);
+	REQ_EXT_ARG(0, tagArg);
 
-	Tag *tag = new Tag();
-	tag->tag_ = static_cast<git_tag*>(theTag->Value());
-
+	Tag *tag = static_cast<Tag*>(tagArg->Value());
 	tag->Wrap(args.This());
+
+	tag->processInitData();
+
 	return args.This();
 }
 
@@ -291,41 +296,31 @@ int Tag::EIO_AfterSave(eio_req *req) {
 	return 0;
 }
 
-void Tag::processInitData(void *data) {
+void Tag::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	if(data != NULL) {
-		tag_data *tagData = static_cast<tag_data*>(data);
-		jsObject->Set(id_symbol, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+	tag_data *tagData = initData_;
+	jsObject->Set(id_symbol, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObject->Set(name_symbol, String::New(tagData->name->c_str()));
-		jsObject->Set(message_symbol, String::New(tagData->message->c_str()));
+	jsObject->Set(name_symbol, String::New(tagData->name->c_str()));
+	jsObject->Set(message_symbol, String::New(tagData->message->c_str()));
 
-		CREATE_PERSON_OBJ(taggerObj, tagData->tagger);
-		jsObject->Set(tagger_symbol, taggerObj);
+	CREATE_PERSON_OBJ(taggerObj, tagData->tagger);
+	jsObject->Set(tagger_symbol, taggerObj);
 
-		jsObject->Set(targetId_symbol, String::New(tagData->targetId, 40));
-		jsObject->Set(targetType_symbol, String::New(tagData->targetType->c_str()), (PropertyAttribute)(ReadOnly | DontDelete));
+	jsObject->Set(targetId_symbol, String::New(tagData->targetId, 40));
+	jsObject->Set(targetType_symbol, String::New(tagData->targetType->c_str()), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		delete tagData->targetType;
-		delete tagData->name;
-		delete tagData->message;
-		git_signature_free(tagData->tagger);
-		delete tagData;
-	}
-	else {
-		jsObject->Set(id_symbol, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(name_symbol, Null());
-		jsObject->Set(message_symbol, Null());
-		jsObject->Set(tagger_symbol, Null());
-		jsObject->Set(targetId_symbol, Null());
-		jsObject->Set(targetType_symbol, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
+	delete tagData->targetType;
+	delete tagData->name;
+	delete tagData->message;
+	git_signature_free(tagData->tagger);
+	delete tagData;
 }
 
-void* Tag::loadInitData() {
-	tag_data *data = new tag_data;
+int Tag::doInit() {
+	tag_data *data = initData_ = new tag_data;
 
 	repository_->lockRepository();
 	const git_oid *tagOid = git_tag_id(tag_);
@@ -345,7 +340,7 @@ void* Tag::loadInitData() {
 
 	repository_->unlockRepository();
 
-	return data;
+	return GIT_SUCCESS;
 }
 
 void Tag::setOwner(void *owner) {

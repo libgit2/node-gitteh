@@ -38,10 +38,10 @@ public:
 	void unlockRefs();
 
 	WrappedGitObjectCache<Commit, git_commit> *commitCache_;
-	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
-	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
-	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
-	ObjectFactory<Repository, Blob, git_blob> *blobFactory_;
+	WrappedGitObjectCache<Tag, git_tag> *tagCache_;
+	WrappedGitObjectCache<Tree, git_tree> *treeCache_;
+	WrappedGitObjectCache<Reference, git_reference> *referenceCache_;
+	WrappedGitObjectCache<Blob, git_blob> *blobCache_;
 
 	void notifyIndexDead();
 
@@ -81,7 +81,6 @@ protected:
 
 	void close();
 
-
 private:
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
@@ -91,9 +90,6 @@ private:
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
-	int createTree(git_tree**);
-	int createCommit(git_commit**);
-	int createTag(git_tag**);
 	int createRevWalker(git_revwalk**);
 
 	static int EIO_Exists(eio_req*);
@@ -109,7 +105,6 @@ private:
 	static int EIO_AfterInitRepository(eio_req*);
 
 	static int EIO_GetCommit(eio_req*);
-	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
 	
 	static int EIO_GetTree(eio_req*);
@@ -117,7 +112,6 @@ private:
 	static int EIO_ReturnTree(eio_req*);
 	
 	static int EIO_GetTag(eio_req*);
-	static int EIO_CreateTag(eio_req*);
 	static int EIO_ReturnTag(eio_req*);
 	
 	static int EIO_GetRawObject(eio_req*);

@@ -24,7 +24,6 @@
 
 #include "ref.h"
 #include "repository.h"
-#include "object_factory.h"
 
 static Persistent<String> name_symbol;
 static Persistent<String> type_symbol;
@@ -66,6 +65,7 @@ struct resolve_request {
 	Persistent<Function> callback;
 	Reference *ref;
 	git_reference *resolved;
+	Reference *resolvedObj;
 	int error;
 };
 
@@ -78,9 +78,10 @@ struct target_request {
 
 Persistent<FunctionTemplate> Reference::constructor_template;
 
-Reference::Reference() {
+Reference::Reference(git_reference *ref) {
 	CREATE_MUTEX(lock_);
 	deleted_ = false;
+	ref_ = ref;
 }
 
 void Reference::lock() {
@@ -119,9 +120,9 @@ Handle<Value> Reference::New(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, refArg);
 
-	Reference *ref = new Reference();
+	Reference *ref = static_cast<Reference*>(refArg->Value());
 	ref->Wrap(args.This());
-	ref->ref_ = static_cast<git_reference*>(refArg->Value());
+	ref->processInitData();
 
 	return args.This();
 }
@@ -243,7 +244,7 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 			THROW_GIT_ERROR("Couldn't delete ref.", result);
 		}
 
-		ref->repository_->referenceFactory_->deleteObject(ref->ref_);
+		ref->repository_->referenceCache_->remove(ref->ref_);
 		ref->deleted_ = true;
 
 		ref->unlock();
@@ -261,7 +262,7 @@ int Reference::EIO_Delete(eio_req *req) {
 		reqData->ref->repository_->unlockRepository();
 
 		if(reqData->error == GIT_SUCCESS) {
-			reqData->ref->repository_->referenceFactory_->deleteObject(reqData->ref->ref_);
+			reqData->ref->repository_->referenceCache_->remove(reqData->ref->ref_);
 			reqData->ref->deleted_ = true;
 		}
 
@@ -332,8 +333,8 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 			THROW_GIT_ERROR("Couldn't resolve ref.", result);
 		}
 
-		Local<Object> resolvedRefObj = Local<Object>::New(ref->repository_->referenceFactory_->
-				syncRequestObject(resolvedRef)->handle_);
+		Handle<Value> resolvedRefObj = ref->repository_->referenceCache_->
+				syncRequest(resolvedRef);
 		ref->repository_->unlockRefs();
 		return scope.Close(resolvedRefObj);
 	}
@@ -349,6 +350,11 @@ int Reference::EIO_Resolve(eio_req *req) {
 		reqData->ref->repository_->unlockRepository();
 		reqData->ref->repository_->unlockRefs();
 		reqData->ref->unlock();
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->error = reqData->ref->repository_->referenceCache_->
+					asyncRequest(reqData->resolved, &reqData->resolvedObj);
+		}
 	}
 
 	return 0;
@@ -366,16 +372,16 @@ int Reference::EIO_AfterResolve(eio_req *req) {
  		reqData->ref->repository_->unlockRefs();
  		Handle<Value> error = CreateGitError(String::New("Couldn't resolve ref"), reqData->error);
  		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
- 		TRIGGER_CALLBACK();
- 		reqData->callback.Dispose();
+ 		callbackArgs[1] = Undefined();
 	}
 	else {
-		reqData->ref->repository_->referenceFactory_->asyncRequestObject(
-				reqData->resolved, reqData->callback);
-		reqData->ref->repository_->unlockRefs();
+		reqData->resolvedObj->ensureWrapped();
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(reqData->resolvedObj->handle_);
 	}
 
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
 	delete reqData;
 
 	return 0;
@@ -492,38 +498,28 @@ int Reference::EIO_AfterSetTarget(eio_req *req) {
 	return 0;
 }
 
-void Reference::processInitData(void *data) {
+void Reference::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	if(data != NULL) {
-		ref_data *refData = static_cast<ref_data*>(data);
-		jsObject->Set(name_symbol, String::New(refData->name->c_str()),
-				(PropertyAttribute)(ReadOnly | DontDelete));
+	ref_data *refData = initData_;
+	jsObject->Set(name_symbol, String::New(refData->name->c_str()),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
-		type_ = refData->type;
-		jsObject->Set(type_symbol, Integer::New(refData->type),
-				(PropertyAttribute)(ReadOnly | DontDelete));
+	type_ = refData->type;
+	jsObject->Set(type_symbol, Integer::New(refData->type),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObject->Set(target_symbol, String::New(refData->target->c_str()),
-				(PropertyAttribute)(ReadOnly | DontDelete));
+	jsObject->Set(target_symbol, String::New(refData->target->c_str()),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
-		delete refData->name;
-		delete refData->target;
-		delete refData;
-	}
-	else {
-		jsObject->Set(name_symbol, Null(),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(type_symbol, Null(),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(target_symbol, Null(),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-	}
+	delete refData->name;
+	delete refData->target;
+	delete refData;
 }
 
-void* Reference::loadInitData() {
-	ref_data *data = new ref_data;
+int Reference::doInit() {
+	ref_data *data = initData_ = new ref_data;
 
 	lock();
 	repository_->lockRepository();
@@ -543,7 +539,7 @@ void* Reference::loadInitData() {
 	repository_->unlockRepository();
 	unlock();
 
-	return data;
+	return GIT_SUCCESS;
 }
 
 void Reference::setOwner(void *owner) {

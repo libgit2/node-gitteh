@@ -2,15 +2,16 @@
 #define GITTEH_REF_H
 
 #include "gitteh.h"
-#include "gitobjectwrap.h"
+#include "gitobjectwrap_new.h"
 
 namespace gitteh {
 
 class Repository;
+struct ref_data;
 
-class Reference : public GitObjectWrap {
+class Reference : public WrappedGitObject<Reference, git_reference> {
 public:
-	Reference();
+	Reference(git_reference*);
 
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
@@ -32,8 +33,8 @@ protected:
 	static Handle<Value> Resolve(const Arguments&);
 	static Handle<Value> SetTarget(const Arguments&);
 
-	void processInitData(void *data);
-	void* loadInitData();
+	void processInitData();
+	int doInit();
 
 	git_rtype type_;
 
@@ -51,6 +52,7 @@ private:
 	static int EIO_AfterSetTarget(eio_req*);
 
 	gitteh_lock lock_;
+	ref_data *initData_;
 };
 
 } // namespace gitteh

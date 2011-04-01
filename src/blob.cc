@@ -21,8 +21,14 @@ struct save_blob_request {
 	int error;
 };
 
-Blob::Blob() : GitObjectWrap() {
+struct blob_data {
+	char id[40];
+	int length;
+	void *data;
+};
 
+Blob::Blob(git_blob *blob) {
+	blob_ = blob;
 }
 
 Blob::~Blob() {
@@ -51,9 +57,10 @@ Handle<Value> Blob::New(const Arguments &args) {
 	REQ_ARGS(1);
 	REQ_EXT_ARG(0, blobArg);
 
-	Blob *blob = new Blob();
+	Blob *blob = static_cast<Blob*>(blobArg->Value());
 	blob->Wrap(args.This());
-	blob->blob_ = static_cast<git_blob*>(blobArg->Value());
+
+	blob->processInitData();
 
 	return args.This();
 }
@@ -198,17 +205,11 @@ int Blob::EIO_AfterSave(eio_req *req) {
 	return 0;
 }
 
-struct blob_data {
-	char id[40];
-	int length;
-	void *data;
-};
-
-void Blob::processInitData(void *data) {
+void Blob::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	blob_data *blobData = static_cast<blob_data*>(data);
+	blob_data *blobData = initData_;
 
 	jsObject->Set(id_symbol, String::New(blobData->id, 40),
 			(PropertyAttribute)(ReadOnly | DontDelete));
@@ -226,8 +227,8 @@ void Blob::processInitData(void *data) {
 	delete blobData;
 }
 
-void* Blob::loadInitData() {
-	blob_data *data = new blob_data;
+int Blob::doInit() {
+	blob_data *data = initData_ = new blob_data;
 
 	repository_->lockRepository();
 	const git_oid *id = git_object_id((git_object*)blob_);
@@ -238,7 +239,7 @@ void* Blob::loadInitData() {
 
 	repository_->unlockRepository();
 
-	return data;
+	return GIT_SUCCESS;
 }
 
 void Blob::setOwner(void *owner) {

@@ -77,12 +77,12 @@ Handle<Value> Tree::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theTree);
+	REQ_EXT_ARG(0, treeArg);
 
-	Tree *tree = new Tree();
+	Tree *tree = static_cast<Tree*>(treeArg->Value());
 	tree->Wrap(args.This());
 
-	tree->tree_ = (git_tree*)theTree->Value();
+	tree->processInitData();
 
 	return args.This();
 }
@@ -140,7 +140,8 @@ int Tree::EIO_AfterSave(eio_req *req) {
 }
 #endif
 
-Tree::Tree() {
+Tree::Tree(git_tree *tree) {
+	tree_ = tree;
 }
 
 Tree::~Tree() {
@@ -149,11 +150,11 @@ Tree::~Tree() {
 	repository_->unlockRepository();
 }
 
-void Tree::processInitData(void *data) {
+void Tree::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	tree_data *treeData = static_cast<tree_data*>(data);
+	tree_data *treeData = initData_;
 
 	jsObject->Set(id_symbol, String::New(treeData->id, 40),
 			(PropertyAttribute)(ReadOnly | DontDelete));
@@ -177,8 +178,8 @@ void Tree::processInitData(void *data) {
 	delete treeData;
 }
 
-void* Tree::loadInitData() {
-	tree_data *data = new tree_data;
+int Tree::doInit() {
+	tree_data *data = initData_ = new tree_data;
 
 	repository_->lockRepository();
 	data->entryCount = git_tree_entrycount(tree_);
@@ -196,7 +197,7 @@ void* Tree::loadInitData() {
 	}
 	repository_->unlockRepository();
 
-	return data;
+	return GIT_SUCCESS;
 }
 
 void Tree::setOwner(void *owner) {
