@@ -104,7 +104,7 @@ using namespace node;
 	return ThrowException(Exception::Error(String::New(errorStr)));
 
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
-	return ThrowException(CreateGitError(String::New(errorStr), errorCode));
+	return scope.Close(ThrowException(CreateGitError(String::New(errorStr), errorCode)));
 
 #define LOAD_OID_ARG(I, VAR)												\
   if (args.Length() <= (I) || !args[I]->IsString()) 						\

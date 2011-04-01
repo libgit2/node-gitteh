@@ -12,6 +12,10 @@ class WrappedGitObject : public ObjectWrap {
 public:
 	WrappedGitObject() {
 		CREATE_MUTEX(gatekeeperLock_);
+		initialized_ = false;
+		initializing_ = false;
+		initInterest_ = 0;
+		initResult_ = GIT_ERROR;
 	}
 
 	~WrappedGitObject() {
@@ -38,10 +42,10 @@ public:
 
 	inline int initialize(S *gitObj) {
 		LOCK_MUTEX(gatekeeperLock_);
-		if(initialized_) {
+		/*if(initialized_) {
 			UNLOCK_MUTEX(gatekeeperLock_);
 			return initResult_;
-		}
+		}*/
 
 		bool shouldInitialize = !initializing_;
 		if(shouldInitialize) {
@@ -50,12 +54,10 @@ public:
 			LOCK_MUTEX(initLock_);
 		}
 
-		initInterest_++;
 		UNLOCK_MUTEX(gatekeeperLock_);
 
 		if(shouldInitialize) {
 			initResult_ = doInit();
-
 			if(initResult_ != GIT_SUCCESS) {
 				cache_->remove(gitObj);
 			}
@@ -94,13 +96,21 @@ public:
 		HandleScope scope;
 
 		if(handle_.IsEmpty()) {
-			T::constructor_template->GetFunction()->NewInstance(1, &External::New(this));
-			cache_->objectWrapped(this);
+			Handle<Value> constructorArgs[1] = { External::New(this) };
+			T::constructor_template->GetFunction()->NewInstance(1, constructorArgs);
+			cache_->objectWrapped((T*)this);
 		}
+
+		cache_->unrefWrapped((T*)this);
+	}
+
+	inline void dontDieOnMeNow() {
+		Ref();
+		Unref();
 	}
 
 protected:
-	virtual int doInit();
+	virtual int doInit() = 0;
 
 private:
 	gitteh_lock gatekeeperLock_;

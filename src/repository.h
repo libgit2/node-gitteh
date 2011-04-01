@@ -37,7 +37,7 @@ public:
 	void lockRefs();
 	void unlockRefs();
 
-	WrappedGitObjectCache<Commit, git_commit> *commitFactory_;
+	WrappedGitObjectCache<Commit, git_commit> *commitCache_;
 	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
 	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
 	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;

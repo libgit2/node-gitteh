@@ -90,11 +90,12 @@ Handle<Value> Commit::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theCommit);
+	REQ_EXT_ARG(0, commitArg);
 
-	Commit *commit = new Commit();
-	commit->commit_ = (git_commit*)theCommit->Value();
+	Commit *commit = static_cast<Commit*>(commitArg->Value());
 	commit->Wrap(args.This());
+
+	commit->processInitData();
 
 	return args.This();
 }
@@ -329,18 +330,18 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	return 0;
 }
 
-void* Commit::loadInitData() {
-	commit_data *data = new commit_data;
+int Commit::doInit() {
+	initData_ = new commit_data;
 	repository_->lockRepository();
 	const git_oid *commitId = git_commit_id(commit_);
-	git_oid_fmt(data->id, commitId);
-	data->message = new std::string(git_commit_message(commit_));
-	data->author = git_signature_dup(git_commit_author(commit_));
-	data->committer = git_signature_dup(git_commit_committer(commit_));
-	data->parentCount = git_commit_parentcount(commit_);
-	data->parentIds = new std::string*[data->parentCount];
+	git_oid_fmt(initData_->id, commitId);
+	initData_->message = new std::string(git_commit_message(commit_));
+	initData_->author = git_signature_dup(git_commit_author(commit_));
+	initData_->committer = git_signature_dup(git_commit_committer(commit_));
+	initData_->parentCount = git_commit_parentcount(commit_);
+	initData_->parentIds = new std::string*[initData_->parentCount];
 
-	for(int i = 0; i< data->parentCount; i++) {
+	for(int i = 0; i< initData_->parentCount; i++) {
 		git_commit *parent;
 		git_commit_parent(&parent, commit_, i);
 
@@ -348,7 +349,7 @@ void* Commit::loadInitData() {
 		char oidStr[40];
 		git_oid_fmt(oidStr, oid);
 
-		data->parentIds[i] = new std::string(oidStr, 40);
+		initData_->parentIds[i] = new std::string(oidStr, 40);
 	}
 
 	git_tree *commitTree;
@@ -356,18 +357,19 @@ void* Commit::loadInitData() {
 	const git_oid *treeOid = git_tree_id(commitTree);
 	char treeOidStr[40];
 	git_oid_fmt(treeOidStr, treeOid);
-	data->treeId = new std::string(treeOidStr, 40);
+	initData_->treeId = new std::string(treeOidStr, 40);
 
 	repository_->unlockRepository();
 
-	return data;
+	//return GIT_EBUSY;
+	return GIT_SUCCESS;
 }
 
-void Commit::processInitData(void *data) {
+void Commit::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObj = handle_;
 
-	commit_data *commitData = static_cast<commit_data*>(data);
+	commit_data *commitData = initData_;
 
 	jsObj->Set(id_symbol, String::New(commitData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
 	jsObj->Set(message_symbol, String::New(commitData->message->c_str()));
@@ -397,14 +399,17 @@ void Commit::processInitData(void *data) {
 	delete commitData;
 }
 
-void Commit::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
+void Commit::setOwner(Repository *owner) {
+	repository_ = owner;
 }
 
-Commit::Commit() {
+Commit::Commit(git_commit *commit) {
+	commit_ = commit;
 }
 
 Commit::~Commit() {
+	//*((int*)0) = 0;
+	std::cout << "commit dtor.\n";
 	repository_->lockRepository();
 	git_commit_close(commit_);
 	repository_->unlockRepository();

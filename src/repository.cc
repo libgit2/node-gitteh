@@ -232,6 +232,7 @@ struct object_request {
 	std::string *name;
 	std::string *target;
 	void *object;
+	void *wrappedObject;
 	bool create;
 };
 
@@ -687,10 +688,14 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(HAS_CALLBACK_ARG) {
-//		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
+		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
 	}
 	else {
-//		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
+		git_commit *commit;
+		int result = repo->getCommit(&oidArg, &commit);
+		if(result == GIT_SUCCESS) {
+			return scope.Close(repo->commitCache_->syncRequest(commit));
+		}
 	}
 }
 
@@ -1220,6 +1225,56 @@ int Repository::EIO_AfterExists(eio_req *req) {
 // ==========
 // COMMIT EIO
 // ==========
+int Repository::EIO_GetCommit(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_commit *commit;
+	reqData->error = reqData->repo->getCommit(&reqData->oid,
+			&commit);
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = commit;
+
+		Commit *commitObject;
+		reqData->error = reqData->repo->commitCache_->asyncRequest(
+				commit, &commitObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = commitObject;
+		}
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnCommit(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(object_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Git error."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
+	}
+	else {
+		Commit *wrappedCommit = static_cast<Commit*>(reqData->wrappedObject);
+		wrappedCommit->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedCommit->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
+}
+
 /*FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
 FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
 FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)*/
@@ -1304,7 +1359,7 @@ Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 	CREATE_MUTEX(refLock_);
 
-	commitFactory_ = new WrappedGitObjectCache<Commit, git_commit>(this);
+	commitCache_ = new WrappedGitObjectCache<Commit, git_commit>(this);
 	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
 	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
 	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
@@ -1314,7 +1369,7 @@ Repository::Repository() {
 }
 
 Repository::~Repository() {
-	delete commitFactory_;
+	delete commitCache_;
 	delete referenceFactory_;
 	delete treeFactory_;
 	delete tagFactory_;
