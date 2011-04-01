@@ -312,6 +312,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
+	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 

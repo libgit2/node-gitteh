@@ -408,8 +408,6 @@ Commit::Commit(git_commit *commit) {
 }
 
 Commit::~Commit() {
-	//*((int*)0) = 0;
-	std::cout << "commit dtor.\n";
 	repository_->lockRepository();
 	git_commit_close(commit_);
 	repository_->unlockRepository();

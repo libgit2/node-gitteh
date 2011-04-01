@@ -27,7 +27,8 @@
 	gitteh = require("gitteh"),
 	path = require("path"),
 	fixtureValues = require("./fixtures/values"),
-	helpers = require("./fixtures/helpers");
+	helpers = require("./fixtures/helpers"),
+	glob = require("glob");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 var testRepo = helpers.createTestRepo("refs");
@@ -198,67 +199,7 @@ vows.describe("References").addBatch({
 			assert.equal(ref.name, "refs/heads/master");
 		}
 	},
-/*
-	"Setting sym target *asynchronously*": {
-		topic: function() {
-			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/settargetasync", "refs/heads/test");
-			ref.setTarget("refs/heads/master", this.callback);
-		},
-		
-		"works": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, "refs/heads/master");
-		}
-	},
-	
-	"Setting sym target *synchronously*": {
-		topic: function() {
-			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/settargetsync", "refs/heads/test");
-			return ref.setTarget("refs/heads/master");
-		},
-		
-		"works": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, "refs/heads/master");
-		}
-	},
-	
-	"Setting oid target *asynchronously*": {
-		topic: function() {
-			var ref = this.context.ref = testRepo.createOidReference("refs/heads/setoidasync", testRepo.TEST_COMMIT);
-			ref.setTarget(testRepo.HEAD_COMMIT, this.callback);
-		},
-		
-		"works": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, testRepo.HEAD_COMMIT);
-		}
-	},
-	
-	"Setting oid target *synchronously*": {
-		topic: function() {
-			var ref = this.context.ref = testRepo.createOidReference("refs/heads/setoidsync", testRepo.TEST_COMMIT);
-			return ref.setTarget(testRepo.HEAD_COMMIT);
-		},
-		
-		"works": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"target updated successfully": function() {
-			assert.equal(this.context.ref.target, testRepo.HEAD_COMMIT);
-		}
-	},
-	
+
 	"Renaming a ref *asynchronously*": {
 		topic: function() {
 			var ref = this.context.ref = testRepo.createSymbolicReference("refs/heads/asyncrenametest_renameme", "refs/heads/master");
@@ -294,7 +235,7 @@ vows.describe("References").addBatch({
 	"Creating a ref then deleting it *asynchronously*": {
 		topic: function() {
 			var t = this;
-			var ref = repo.createOidReference("refs/heads/asyncdeleteme", testRepo.HEAD_COMMIT);
+			var ref = testRepo.createOidReference("refs/heads/asyncdeleteme", testRepo.HEAD_COMMIT);
 			t.context.ref = ref;
 			ref.delete(this.callback);
 		},
@@ -327,7 +268,7 @@ vows.describe("References").addBatch({
 		topic: function() {
 			var t = this;
 			return function() {
-				var ref = repo.createOidReference("refs/heads/syncdeleteme", testRepo.HEAD_COMMIT);
+				var ref = testRepo.createOidReference("refs/heads/syncdeleteme", testRepo.HEAD_COMMIT);
 				ref.delete();
 				t.context.ref = ref;
 			};
@@ -364,9 +305,15 @@ vows.describe("References").addBatch({
 		
 		"gives us an Array": function(refs) {
 			assert.isArray(refs);
+		},
+		
+		"has correct elements": function(refs) {
+			assert.equal(refs[0], "refs/heads/master");
+			assert.equal(refs[1], "refs/tags/test_tag");
+			assert.equal(refs[2], "refs/heads/test");
 		}
 	},
-	
+
 	"Loading reference list *synchronously*": {
 		topic: function() {
 			return repo.listReferences(gitteh.GIT_REF_LISTALL);
@@ -381,5 +328,35 @@ vows.describe("References").addBatch({
 			assert.equal(refs[1], "refs/tags/test_tag");
 			assert.equal(refs[2], "refs/heads/test");
 		}
-	}*/
+	},
+	
+	"Packing refs *asynchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("asyncrefpack");
+			testRepo.packReferences(this.callback);
+		},
+		
+		"runs correctly": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"no more loose references": function() {
+			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
+		}	
+	},
+	
+	"Packing refs *synchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("syncrefpack");
+			return testRepo.packReferences();
+		},
+		
+		"runs correctly": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"no more loose references": function() {
+			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
+		}	
+	}
 }).export(module);
