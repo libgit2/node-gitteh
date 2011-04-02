@@ -20,7 +20,7 @@ var packRefsWithOpeningRefs = function(i, callback) {
 
 	var repo = repos[i];
 
-	async.parallel({
+	async.parallel({		
 		ref: function(callback) {
 			repo.getReference("refs/heads/master", function(err, ref) {
 				if(err) return callback(err);
@@ -34,6 +34,28 @@ var packRefsWithOpeningRefs = function(i, callback) {
 				callback(null, ref);
 			});
 		},
+		
+		deleteref: function(callback) {
+			var ref = repo.getReference("refs/heads/test");
+			ref.delete(function(err, result) {
+				if(err) return callback(err);
+				
+				if(!result) {
+					return callback(new Error("failed."));
+				}
+				
+				repo.getReference("refs/heads/test", function(err, ref) {
+					if(!err || ref) return callback(new Error("Failed."));
+
+					if(err.gitError != gitteh.error.GIT_ENOTFOUND) {
+						return callback(new Error("Wrong error back from gitteh."));
+					}
+					
+					callback(null, true);
+				});
+			});
+		},
+		
 		pack: function(callback) {
 			repo.packReferences(callback);
 		}

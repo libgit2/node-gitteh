@@ -1418,7 +1418,7 @@ int Repository::DoRefPacking() {
 
 		if(refList[i]->deleted_) {
 			refList[i]->unlock();
-			refNames = NULL;
+			refNames[i] = NULL;
 			continue;
 		}
 
