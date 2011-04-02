@@ -11,3 +11,4 @@
 * Perf tests.
 * See if we can remove the lock on repository for some serious speed.
 * Make sure all create/get stuff in repo is returning local copies of handles.
+* Update Index to not use getters/setters for index modification. Instead, work with an array like tree entries.
