@@ -21,7 +21,7 @@ module.exports.getSHA1 = function(data) {
 };
 
 module.exports.createTestRepo = function(prefix) {
-	var destination = path.join("/tmp", "gitteh" + prefix + "test" + module.exports.getSHA1(Date.now() + Math.round(Math.random()*10000)))
+	var destination = path.join("/tmp", "gitteh" + prefix + "test" + module.exports.getSHA1(""+Date.now() + Math.round(Math.random()*10000)))
 
 	fs.mkdirSync(destination, "777");
 	// Duplicate temp repo template.

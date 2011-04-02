@@ -31,6 +31,7 @@
 #include "ref.h"
 #include "blob.h"
 #include "object_factory.h"
+#include <sys/time.h>
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.
@@ -1045,6 +1046,8 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 int Repository::EIO_GetReference(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_reference *ref;
+
+	reqData->repo->lockRefs();
 	reqData->error = reqData->repo->getReference(reqData->name->c_str(),
 			&ref);
 
@@ -1059,6 +1062,7 @@ int Repository::EIO_GetReference(eio_req *req) {
 			reqData->wrappedObject = refObject;
 		}
 	}
+	reqData->repo->unlockRefs();
 
 	delete reqData->name;
 
@@ -1411,6 +1415,7 @@ int Repository::DoRefPacking() {
 	std::string **refNames = new std::string*[refCount];
 	for(int i = 0; i < refCount; i++) {
 		refList[i]->lock();
+
 		if(refList[i]->deleted_) {
 			refList[i]->unlock();
 			refNames = NULL;

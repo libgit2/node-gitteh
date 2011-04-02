@@ -28,7 +28,10 @@
 	path = require("path"),
 	fixtureValues = require("./fixtures/values"),
 	helpers = require("./fixtures/helpers"),
-	glob = require("glob");
+	glob = require("glob"),
+	async = require("async");
+
+process.setMaxListeners(100);
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
 var testRepo = helpers.createTestRepo("refs");
@@ -342,7 +345,17 @@ vows.describe("References").addBatch({
 		
 		"no more loose references": function() {
 			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
-		}	
+		},
+		
+		"grabbing master ref works": function() {
+			var master;
+			var that = this;
+			assert.doesNotThrow(function() {
+				master = that.context.repo.getReference("refs/heads/master");
+			}, Error);
+			assert.isTrue(!!master);
+			assert.equal(master.target, this.context.repo.HEAD_COMMIT);
+		}
 	},
 	
 	"Packing refs *synchronously*": {
@@ -357,6 +370,123 @@ vows.describe("References").addBatch({
 		
 		"no more loose references": function() {
 			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
-		}	
+		},
+		
+		"grabbing master ref works": function() {
+			var master;
+			var that = this;
+			assert.doesNotThrow(function() {
+				master = that.context.repo.getReference("refs/heads/master");
+			}, Error);
+			assert.isTrue(!!master);
+			assert.equal(master.target, this.context.repo.HEAD_COMMIT);
+		}
+	},
+	
+	"Packing refs with a ref already open *asynchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("ayncrefpack");
+
+			var ref = this.context.ref = testRepo.getReference("refs/heads/master");
+			testRepo.packReferences(this.callback);
+		},
+		
+		"works": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"no more loose references": function() {
+			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
+		},
+		
+		"ref is still valid": function() {
+			var that = this;
+			
+			assert.doesNotThrow(function() {
+				that.context.ref.rename("refs/heads/itworks");
+			}, Error);
+			
+			assert.isTrue(this.context.ref == this.context.repo.getReference("refs/heads/itworks"));
+		}
+	},
+	
+	"Packing refs with a ref already open *synchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("ayncrefpack");
+
+			var ref = this.context.ref = testRepo.getReference("refs/heads/master");
+			return testRepo.packReferences();
+		},
+		
+		"works": function(result) {
+			assert.isTrue(result);
+		},
+		
+		"no more loose references": function() {
+			assert.length(glob.globSync(path.join(this.context.repo.path, "refs", "heads", "/") + "*"), 0);
+		},
+		
+		"ref is still valid": function() {
+			var that = this;
+			
+			assert.doesNotThrow(function() {
+				that.context.ref.rename("refs/heads/itworks");
+			}, Error);
+			
+			assert.isTrue(this.context.ref == this.context.repo.getReference("refs/heads/itworks"));
+		}
+	},
+	
+	"Packing refs with a ref currently opening *asynchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("ayncrefpack");
+			
+			async.parallel({
+				ref: function(callback) { testRepo.getReference("refs/heads/master", callback); },
+				pack: function(callback) { testRepo.packReferences(callback); }
+			}, this.callback);
+		},
+		
+		"works": function(results) {
+			assert.isTrue(results.pack);
+			assert.isTrue(!!results.ref);
+		},
+		
+		"ref is still usable": function(results) {
+			assert.doesNotThrow(function() {
+				results.ref.rename("refs/heads/renameme");
+			}, Error);
+			assert.isTrue(results.ref === this.context.repo.getReference("refs/heads/renameme"));
+		}
+	},
+
+	"Packing refs with a ref currently opening *synchronously*": {
+		topic: function() {
+			var testRepo = this.context.repo = helpers.createTestRepo("ayncrefpack");
+			
+			async.parallel({
+				ref: function(callback) { testRepo.getReference("refs/heads/master", callback); },
+				pack: function(callback) {
+					try {
+						callback(null, testRepo.packReferences());
+					}
+					catch(e) {
+						callback(e);
+					}
+				}
+			}, this.callback);
+		},
+		
+		"works": function(results) {
+			assert.isTrue(results.pack);
+			assert.isTrue(!!results.ref);
+		},
+
+		"ref is still usable": function(results) {
+			assert.doesNotThrow(function() {
+				results.ref.rename("refs/heads/renameme");
+			}, Error);
+			assert.isTrue(results.ref === this.context.repo.getReference("refs/heads/renameme"));
+		}
 	}
 }).export(module);
