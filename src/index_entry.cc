@@ -24,6 +24,8 @@
 
 #include "index_entry.h"
 
+static Persistent<String> entry_class_symbol;
+
 #define CTIME_PROPERTY String::NewSymbol("ctime")
 #define MTIME_PROPERTY String::NewSymbol("mtime")
 #define DEV_PROPERTY String::NewSymbol("dev")
@@ -41,13 +43,17 @@ namespace gitteh {
 
 Persistent<FunctionTemplate> IndexEntry::constructor_template;
 
-void IndexEntry::Init(Handle<Object>) {
+void IndexEntry::Init(Handle<Object> target) {
 	HandleScope scope;
+
+	entry_class_symbol = NODE_PSYMBOL("IndexEntry");
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("IndexEntry"));
+	constructor_template->SetClassName(entry_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
+
+	target->Set(entry_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> IndexEntry::New(const Arguments& args) {

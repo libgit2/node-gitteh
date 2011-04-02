@@ -26,7 +26,8 @@
 #include "index_entry.h"
 #include "repository.h"
 
-#define LENGTH_PROPERTY String::NewSymbol("entryCount")
+static Persistent<String> index_class_symbol;
+static Persistent<String> length_symbol;
 
 namespace gitteh {
 
@@ -78,9 +79,12 @@ Index::~Index() {
 void Index::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	index_class_symbol = NODE_PSYMBOL("Index");
+	length_symbol = NODE_PSYMBOL("entryCount");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("Index"));
+	constructor_template->SetClassName(index_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getEntry", GetEntry);
@@ -93,6 +97,8 @@ void Index::Init(Handle<Object> target) {
 	NODE_DEFINE_CONSTANT(target, GIT_IDXENTRY_EXTENDED);
 	NODE_DEFINE_CONSTANT(target, GIT_IDXENTRY_VALID);
 	NODE_DEFINE_CONSTANT(target, GIT_IDXENTRY_STAGESHIFT);
+
+	target->Set(index_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Index::New(const Arguments& args) {
@@ -416,7 +422,7 @@ void Index::updateEntryCount() {
 	entryCount_ = git_index_entrycount(index_);
 	repository_->unlockRepository();
 
-	handle_->ForceSet(LENGTH_PROPERTY, Integer::New(entryCount_),
+	handle_->ForceSet(length_symbol, Integer::New(entryCount_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
 }
 
@@ -425,7 +431,7 @@ void Index::processInitData(void *data) {
 		index_data *indexData = static_cast<index_data*>(data);
 
 		entryCount_ = indexData->entryCount;
-		handle_->Set(LENGTH_PROPERTY, Integer::New(indexData->entryCount),
+		handle_->Set(length_symbol, Integer::New(indexData->entryCount),
 				(PropertyAttribute)(ReadOnly | DontDelete));
 
 		delete indexData;
