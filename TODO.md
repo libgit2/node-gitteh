@@ -10,5 +10,4 @@
 * Stress test suite.
 * Perf tests.
 * See if we can remove the lock on repository for some serious speed.
-* Tests for ref delete race conditions.
 * Make sure all create/get stuff in repo is returning local copies of handles.
