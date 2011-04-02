@@ -26,7 +26,6 @@
 #include "commit.h"
 #include "repository.h"
 #include "gitobjectwrap.h"
-#include "object_factory.h"
 
 namespace gitteh {
 

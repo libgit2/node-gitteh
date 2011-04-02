@@ -2,7 +2,6 @@
 #define GITTEH_REPO_H
 
 #include "gitteh.h"
-#include "object_store.h"
 #include "object_cache.h"
 
 namespace gitteh {

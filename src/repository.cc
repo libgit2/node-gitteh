@@ -30,7 +30,6 @@
 #include "rev_walker.h"
 #include "ref.h"
 #include "blob.h"
-#include "object_factory.h"
 #include <sys/time.h>
 
 // DANGER, WILL ROBINSON!
