@@ -217,12 +217,15 @@
 	return scope.Close(repo->FACTORY->										\
 			newObject(object)->handle_);
 
-#define OPEN2_GITDIR_PROPERTY String::NewSymbol("gitDirectory")
-#define OPEN2_OBJDIR_PROPERTY String::NewSymbol("objectDirectory")
-#define OPEN2_INDEXFILE_PROPERTY String::NewSymbol("indexFile")
-#define OPEN2_WORKTREE_PROPERTY String::NewSymbol("workTree")
-
 namespace gitteh {
+
+static Persistent<String> repo_class_symbol;
+static Persistent<String> path_symbol;
+
+static Persistent<String> git_dir_symbol;
+static Persistent<String> object_dir_symbol;
+static Persistent<String> index_file_symbol;
+static Persistent<String> work_tree_symbol;
 
 struct object_request {
 	Persistent<Function> callback;
@@ -292,9 +295,16 @@ Persistent<FunctionTemplate> Repository::constructor_template;
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	repo_class_symbol = NODE_PSYMBOL("Repository");
+	path_symbol = NODE_PSYMBOL("path");
+	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
+	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
+	index_file_symbol = NODE_PSYMBOL("indexFile");
+	work_tree_symbol = NODE_PSYMBOL("workTree");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("Repository"));
+	constructor_template->SetClassName(repo_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
@@ -319,6 +329,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "openRepository2", OpenRepository2);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
+
+	target->Set(repo_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
@@ -399,32 +411,32 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 	}
 
 	Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
-	if(pathsObj->Get(OPEN2_GITDIR_PROPERTY)->Equals(Null())) {
+	if(pathsObj->Get(git_dir_symbol)->Equals(Null())) {
 		THROW_ERROR("Git directory is required.");
 	}
 
-	String::Utf8Value gitDir(pathsObj->Get(OPEN2_GITDIR_PROPERTY));
-	String::Utf8Value objDir(pathsObj->Get(OPEN2_OBJDIR_PROPERTY));
-	String::Utf8Value indexFile(pathsObj->Get(OPEN2_INDEXFILE_PROPERTY));
-	String::Utf8Value workTree(pathsObj->Get(OPEN2_WORKTREE_PROPERTY));
+	String::Utf8Value gitDir(pathsObj->Get(git_dir_symbol));
+	String::Utf8Value objDir(pathsObj->Get(object_dir_symbol));
+	String::Utf8Value indexFile(pathsObj->Get(index_file_symbol));
+	String::Utf8Value workTree(pathsObj->Get(work_tree_symbol));
 
 	if(HAS_CALLBACK_ARG) {
 		open_repo2_request *request = new open_repo2_request;
 		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
 		request->gitDir = new std::string(*gitDir);
-		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
 			request->objectDir = new std::string(*objDir);
 		}
 		else {
 			request->objectDir = NULL;
 		}
-		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
 			request->indexFile = new std::string(*indexFile);
 		}
 		else {
 			request->indexFile = NULL;
 		}
-		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
 			request->workTree = new std::string(*workTree);
 		}
 		else {
@@ -441,15 +453,15 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 
 		const char *_gitDir = *gitDir;
 		const char *_objDir = NULL;
-		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
 			_objDir = *objDir;
 		}
 		const char *_indexFile = NULL;
-		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
 			_indexFile = *indexFile;
 		}
 		const char *_workTree = NULL;
-		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
+		if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
 			_workTree = *workTree;
 		}
 
@@ -461,7 +473,7 @@ Handle<Value> Repository::OpenRepository2(const Arguments& args) {
 
 		Handle<Value> constructorArgs[2] = {
 			External::New(repo),
-			pathsObj->Get(OPEN2_GITDIR_PROPERTY)
+			pathsObj->Get(git_dir_symbol)
 		};
 
 		return scope.Close(Repository::constructor_template->GetFunction()
@@ -624,7 +636,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repo->path_ = *pathArg;
 	repo->odb_ = git_repository_database(repo->repo_);
 
-	args.This()->Set(String::New("path"), String::New(repo->path_), (PropertyAttribute)(ReadOnly | DontDelete));
+	args.This()->Set(path_symbol, String::New(repo->path_),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
 	// HUGE FUCKING TODO:
 	// IN MOTHER FUCKING CAPITALS.
