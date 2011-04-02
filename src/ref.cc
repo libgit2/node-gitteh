@@ -113,6 +113,7 @@ void Reference::Init(Handle<Object> target) {
 
 	NODE_DEFINE_CONSTANT(target, GIT_REF_OID);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_SYMBOLIC);
+	NODE_DEFINE_CONSTANT(target, GIT_REF_PACKED);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_LISTALL);
 
 	target->Set(ref_class_symbol, constructor_template->GetFunction());
