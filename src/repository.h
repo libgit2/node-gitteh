@@ -50,7 +50,6 @@ public:
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);
-	static Handle<Value> OpenRepository2(const Arguments&);
 	static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);

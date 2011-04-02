@@ -35,7 +35,7 @@ module.exports.createTestRepo = function(prefix) {
 		catch(e) {};
 	});
 	
-	var repo = gitteh.openRepository2({
+	var repo = gitteh.openRepository({
 		gitDirectory: path.join(destination, ".git"),
 		workTree: destination
 	});

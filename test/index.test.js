@@ -31,7 +31,7 @@ var vows = require("vows"),
 	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
-var workingRepo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
+var workingRepo = gitteh.openRepository(fixtureValues.WORKING_DIR);
 
 vows.describe("Index").addBatch({
 	"Opening index on bare repo *asynchronously*": {
