@@ -348,13 +348,14 @@ int Reference::EIO_Resolve(eio_req *req) {
 		reqData->ref->repository_->lockRepository();
 		reqData->error = git_reference_resolve(&reqData->resolved, reqData->ref->ref_);
 		reqData->ref->repository_->unlockRepository();
-		reqData->ref->repository_->unlockRefs();
 		reqData->ref->unlock();
 
 		if(reqData->error == GIT_SUCCESS) {
 			reqData->error = reqData->ref->repository_->referenceCache_->
 					asyncRequest(reqData->resolved, &reqData->resolvedObj);
 		}
+
+		reqData->ref->repository_->unlockRefs();
 	}
 
 	return 0;
