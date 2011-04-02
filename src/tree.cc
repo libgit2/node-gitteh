@@ -27,6 +27,7 @@
 
 namespace gitteh {
 
+static Persistent<String> tree_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> entries_symbol;
 
@@ -58,6 +59,14 @@ Persistent<FunctionTemplate> Tree::constructor_template;
 void Tree::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	tree_class_symbol = NODE_PSYMBOL("Tree");
+	id_symbol = NODE_PSYMBOL("id");
+	entries_symbol = NODE_PSYMBOL("entries");
+
+	entry_id_symbol = NODE_PSYMBOL("id");
+	entry_name_symbol = NODE_PSYMBOL("name");
+	entry_attributes_symbol = NODE_PSYMBOL("attributes");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("Tree"));
@@ -65,12 +74,7 @@ void Tree::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 
-	id_symbol = NODE_PSYMBOL("id");
-	entries_symbol = NODE_PSYMBOL("entries");
-
-	entry_id_symbol = NODE_PSYMBOL("id");
-	entry_name_symbol = NODE_PSYMBOL("name");
-	entry_attributes_symbol = NODE_PSYMBOL("attributes");
+	target->Set(tree_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Tree::New(const Arguments& args) {

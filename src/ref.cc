@@ -25,6 +25,7 @@
 #include "ref.h"
 #include "repository.h"
 
+static Persistent<String> ref_class_symbol;
 static Persistent<String> name_symbol;
 static Persistent<String> type_symbol;
 static Persistent<String> target_symbol;
@@ -95,6 +96,11 @@ void Reference::unlock() {
 void Reference::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	ref_class_symbol = NODE_PSYMBOL("Reference");
+	name_symbol = NODE_PSYMBOL("name");
+	type_symbol = NODE_PSYMBOL("type");
+	target_symbol = NODE_PSYMBOL("target");
+
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(String::New("Reference"));
@@ -105,13 +111,11 @@ void Reference::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "resolve", Resolve);
 	NODE_SET_PROTOTYPE_METHOD(t, "setTarget", SetTarget);
 
-	name_symbol = NODE_PSYMBOL("name");
-	type_symbol = NODE_PSYMBOL("type");
-	target_symbol = NODE_PSYMBOL("target");
-
 	NODE_DEFINE_CONSTANT(target, GIT_REF_OID);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_SYMBOLIC);
 	NODE_DEFINE_CONSTANT(target, GIT_REF_LISTALL);
+
+	target->Set(ref_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Reference::New(const Arguments& args) {

@@ -6,6 +6,7 @@ namespace gitteh {
 
 Persistent<FunctionTemplate> Blob::constructor_template;
 
+static Persistent<String> blob_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> data_symbol;
 
@@ -40,15 +41,18 @@ Blob::~Blob() {
 void Blob::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	blob_class_symbol = NODE_PSYMBOL("Blob");
+	id_symbol = NODE_PSYMBOL("id");
+	data_symbol = NODE_PSYMBOL("data");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	t->SetClassName(String::NewSymbol("Blob"));
+	t->SetClassName(blob_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 
-	id_symbol = NODE_PSYMBOL("id");
-	data_symbol = NODE_PSYMBOL("data");
+	target->Set(blob_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Blob::New(const Arguments &args) {

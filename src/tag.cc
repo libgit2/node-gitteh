@@ -26,6 +26,7 @@
 #include "repository.h"
 #include "signature.h"
 
+static Persistent<String> tag_class_symbol;
 static Persistent<String> message_symbol;
 static Persistent<String> name_symbol;
 static Persistent<String> id_symbol;
@@ -71,22 +72,25 @@ Tag::~Tag() {
 	repository_->unlockRepository();
 }
 
-void Tag::Init(Handle<Object>) {
+void Tag::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::NewSymbol("Tag"));
-	t->InstanceTemplate()->SetInternalFieldCount(1);
-
-	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
-
+	tag_class_symbol = NODE_PSYMBOL("Tag");
 	message_symbol = NODE_PSYMBOL("message");
 	name_symbol = NODE_PSYMBOL("name");
 	id_symbol = NODE_PSYMBOL("id");
 	tagger_symbol = NODE_PSYMBOL("tagger");
 	targetId_symbol = NODE_PSYMBOL("targetId");
 	targetType_symbol = NODE_PSYMBOL("targetType");
+
+	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
+	constructor_template = Persistent<FunctionTemplate>::New(t);
+	constructor_template->SetClassName(tag_class_symbol);
+	t->InstanceTemplate()->SetInternalFieldCount(1);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	target->Set(tag_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Tag::New(const Arguments& args) {

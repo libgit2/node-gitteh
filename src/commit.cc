@@ -29,8 +29,7 @@
 #include <stdlib.h>
 #include "signature.h"
 
-#define CLASS_NAME String::NewSymbol("Commit")
-
+static Persistent<String> commit_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> message_symbol;
 static Persistent<String> author_symbol;
@@ -71,19 +70,22 @@ Persistent<FunctionTemplate> Commit::constructor_template;
 void Commit::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(CLASS_NAME);
-	t->InstanceTemplate()->SetInternalFieldCount(1);
-
-	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
-
+	commit_class_symbol = NODE_PSYMBOL("Commit");
 	id_symbol = NODE_PSYMBOL("id");
 	message_symbol = NODE_PSYMBOL("message");
 	author_symbol = NODE_PSYMBOL("author");
 	committer_symbol = NODE_PSYMBOL("committer");
 	tree_symbol = NODE_PSYMBOL("tree");
 	parents_symbol = NODE_PSYMBOL("parents");
+
+	Local<FunctionTemplate> t = FunctionTemplate::New(New);
+	constructor_template = Persistent<FunctionTemplate>::New(t);
+	constructor_template->SetClassName(commit_class_symbol);
+	t->InstanceTemplate()->SetInternalFieldCount(1);
+
+	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	target->Set(commit_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Commit::New(const Arguments& args) {

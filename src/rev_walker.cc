@@ -29,6 +29,8 @@
 
 namespace gitteh {
 
+static Persistent<String> revwalker_class_symbol;
+
 struct walker_request {
 	Persistent<Function> callback;
 	RevWalker *walker;
@@ -55,9 +57,11 @@ Persistent<FunctionTemplate> RevWalker::constructor_template;
 void RevWalker::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	revwalker_class_symbol = NODE_PSYMBOL("RevisionWalker");
+
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("RevWalker"));
+	constructor_template->SetClassName(revwalker_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "push", Push);
@@ -70,6 +74,8 @@ void RevWalker::Init(Handle<Object> target) {
 	NODE_DEFINE_CONSTANT(target, GIT_SORT_TOPOLOGICAL);
 	NODE_DEFINE_CONSTANT(target, GIT_SORT_TIME);
 	NODE_DEFINE_CONSTANT(target, GIT_SORT_REVERSE);
+
+	target->Set(revwalker_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> RevWalker::New(const Arguments& args) {
