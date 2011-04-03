@@ -1,11 +1,11 @@
+/**
+ * This example will open the Gitteh Git repo and walk the entire revision
+ * history, displaying a screen output fairly similar to what you'd get when you
+ * run `git log`.
+ */
 var gitteh = require("gitteh"),
 	path = require("path"),
 	fs = require("fs");
-
-// Note that we're manually grabbing the master ref from the repo. Gitteh will
-// eventually feature a ref-management api.
-var headCommit = fs.readFileSync(path.join(
-		__dirname, "..", ".git", "refs", "heads", "master"), "utf8");
 
 var startTime = Date.now();
 
@@ -15,7 +15,17 @@ var startTime = Date.now();
 // You have to point it to the GIT directory though, so if you're working with
 // a repo that has a working copy checked out, you need to point it to the .git
 // folder.
-var repository = new gitteh.Repository(path.join(__dirname, "..", ".git"));
+var repository = gitteh.openRepository(path.join(__dirname, "..", ".git"));
+
+// First step is to grab the HEAD commit. We use the ref management features of
+// gitteh to achieve this.
+var headRef = repository.getReference("HEAD");
+
+// Just in case the reference is pointing to another reference (symbolic link),
+// we "resolve" the reference to a direct reference (one that points to an OID).
+// If the ref being pointed to by HEAD is already direct, then resolve does 
+// nothing but return the same reference.
+headRef = headRef.resolve();
 
 // Let's create a revision walker and traverse the entire commit history.
 var walker = repository.createWalker();
@@ -28,8 +38,8 @@ var walker = repository.createWalker();
 
 // This will start from the most recent commit, and go back in time.
 // Note that you have to set sorting BEFORE you push a commit to traverse from.
-walker.sort(gitteh.SORT_TIME);
-walker.push(repository.getCommit(headCommit));
+walker.sort(gitteh.GIT_SORT_TIME);
+walker.push(headRef.target);
 
 // This output basically mimicks a basic `git log` command.
 var commit;

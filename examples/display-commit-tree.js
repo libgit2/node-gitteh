@@ -1,27 +1,34 @@
+/**
+ * This example will load the Git repository for gitteh, and display the commit
+ * tree of the latest revision. You have to have cloned the gitteh Git repo for
+ * this to work, of course.
+ */
+
 var gitteh = require("gitteh"), 
 	path = require("path"),
 	fs = require("fs");
 
-var repository = new gitteh.Repository(path.join(__dirname, "..", ".git"));
+var repository = gitteh.openRepository(path.join(__dirname, "..", ".git"));
+var headRef = repository.getReference("HEAD");
+headRef = headRef.resolve();
 
-var headCommit = fs.readFileSync(path.join(
-		__dirname, "..", ".git", "refs", "heads", "master"), "utf8");
+var commit = repository.getCommit(headRef.target);
 
-var commit = repository.getCommit(headCommit);
-
-var displayTreeContents = function(tree, tabs) {
-	var tabStr = ""; for(var i = 0; i < tabs; i++) tabStr += "  ";
+var displayTreeContents = function(treeId, tabs) {
+	var tree = repository.getTree(treeId);
 	
-	for(var i = 0, len = tree.entryCount; i < len; i++) {
-		var entry = tree.getEntry(i);
+	var tabStr = ""; for(var i = 0; i < tabs; i++) tabStr += "  ";
+
+	for(var i = 0, len = tree.entries.length; i < len; i++) {
+		var entry = tree.entries[i];
 		var line = tabStr ;
-		line += entry.filename;
+		line += entry.name;
 		
 		// 16384 == 40000 in octal (which is directory attribute in Git).
 		if(entry.attributes == 16384) {
 			line += "/";
 			console.log(line);
-			displayTreeContents(repository.getTree(entry.id), tabs + 1);
+			displayTreeContents(entry.id, tabs + 1);
 		}
 		else {
 			//line += " - " + entry.id;
@@ -30,4 +37,4 @@ var displayTreeContents = function(tree, tabs) {
 	}
 };
 
-displayTreeContents(commit.getTree(), 1);
+displayTreeContents(commit.tree, 1);
