@@ -1,8 +1,8 @@
-module.exports.REPO_PATH = require("path").join(__dirname, "gitrepo");
+module.exports.REPO_PATH = require("path").join(__dirname, "reference_bare_repo");
 
 module.exports.WORKING_DIR = {
-	gitDirectory: require("path").join(__dirname, "workingdir", "dotgit"),
-	workTree: require("path").join(__dirname, "workingdir")
+	gitDirectory: require("path").join(__dirname, "reference_working_repo", "dotgit"),
+	workTree: require("path").join(__dirname, "reference_working_repo")
 };
 
 module.exports.FIRST_COMMIT = {
@@ -179,6 +179,7 @@ module.exports.TEST_TAG = {
 	rawBody: "object 38042ca303189a2e6955b92d53aab7d642cc82c2\ntype commit\ntag test_tag\ntagger Sam Day <sam.c.day@gmail.com> 1299041008 +1000\n\nMy test tag.\n"
 };
 
+module.exports.TEST_BLOB = "47ee7698c336ba5b163c193ae6309f0a7d7e9662";
 module.exports.EMPTY_BLOB = "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391";
 
 module.exports.LATEST_COMMIT = module.exports.FIFTH_COMMIT;

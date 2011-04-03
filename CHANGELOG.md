@@ -1,3 +1,12 @@
+## v0.1.0 - 03/04/11
+* Heavy refactors to bring gitteh up to date with libgit2 0.11.0.
+* Commits no longer have methods to retrieve tree/parents. Instead, they are just sha1 string properties on the object.
+* Trees no longer have getEntry() method, all tree entries are added to an array in the tree.entries property.
+* Tree writing is currently unsupported (as it's been broken in libgit2), next version will allow writing an index as a tree.
+* Ref deletion is now supported.
+* Ref packing is supported. This is a fairly advanced feature and required more work than it was worth. Any issues reported on this will be followed up ASAP.
+* Full documentation written for the bindings. Huzzah.
+
 ## v0.0.4 - 29/03/11
 * Added support for working with git indexes. 
 * Fixed issues that could cause asynchronous retrieval of objects to fail miserably.

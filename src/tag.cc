@@ -26,12 +26,13 @@
 #include "repository.h"
 #include "signature.h"
 
-#define MESSAGE_PROPERTY String::NewSymbol("message")
-#define NAME_PROPERTY String::NewSymbol("name")
-#define ID_PROPERTY String::NewSymbol("id")
-#define TAGGER_PROPERTY String::NewSymbol("tagger")
-#define TARGET_PROPERTY String::NewSymbol("targetId")
-#define TARGET_TYPE_PROPERTY String::NewSymbol("targetType")
+static Persistent<String> tag_class_symbol;
+static Persistent<String> message_symbol;
+static Persistent<String> name_symbol;
+static Persistent<String> id_symbol;
+static Persistent<String> tagger_symbol;
+static Persistent<String> targetId_symbol;
+static Persistent<String> targetType_symbol;
 
 namespace gitteh {
 
@@ -46,149 +47,213 @@ struct tag_data {
 
 struct save_request {
 	Persistent<Function> callback;
+	Repository *repo;
+	Persistent<Object> repoHandle;
 	Tag *tag;
 	git_oid targetId;
+	git_otype targetType;
 	std::string *name;
 	git_signature *tagger;
 	std::string *message;
 	int error;
+	bool isNew;
+	char id[40];
 };
 
 Persistent<FunctionTemplate> Tag::constructor_template;
 
-void Tag::Init(Handle<Object>) {
+Tag::Tag(git_tag *tag) {
+	tag_ = tag;
+}
+
+Tag::~Tag() {
+	repository_->lockRepository();
+	git_tag_close(tag_);
+	repository_->unlockRepository();
+}
+
+void Tag::Init(Handle<Object> target) {
 	HandleScope scope;
+
+	tag_class_symbol = NODE_PSYMBOL("Tag");
+	message_symbol = NODE_PSYMBOL("message");
+	name_symbol = NODE_PSYMBOL("name");
+	id_symbol = NODE_PSYMBOL("id");
+	tagger_symbol = NODE_PSYMBOL("tagger");
+	targetId_symbol = NODE_PSYMBOL("targetId");
+	targetType_symbol = NODE_PSYMBOL("targetType");
 
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::NewSymbol("Tag"));
+	constructor_template->SetClassName(tag_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+
+	target->Set(tag_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Tag::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_ARGS(1);
-	REQ_EXT_ARG(0, theTag);
+	REQ_EXT_ARG(0, tagArg);
 
-	Tag *tag = new Tag();
-	tag->tag_ = static_cast<git_tag*>(theTag->Value());
-
+	Tag *tag = static_cast<Tag*>(tagArg->Value());
 	tag->Wrap(args.This());
+
+	tag->processInitData();
+
 	return args.This();
 }
 
-Handle<Value> Tag::Save(const Arguments& args) {
+Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
+		Handle<Value> callback, bool isNew) {
 	HandleScope scope;
+	int result;
 
-	Tag *tag = ObjectWrap::Unwrap<Tag>(args.This());
-
-	CHECK_PROPERTY(NAME_PROPERTY);
-	Handle<String> name = args.This()->Get(NAME_PROPERTY)->ToString();
-	if(name->Length() == 0) {
-		THROW_ERROR("Name must not be empty.");
+	if(!tagObject->Has(name_symbol)) {
+		THROW_ERROR("Tag requires a name.");
 	}
 
-	Handle<String> targetIdStr = args.This()->Get(TARGET_PROPERTY)->ToString();
-	git_oid targetId;
-	int res = git_oid_mkstr(&targetId, *String::Utf8Value(targetIdStr));
-	if(res != GIT_SUCCESS) {
-		THROW_GIT_ERROR("Target id is invalid.", res);
+	if(!tagObject->Has(targetId_symbol)) {
+		THROW_ERROR("Tag requires a target.");
 	}
 
-	git_signature *tagger = GetSignatureFromProperty(args.This(), TAGGER_PROPERTY);
+	if(!tagObject->Has(tagger_symbol)) {
+		THROW_ERROR("Tag requires a tagger.");
+	}
+
+	if(!tagObject->Has(message_symbol)) {
+		THROW_ERROR("Tag requires a message.");
+	}
+
+	String::Utf8Value name(tagObject->Get(name_symbol));
+	if(!name.length()) {
+		THROW_ERROR("Tag requires a name.");
+	}
+
+	String::Utf8Value targetId(tagObject->Get(targetId_symbol));
+	if(!targetId.length()) {
+		THROW_ERROR("Tag requires a target.");
+	}
+
+	String::Utf8Value message(tagObject->Get(message_symbol));
+	if(!message.length()) {
+		THROW_ERROR("Tag requires a message.");
+	}
+
+	git_object* targetObj;
+	git_oid targetOid;
+	git_oid_mkstr(&targetOid, *targetId);
+	result = git_object_lookup(&targetObj, repo->repo_, &targetOid, GIT_OBJ_ANY);
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't find target object.", result);
+	}
+
+	git_otype targetType = git_object_type(targetObj);
+	git_object_close(targetObj);
+
+	git_signature *tagger = GetSignatureFromProperty(tagObject, tagger_symbol);
 	if(tagger == NULL) {
-		THROW_ERROR("Tagger property is invalid.");
+		THROW_ERROR("Tagger is not a valid signature.");
 	}
 
-	if(HAS_CALLBACK_ARG) {
+	if(callback->IsFunction()) {
 		save_request *request = new save_request;
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		request->tag = tag;
-		request->callback = Persistent<Function>::New(callbackArg);
+		request->repo = repo;
+		request->repoHandle = Persistent<Object>::New(repo->handle_);
 
-		request->name = new std::string(*String::Utf8Value(name));
-		memcpy(&request->targetId, &targetId, sizeof(git_oid));
+
+		request->message = new std::string(*message);
+		request->name = new std::string(*name);
 		request->tagger = tagger;
+		request->targetId = targetOid;
+		request->targetType = targetType;
 
-		if((!args.This()->Get(MESSAGE_PROPERTY)->IsUndefined()) &&
-				(!args.This()->Get(MESSAGE_PROPERTY)->IsNull())) {
-			Handle<String> message = args.This()->Get(MESSAGE_PROPERTY)->ToString();
-			request->message = new std::string(*String::Utf8Value(message));
+		request->isNew = isNew;
+		if(!isNew) {
+			request->tag = ObjectWrap::Unwrap<Tag>(tagObject);
+			request->tag->Ref();
 		}
 		else {
-			request->message = NULL;
+			request->tag = NULL;
 		}
 
-		tag->Ref();
+		request->callback = Persistent<Function>::New(Handle<Function>::Cast(callback));
+		request->repo = repo;
+		request->repoHandle = Persistent<Object>::New(repo->handle_);
+
 		eio_custom(EIO_Save, EIO_PRI_DEFAULT, EIO_AfterSave, request);
 		ev_ref(EV_DEFAULT_UC);
 
 		return Undefined();
 	}
 	else {
+		repo->lockRepository();
 
-		git_object *targetObj;
-		res = git_object_lookup(&targetObj, tag->repository_->repo_, &targetId, GIT_OBJ_ANY);
-		if(res != GIT_SUCCESS) {
-			git_signature_free(tagger);
-			THROW_GIT_ERROR("Couldn't get target object.", res);
-		}
+		git_oid newId;
+		result = git_tag_create(&newId, repo->repo_, *name, &targetOid,
+				targetType, tagger, *message);
+		repo->unlockRepository();
 
-		git_tag_set_target(tag->tag_, targetObj);
-		git_tag_set_name(tag->tag_, *String::Utf8Value(name));
-		git_tag_set_tagger(tag->tag_, tagger);
 		git_signature_free(tagger);
 
-		if((!args.This()->Get(MESSAGE_PROPERTY)->IsUndefined()) &&
-				(!args.This()->Get(MESSAGE_PROPERTY)->IsNull())) {
-			Handle<String> message = args.This()->Get(MESSAGE_PROPERTY)->ToString();
-			git_tag_set_message(tag->tag_, *String::Utf8Value(message));
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't save tag.", result);
 		}
 
-		res = git_object_write((git_object *)tag->tag_);
-		if(res != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't save tag", res);
+		char newIdStr[40];
+		git_oid_fmt(newIdStr, &newId);
+		if(isNew) {
+			Handle<Function> getTagFn = Handle<Function>::Cast(
+					repo->handle_->Get(String::New("getTag")));
+			Handle<Value> arg = String::New(newIdStr, 40);
+			return scope.Close(getTagFn->Call(repo->handle_, 1,
+					&arg));
 		}
+		else {
+			tagObject->ForceSet(id_symbol, String::New(newIdStr, 40),
+					(PropertyAttribute)(ReadOnly | DontDelete));
 
-		// Update tag id and type.
-		args.This()->ForceSet(TARGET_TYPE_PROPERTY, String::New(git_object_type2string(git_tag_type(tag->tag_))), (PropertyAttribute)(ReadOnly | DontDelete));
-		const git_oid *tagOid = git_tag_id(tag->tag_);
-		char oidStr[40];
-		git_oid_fmt(oidStr, tagOid);
-		args.This()->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
-				(PropertyAttribute)(ReadOnly | DontDelete));
+			tagObject->ForceSet(targetType_symbol, String::New(
+					git_object_type2string(targetType)),
+					(PropertyAttribute)(ReadOnly | DontDelete));
 
-		return Undefined();
+			return scope.Close(True());
+		}
 	}
+}
+
+Handle<Value> Tag::Save(const Arguments& args) {
+	HandleScope scope;
+	Tag *tag = ObjectWrap::Unwrap<Tag>(args.This());
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(SaveObject(args.This(), tag->repository_, callback, false));
 }
 
 int Tag::EIO_Save(eio_req *req) {
 	save_request *reqData = static_cast<save_request*>(req->data);
 
-	git_object *object;
+	git_oid newId;
+	reqData->repo->lockRepository();
+	reqData->error = git_tag_create(&newId, reqData->repo->repo_, reqData->name->c_str(),
+			&reqData->targetId, reqData->targetType, reqData->tagger,
+			reqData->message->c_str());
+	reqData->repo->unlockRepository();
 
-	reqData->tag->repository_->lockRepository();
-	reqData->error = git_object_lookup(&object, reqData->tag->repository_->repo_,
-			&reqData->targetId, GIT_OBJ_ANY);
 	if(reqData->error == GIT_SUCCESS) {
-		git_tag_set_target(reqData->tag->tag_, object);
-		git_tag_set_name(reqData->tag->tag_, reqData->name->c_str());
-		git_tag_set_tagger(reqData->tag->tag_, reqData->tagger);
-
-		if(reqData->message) {
-			git_tag_set_message(reqData->tag->tag_, reqData->message->c_str());
-			delete reqData->message;
-		}
-
-		reqData->error = git_object_write((git_object*)reqData->tag->tag_);
+		git_oid_fmt(reqData->id, &newId);
 	}
 
-	reqData->tag->repository_->unlockRepository();
-
 	delete reqData->name;
+	delete reqData->message;
 	git_signature_free(reqData->tagger);
 
 	return 0;
@@ -198,32 +263,34 @@ int Tag::EIO_AfterSave(eio_req *req) {
 	HandleScope scope;
 	save_request *reqData = static_cast<save_request*>(req->data);
 
+	reqData->repoHandle.Dispose();
 	ev_unref(EV_DEFAULT_UC);
- 	reqData->tag->Unref();
+	if(reqData->tag != NULL) reqData->tag->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
- 		Handle<Value> error = CreateGitError(String::New("Couldn't save tag."), reqData->error);
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = Exception::Error(String::New("Couldn't save tag."));
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
 	}
 	else {
-		reqData->tag->repository_->lockRepository();
+		callbackArgs[0] = Null();
 
-		// Update tag id and type.
-		reqData->tag->handle_->ForceSet(TARGET_TYPE_PROPERTY,
-				String::New(git_object_type2string(git_tag_type(reqData->tag->tag_))),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-		const git_oid *tagOid = git_tag_id(reqData->tag->tag_);
-		char oidStr[40];
-		git_oid_fmt(oidStr, tagOid);
-		reqData->tag->handle_->ForceSet(ID_PROPERTY, String::New(oidStr, 40),
-				(PropertyAttribute)(ReadOnly | DontDelete));
+		if(reqData->isNew) {
+			Handle<Function> getTagFn = Handle<Function>::Cast(
+					reqData->repo->handle_->Get(String::New("getTag")));
+			Handle<Value> arg = String::New(reqData->id, 40);
+			callbackArgs[1] = getTagFn->Call(reqData->repo->handle_, 1, &arg);
+		}
+		else {
+			reqData->tag->handle_->ForceSet(id_symbol, String::New(reqData->id, 40),
+					(PropertyAttribute)(ReadOnly | DontDelete));
+			reqData->tag->handle_->ForceSet(targetType_symbol, String::New(
+					git_object_type2string(reqData->targetType)),
+					(PropertyAttribute)(ReadOnly | DontDelete));
 
-		reqData->tag->repository_->unlockRepository();
-
- 		callbackArgs[0] = Null();
- 		callbackArgs[1] = True();
+			callbackArgs[1] = True();
+		}
 	}
 
 	reqData->callback.Dispose();
@@ -233,41 +300,31 @@ int Tag::EIO_AfterSave(eio_req *req) {
 	return 0;
 }
 
-void Tag::processInitData(void *data) {
+void Tag::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
 
-	if(data != NULL) {
-		tag_data *tagData = static_cast<tag_data*>(data);
-		jsObject->Set(ID_PROPERTY, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
+	tag_data *tagData = initData_;
+	jsObject->Set(id_symbol, String::New(tagData->id, 40), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		jsObject->Set(NAME_PROPERTY, String::New(tagData->name->c_str()));
-		jsObject->Set(MESSAGE_PROPERTY, String::New(tagData->message->c_str()));
+	jsObject->Set(name_symbol, String::New(tagData->name->c_str()));
+	jsObject->Set(message_symbol, String::New(tagData->message->c_str()));
 
-		CREATE_PERSON_OBJ(taggerObj, tagData->tagger);
-		jsObject->Set(TAGGER_PROPERTY, taggerObj);
+	CREATE_PERSON_OBJ(taggerObj, tagData->tagger);
+	jsObject->Set(tagger_symbol, taggerObj);
 
-		jsObject->Set(TARGET_PROPERTY, String::New(tagData->targetId, 40));
-		jsObject->Set(TARGET_TYPE_PROPERTY, String::New(tagData->targetType->c_str()), (PropertyAttribute)(ReadOnly | DontDelete));
+	jsObject->Set(targetId_symbol, String::New(tagData->targetId, 40));
+	jsObject->Set(targetType_symbol, String::New(tagData->targetType->c_str()), (PropertyAttribute)(ReadOnly | DontDelete));
 
-		delete tagData->targetType;
-		delete tagData->name;
-		delete tagData->message;
-		git_signature_free(tagData->tagger);
-		delete tagData;
-	}
-	else {
-		jsObject->Set(ID_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-		jsObject->Set(NAME_PROPERTY, Null());
-		jsObject->Set(MESSAGE_PROPERTY, Null());
-		jsObject->Set(TAGGER_PROPERTY, Null());
-		jsObject->Set(TARGET_PROPERTY, Null());
-		jsObject->Set(TARGET_TYPE_PROPERTY, Null(), (PropertyAttribute)(ReadOnly | DontDelete));
-	}
+	delete tagData->targetType;
+	delete tagData->name;
+	delete tagData->message;
+	git_signature_free(tagData->tagger);
+	delete tagData;
 }
 
-void* Tag::loadInitData() {
-	tag_data *data = new tag_data;
+int Tag::doInit() {
+	tag_data *data = initData_ = new tag_data;
 
 	repository_->lockRepository();
 	const git_oid *tagOid = git_tag_id(tag_);
@@ -287,7 +344,7 @@ void* Tag::loadInitData() {
 
 	repository_->unlockRepository();
 
-	return data;
+	return GIT_SUCCESS;
 }
 
 void Tag::setOwner(void *owner) {

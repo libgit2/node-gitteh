@@ -28,9 +28,9 @@
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
-#include "rawobj.h"
 #include "ref.h"
-#include "object_factory.h"
+#include "blob.h"
+#include <sys/time.h>
 
 // DANGER, WILL ROBINSON!
 // The nastiest code that will ever rape your eyeballs follows.
@@ -219,12 +219,15 @@
 	return scope.Close(repo->FACTORY->										\
 			newObject(object)->handle_);
 
-#define OPEN2_GITDIR_PROPERTY String::NewSymbol("gitDirectory")
-#define OPEN2_OBJDIR_PROPERTY String::NewSymbol("objectDirectory")
-#define OPEN2_INDEXFILE_PROPERTY String::NewSymbol("indexFile")
-#define OPEN2_WORKTREE_PROPERTY String::NewSymbol("workTree")
-
 namespace gitteh {
+
+static Persistent<String> repo_class_symbol;
+static Persistent<String> path_symbol;
+
+static Persistent<String> git_dir_symbol;
+static Persistent<String> object_dir_symbol;
+static Persistent<String> index_file_symbol;
+static Persistent<String> work_tree_symbol;
 
 struct object_request {
 	Persistent<Function> callback;
@@ -234,6 +237,7 @@ struct object_request {
 	std::string *name;
 	std::string *target;
 	void *object;
+	void *wrappedObject;
 	bool create;
 };
 
@@ -277,6 +281,12 @@ struct reflist_request {
 	git_strarray refList;
 };
 
+struct ref_pack_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	int error;
+};
+
 struct index_request {
 	Persistent<Function> callback;
 	Repository *repo;
@@ -287,64 +297,149 @@ Persistent<FunctionTemplate> Repository::constructor_template;
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
 
+	repo_class_symbol = NODE_PSYMBOL("Repository");
+	path_symbol = NODE_PSYMBOL("path");
+	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
+	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
+	index_file_symbol = NODE_PSYMBOL("indexFile");
+	work_tree_symbol = NODE_PSYMBOL("workTree");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("Repository"));
+	constructor_template->SetClassName(repo_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
-	NODE_SET_PROTOTYPE_METHOD(t, "getRawObject", GetRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
+	NODE_SET_PROTOTYPE_METHOD(t, "getBlob", GetBlob);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
-	NODE_SET_PROTOTYPE_METHOD(t, "createRawObject", CreateRawObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlob", CreateBlob);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidRef);
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
+	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
-	NODE_SET_METHOD(target, "openRepository2", OpenRepository2);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
+
+	target->Set(repo_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 	REQ_ARGS(1);
-	REQ_STR_ARG(0, pathArg);
 
-	if(HAS_CALLBACK_ARG) {
-		open_repo_request *request = new open_repo_request;
-		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-		request->path = new String::Utf8Value(args[0]);
-
-		eio_custom(EIO_OpenRepository, EIO_PRI_DEFAULT, EIO_AfterOpenRepository, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		git_repository* repo;
-		int result = git_repository_open(&repo, *pathArg);
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't open repository.", result);
+	if(args[0]->IsObject()) {
+		Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
+		if(pathsObj->Get(git_dir_symbol)->Equals(Null())) {
+			THROW_ERROR("Git directory is required.");
 		}
 
-		Handle<Value> constructorArgs[2] = {
-			External::New(repo),
-			args[0]
-		};
+		String::Utf8Value gitDir(pathsObj->Get(git_dir_symbol));
+		String::Utf8Value objDir(pathsObj->Get(object_dir_symbol));
+		String::Utf8Value indexFile(pathsObj->Get(index_file_symbol));
+		String::Utf8Value workTree(pathsObj->Get(work_tree_symbol));
 
-		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(2, constructorArgs));
+		if(HAS_CALLBACK_ARG) {
+			open_repo2_request *request = new open_repo2_request;
+			request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+			request->gitDir = new std::string(*gitDir);
+			if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
+				request->objectDir = new std::string(*objDir);
+			}
+			else {
+				request->objectDir = NULL;
+			}
+			if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
+				request->indexFile = new std::string(*indexFile);
+			}
+			else {
+				request->indexFile = NULL;
+			}
+			if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
+				request->workTree = new std::string(*workTree);
+			}
+			else {
+				request->workTree = NULL;
+			}
+
+			eio_custom(EIO_OpenRepository2, EIO_PRI_DEFAULT, EIO_AfterOpenRepository2, request);
+			ev_ref(EV_DEFAULT_UC);
+
+			return Undefined();
+		}
+		else {
+			git_repository* repo;
+
+			const char *_gitDir = *gitDir;
+			const char *_objDir = NULL;
+			if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
+				_objDir = *objDir;
+			}
+			const char *_indexFile = NULL;
+			if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
+				_indexFile = *indexFile;
+			}
+			const char *_workTree = NULL;
+			if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
+				_workTree = *workTree;
+			}
+
+			int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
+					_workTree);
+			if(result != GIT_SUCCESS) {
+				THROW_GIT_ERROR("Couldn't open repository.", result);
+			}
+
+			Handle<Value> constructorArgs[2] = {
+				External::New(repo),
+				pathsObj->Get(git_dir_symbol)
+			};
+
+			return scope.Close(Repository::constructor_template->GetFunction()
+					->NewInstance(2, constructorArgs));
+		}
 	}
+	else if(args[0]->IsString()) {
+		REQ_STR_ARG(0, pathArg);
+
+		if(HAS_CALLBACK_ARG) {
+			open_repo_request *request = new open_repo_request;
+			request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+			request->path = new String::Utf8Value(args[0]);
+
+			eio_custom(EIO_OpenRepository, EIO_PRI_DEFAULT, EIO_AfterOpenRepository, request);
+			ev_ref(EV_DEFAULT_UC);
+
+			return Undefined();
+		}
+		else {
+			git_repository* repo;
+			int result = git_repository_open(&repo, *pathArg);
+			if(result != GIT_SUCCESS) {
+				THROW_GIT_ERROR("Couldn't open repository.", result);
+			}
+
+			Handle<Value> constructorArgs[2] = {
+				External::New(repo),
+				args[0]
+			};
+
+			return scope.Close(Repository::constructor_template->GetFunction()
+					->NewInstance(2, constructorArgs));
+		}
+	}
+
+	THROW_ERROR("Invalid argument.");
 }
 
 int Repository::EIO_OpenRepository(eio_req *req) {
@@ -382,85 +477,6 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
  	delete reqData;
  	ev_unref(EV_DEFAULT_UC);
 	return 0;
-}
-
-Handle<Value> Repository::OpenRepository2(const Arguments& args) {
-	HandleScope scope;
-
-	REQ_ARGS(1);
-	if(!args[0]->IsObject()) {
-		THROW_ERROR("Please provide an object containing paths.");
-	}
-
-	Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
-	if(pathsObj->Get(OPEN2_GITDIR_PROPERTY)->Equals(Null())) {
-		THROW_ERROR("Git directory is required.");
-	}
-
-	String::Utf8Value gitDir(pathsObj->Get(OPEN2_GITDIR_PROPERTY));
-	String::Utf8Value objDir(pathsObj->Get(OPEN2_OBJDIR_PROPERTY));
-	String::Utf8Value indexFile(pathsObj->Get(OPEN2_INDEXFILE_PROPERTY));
-	String::Utf8Value workTree(pathsObj->Get(OPEN2_WORKTREE_PROPERTY));
-
-	if(HAS_CALLBACK_ARG) {
-		open_repo2_request *request = new open_repo2_request;
-		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-		request->gitDir = new std::string(*gitDir);
-		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
-			request->objectDir = new std::string(*objDir);
-		}
-		else {
-			request->objectDir = NULL;
-		}
-		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
-			request->indexFile = new std::string(*indexFile);
-		}
-		else {
-			request->indexFile = NULL;
-		}
-		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
-			request->workTree = new std::string(*workTree);
-		}
-		else {
-			request->workTree = NULL;
-		}
-
-		eio_custom(EIO_OpenRepository2, EIO_PRI_DEFAULT, EIO_AfterOpenRepository2, request);
-		ev_ref(EV_DEFAULT_UC);
-
-		return Undefined();
-	}
-	else {
-		git_repository* repo;
-
-		const char *_gitDir = *gitDir;
-		const char *_objDir = NULL;
-		if(!pathsObj->Get(OPEN2_OBJDIR_PROPERTY)->IsUndefined()) {
-			_objDir = *objDir;
-		}
-		const char *_indexFile = NULL;
-		if(!pathsObj->Get(OPEN2_INDEXFILE_PROPERTY)->IsUndefined()) {
-			_indexFile = *indexFile;
-		}
-		const char *_workTree = NULL;
-		if(!pathsObj->Get(OPEN2_WORKTREE_PROPERTY)->IsUndefined()) {
-			_workTree = *workTree;
-		}
-
-		int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
-				_workTree);
-		if(result != GIT_SUCCESS) {
-			THROW_GIT_ERROR("Couldn't open repository.", result);
-		}
-
-		Handle<Value> constructorArgs[2] = {
-			External::New(repo),
-			pathsObj->Get(OPEN2_GITDIR_PROPERTY)
-		};
-
-		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(2, constructorArgs));
-	}
 }
 
 int Repository::EIO_OpenRepository2(eio_req *req) {
@@ -618,7 +634,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repo->path_ = *pathArg;
 	repo->odb_ = git_repository_database(repo->repo_);
 
-	args.This()->Set(String::New("path"), String::New(repo->path_), (PropertyAttribute)(ReadOnly | DontDelete));
+	args.This()->Set(path_symbol, String::New(repo->path_),
+			(PropertyAttribute)(ReadOnly | DontDelete));
 
 	// HUGE FUCKING TODO:
 	// IN MOTHER FUCKING CAPITALS.
@@ -647,12 +664,32 @@ Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, commitObjArg);
+
+	Handle<Value> callback = Null();
 	if(HAS_CALLBACK_ARG) {
-		ASYNC_PREPARE_CREATE_OBJECT(Commit);
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
 	}
-	else {
-		SYNC_CREATE_OBJECT(Commit, git_commit, commitFactory_);
+
+	return scope.Close(Commit::SaveObject(commitObjArg, repo, callback, true));
+}
+
+Handle<Value> Repository::CreateBlob(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, blobObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
 	}
+
+	return scope.Close(Blob::SaveObject(blobObjArg, repo, callback, true));
 }
 
 Handle<Value> Repository::GetCommit(const Arguments& args) {
@@ -666,20 +703,71 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 		ASYNC_PREPARE_GET_OID_OBJECT(Commit, git_commit);
 	}
 	else {
-		SYNC_GET_OID_OBJECT(Commit, git_commit, commitFactory_);
+		git_commit *commit;
+		int result = repo->getCommit(&oidArg, &commit);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get commit.", result);
+		}
+
+		return scope.Close(repo->commitCache_->syncRequest(commit));
 	}
+}
+
+int Repository::EIO_GetCommit(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_commit *commit;
+	reqData->error = reqData->repo->getCommit(&reqData->oid,
+			&commit);
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = commit;
+
+		Commit *commitObject;
+		reqData->error = reqData->repo->commitCache_->asyncRequest(
+				commit, &commitObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = commitObject;
+		}
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnCommit(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(object_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Couldn't get commit."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
+	}
+	else {
+		Commit *wrappedCommit = static_cast<Commit*>(reqData->wrappedObject);
+		wrappedCommit->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedCommit->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Repository::CreateTree(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	if(args.Length() > 0) {
-		ASYNC_PREPARE_CREATE_OBJECT(Tree);
-	}
-	else {
-		SYNC_CREATE_OBJECT(Tree, git_tree, treeFactory_);
-	}
+	THROW_ERROR("Unimplemented.");
 }
 
 Handle<Value> Repository::GetTree(const Arguments& args) {
@@ -693,20 +781,80 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 		ASYNC_PREPARE_GET_OID_OBJECT(Tree, git_tree);
 	}
 	else {
-		SYNC_GET_OID_OBJECT(Tree, git_tree, treeFactory_);
+		git_tree *tree;
+		int result = repo->getTree(&oidArg, &tree);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get tree.", result);
+		}
+
+		return scope.Close(repo->treeCache_->syncRequest(tree));
 	}
+}
+
+int Repository::EIO_GetTree(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_tree *tree;
+	reqData->error = reqData->repo->getTree(&reqData->oid,
+			&tree);
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = tree;
+
+		Tree *treeObject;
+		reqData->error = reqData->repo->treeCache_->asyncRequest(
+				tree, &treeObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = treeObject;
+		}
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnTree(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(object_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Couldn't get tree."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
+	}
+	else {
+		Tree *wrappedTree = static_cast<Tree*>(reqData->wrappedObject);
+		wrappedTree->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedTree->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Repository::CreateTag(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	if(args.Length() > 0) {
-		ASYNC_PREPARE_CREATE_OBJECT(Tag);
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, tagObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
 	}
-	else {
-		SYNC_CREATE_OBJECT(Tag, git_tag, tagFactory_);
-	}
+
+	return scope.Close(Tag::SaveObject(tagObjArg, repo, callback, true));
 }
 
 Handle<Value> Repository::GetTag(const Arguments& args) {
@@ -716,39 +864,68 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, oidArg);
 
-	if(args.Length() == 2) {
+	if(HAS_CALLBACK_ARG) {
 		ASYNC_PREPARE_GET_OID_OBJECT(Tag, git_tag);
 	}
 	else {
-		SYNC_GET_OID_OBJECT(Tag, git_tag, tagFactory_);
+		git_tag *tag;
+		int result = repo->getTag(&oidArg, &tag);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get tag.", result);
+		}
+
+		return scope.Close(repo->tagCache_->syncRequest(tag));
 	}
 }
 
-Handle<Value> Repository::GetRawObject(const Arguments& args) {
-	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+int Repository::EIO_GetTag(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_tag *tag;
+	reqData->error = reqData->repo->getTag(&reqData->oid,
+			&tag);
 
-	REQ_ARGS(1);
-	REQ_OID_ARG(0, oidArg);
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = tag;
 
-	if(args.Length() == 2) {
-		ASYNC_PREPARE_GET_OID_OBJECT(RawObject, git_rawobj);
+		Tag *tagObject;
+		reqData->error = reqData->repo->tagCache_->asyncRequest(
+				tag, &tagObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = tagObject;
+		}
 	}
-	else {
-		SYNC_GET_OID_OBJECT(RawObject, git_rawobj, rawObjFactory_);
-	}
+
+	return 0;
 }
 
-Handle<Value> Repository::CreateRawObject(const Arguments& args) {
+int Repository::EIO_ReturnTag(eio_req *req) {
 	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+	GET_REQUEST_DATA(object_request);
 
-	if(args.Length() > 0) {
-		ASYNC_PREPARE_CREATE_OBJECT(RawObject);
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Couldn't get tag."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
 	}
 	else {
-		SYNC_CREATE_OBJECT(RawObject, git_rawobj, rawObjFactory_);
+		Tag *wrappedTag = static_cast<Tag*>(reqData->wrappedObject);
+		wrappedTag->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedTag->handle_);
 	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Repository::CreateWalker(const Arguments& args) {
@@ -860,8 +1037,146 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 		ASYNC_PREPARE_GET_NAMED_OBJECT(Reference, git_reference);
 	}
 	else {
-		SYNC_GET_NAMED_OBJECT(Reference, git_reference, referenceFactory_);
+		repo->lockRefs();
+
+		git_reference *ref;
+
+		int res = repo->getReference(*nameArg, &ref);
+		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
+			THROW_GIT_ERROR("Git error.", res);
+		}
+
+		Handle<Value> refObj = repo->referenceCache_->syncRequest(ref);
+		repo->unlockRefs();
+		return scope.Close(refObj);
 	}
+}
+
+int Repository::EIO_GetReference(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_reference *ref;
+
+	reqData->repo->lockRefs();
+	reqData->error = reqData->repo->getReference(reqData->name->c_str(),
+			&ref);
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = ref;
+
+		Reference *refObject;
+		reqData->error = reqData->repo->referenceCache_->asyncRequest(
+				ref, &refObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = refObject;
+		}
+	}
+	reqData->repo->unlockRefs();
+
+	delete reqData->name;
+
+	return 0;
+}
+
+int Repository::EIO_ReturnReference(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(object_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Couldn't get ref."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
+	}
+	else {
+		Reference *wrappedReference = static_cast<Reference*>(reqData->wrappedObject);
+		wrappedReference->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedReference->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
+}
+
+Handle<Value> Repository::GetBlob(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, oidArg);
+
+	if(args.Length() == 2) {
+		ASYNC_PREPARE_GET_OID_OBJECT(Blob, git_blob);
+	}
+	else {
+		git_blob *blob;
+		int result = repo->getBlob(&oidArg, &blob);
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't get blob.", result);
+		}
+
+		return scope.Close(repo->blobCache_->syncRequest(blob));
+	}
+}
+
+int Repository::EIO_GetBlob(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	git_blob *blob;
+	reqData->error = reqData->repo->getBlob(&reqData->oid,
+			&blob);
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = blob;
+
+		Blob *blobObject;
+		reqData->error = reqData->repo->blobCache_->asyncRequest(
+				blob, &blobObject);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = blobObject;
+		}
+	}
+
+	return 0;
+}
+
+int Repository::EIO_ReturnBlob(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(object_request);
+
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New(
+				"Couldn't get blob."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Undefined();
+	}
+	else {
+		Blob *wrappedBlob = static_cast<Blob*>(reqData->wrappedObject);
+		wrappedBlob->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(wrappedBlob->handle_);
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+
+	delete reqData;
+	return 0;
 }
 
 Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
@@ -888,15 +1203,49 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_CreateSymbolicRef, EIO_ReturnReference);
 	}
 	else {
+		repo->lockRefs();
+
 		git_reference *ref;
 		int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg);
 
 		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
 
-		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+		Handle<Value> refObj = repo->referenceCache_->syncRequest(ref);
+		repo->unlockRefs();
+
+		return scope.Close(refObj);
 	}
+}
+
+int Repository::EIO_CreateSymbolicRef(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+
+	git_reference *ref;
+
+	reqData->repo->lockRepository();
+	reqData->error = git_reference_create_symbolic(&ref, reqData->repo->repo_,
+			reqData->name->c_str(), reqData->target->c_str());
+	reqData->repo->unlockRepository();
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = ref;
+
+		Reference *refObj;
+		reqData->error = reqData->repo->referenceCache_->asyncRequest(ref,
+				&refObj);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = refObj;
+		}
+	}
+
+	delete reqData->name;
+	delete reqData->target;
+
+	return 0;
 }
 
 Handle<Value> Repository::CreateOidRef(const Arguments& args) {
@@ -921,14 +1270,55 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_CreateOidRef, EIO_ReturnReference);
 	}
 	else {
+		repo->lockRefs();
+
 		git_reference *ref;
+		repo->lockRepository();
 		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
+		repo->unlockRepository();
+
 		if(res != GIT_SUCCESS) {
+			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
 
-		return repo->referenceFactory_->syncRequestObject(ref)->handle_;
+		Handle<Value> refObj = repo->referenceCache_->syncRequest(ref);
+		repo->unlockRefs();
+
+		return scope.Close(refObj);
 	}
+}
+
+int Repository::EIO_CreateOidRef(eio_req *req) {
+	GET_REQUEST_DATA(object_request);
+	reqData->repo->lockRepository();
+
+	// Ignoring the result of this, as we know it's definitely a good oid.
+	git_oid oid;
+	git_oid_mkstr(&oid, reqData->target->c_str());
+
+	git_reference *ref;
+	reqData->error = git_reference_create_oid(&ref, reqData->repo->repo_,
+			reqData->name->c_str(), &oid);
+
+	reqData->repo->unlockRepository();
+
+	if(reqData->error == GIT_SUCCESS) {
+		reqData->object = ref;
+
+		Reference *refObj;
+		reqData->error = reqData->repo->referenceCache_->asyncRequest(ref,
+				&refObj);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->wrappedObject = refObj;
+		}
+	}
+
+	delete reqData->name;
+	delete reqData->target;
+
+	return 0;
 }
 
 Handle<Value> Repository::ListReferences(const Arguments& args) {
@@ -1016,6 +1406,125 @@ int Repository::EIO_AfterGetRefList(eio_req *req) {
 	return 0;
 }
 
+int Repository::DoRefPacking() {
+	// Fun times abound!
+	int result;
+
+	// BIG TODO: probably not very good chance of it happening. But what should
+	// we do if the ref ptr update process fails anywhere? For now I'm just ignoring
+	// the return status and pretending nothing could go wrong, but it might.
+
+	lockRefs();
+
+	// First step, grab all the cached reference from object factory.
+	int refCount;
+	Reference **refList = referenceCache_->getAllObjects(&refCount);
+
+	// Now we go through them all, lock them, and save what their current name is.
+	// We'll need the names for lata.
+	std::string **refNames = new std::string*[refCount];
+	for(int i = 0; i < refCount; i++) {
+		refList[i]->lock();
+
+		if(refList[i]->deleted_) {
+			refList[i]->unlock();
+			refNames[i] = NULL;
+			continue;
+		}
+
+		refNames[i] = new std::string(git_reference_name(refList[i]->ref_));
+	}
+
+	// Okay. Time to make shit happen.
+	lockRepository();
+	result = git_reference_packall(repo_);
+	unlockRepository();
+
+	if(result == GIT_SUCCESS) {
+		// Mo'fuckin' success!!!! Now we update all the existing references with
+		// their ... new reference pointer to their ... reference. Awesome.
+		for(int i = 0; i < refCount; i++) {
+			if(refNames[i] != NULL) {
+				git_reference *newRef;
+				git_reference *oldRef = refList[i]->ref_;
+
+				git_reference_lookup(&newRef, repo_, refNames[i]->c_str());
+				refList[i]->ref_ = newRef;
+
+				referenceCache_->updateCacheRef(oldRef, newRef);
+
+				// It's now safe to unlock this ref, as it's valid once again.
+				refList[i]->unlock();
+			}
+		}
+	}
+
+	delete [] refList;
+	for(int i = 0; i < refCount; i++) {
+		if(refNames[i] != NULL) {
+			delete refNames[i];
+		}
+	}
+	delete [] refNames;
+
+	unlockRefs();
+
+	return result;
+}
+
+Handle<Value> Repository::PackReferences(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		CREATE_ASYNC_REQUEST(ref_pack_request);
+
+		REQUEST_DETACH(repo, EIO_PackRefs, EIO_AfterPackRefs);
+	}
+	else {
+		int result = repo->DoRefPacking();
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't pack refs.", result);
+		}
+
+		return True();
+	}
+}
+
+int Repository::EIO_PackRefs(eio_req *req) {
+	GET_REQUEST_DATA(ref_pack_request);
+
+	reqData->error = reqData->repo->DoRefPacking();
+
+	return 0;
+}
+
+int Repository::EIO_AfterPackRefs(eio_req *req) {
+	HandleScope scope;
+	GET_REQUEST_DATA(ref_pack_request);
+	ev_unref(EV_DEFAULT_UC);
+	reqData->repo->Unref();
+
+	Handle<Value> callbackArgs[2];
+
+	if(reqData->error != GIT_SUCCESS) {
+		Handle<Value> error = CreateGitError(String::New("Couldn't pack refs."), reqData->error);
+		callbackArgs[0] = error;
+		callbackArgs[1] = Null();
+	}
+	else {
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = True();
+	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
+	delete reqData;
+
+	return 0;
+}
+
 Handle<Value> Repository::Exists(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -1058,85 +1567,6 @@ int Repository::EIO_AfterExists(eio_req *req) {
 	return 0;
 }
 
-// Boilerplate code can SMFD.
-// ==========
-// COMMIT EIO
-// ==========
-FN_ASYNC_GET_OID_OBJECT(Commit, git_commit)
-FN_ASYNC_CREATE_OBJECT(Commit, git_commit)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Commit, git_commit, commitFactory_)
-
-// ========
-// TREE EIO
-// ========
-FN_ASYNC_GET_OID_OBJECT(Tree, git_tree)
-FN_ASYNC_CREATE_OBJECT(Tree, git_tree)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tree, git_tree, treeFactory_)
-
-// =======
-// TAG EIO
-// =======
-FN_ASYNC_GET_OID_OBJECT(Tag, git_tag)
-FN_ASYNC_CREATE_OBJECT(Tag, git_tag)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Tag, git_tag, tagFactory_)
-
-// =============
-// RAWOBJECT EIO
-// =============
-FN_ASYNC_GET_OID_OBJECT(RawObject, git_rawobj)
-FN_ASYNC_CREATE_OBJECT(RawObject, git_rawobj)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(RawObject, git_rawobj, rawObjFactory_)
-
-// =======
-// REF EIO
-// =======
-FN_ASYNC_GET_NAMED_OBJECT(Reference, git_reference)
-FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(Reference, git_reference, referenceFactory_)
-
-int Repository::EIO_CreateSymbolicRef(eio_req *req) {
-	GET_REQUEST_DATA(object_request);
-
-	git_reference *obj;
-
-	reqData->repo->lockRepository();
-	reqData->error = git_reference_create_symbolic(&obj, reqData->repo->repo_,
-			reqData->name->c_str(), reqData->target->c_str());
-	reqData->repo->unlockRepository();
-
-	if(reqData->error == GIT_SUCCESS) {
-		reqData->object = obj;
-	}
-
-	delete reqData->name;
-	delete reqData->target;
-
-	return 0;
-}
-
-int Repository::EIO_CreateOidRef(eio_req *req) {
-	GET_REQUEST_DATA(object_request);
-	reqData->repo->lockRepository();
-
-	// Ignoring the result of this, as we know it's definitely a good oid.
-	git_oid oid;
-	git_oid_mkstr(&oid, reqData->target->c_str());
-
-	git_reference *obj;
-	reqData->error = git_reference_create_oid(&obj, reqData->repo->repo_,
-			reqData->name->c_str(), &oid);
-
-	reqData->repo->unlockRepository();
-
-	if(reqData->error == GIT_SUCCESS) {
-		reqData->object = obj;
-	}
-
-	delete reqData->name;
-	delete reqData->target;
-
-	return 0;
-}
-
 // ===========
 // REVWALK EIO
 // ===========
@@ -1145,22 +1575,23 @@ FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 
 Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
+	CREATE_MUTEX(refLock_);
 
-	commitFactory_ = new ObjectFactory<Repository, Commit, git_commit>(this);
-	referenceFactory_ = new ObjectFactory<Repository, Reference, git_reference>(this);
-	treeFactory_ = new ObjectFactory<Repository, Tree, git_tree>(this);
-	tagFactory_ = new ObjectFactory<Repository, Tag, git_tag>(this);
-	rawObjFactory_ = new ObjectFactory<Repository, RawObject, git_rawobj>(this);
+	commitCache_ = new WrappedGitObjectCache<Commit, git_commit>(this);
+	referenceCache_ = new WrappedGitObjectCache<Reference, git_reference>(this);
+	treeCache_ = new WrappedGitObjectCache<Tree, git_tree>(this);
+	tagCache_ = new WrappedGitObjectCache<Tag, git_tag>(this);
+	blobCache_ = new WrappedGitObjectCache<Blob, git_blob>(this);
 
 	index_ = NULL;
 }
 
 Repository::~Repository() {
-	delete commitFactory_;
-	delete referenceFactory_;
-	delete treeFactory_;
-	delete tagFactory_;
-	delete rawObjFactory_;
+	delete commitCache_;
+	delete referenceCache_;
+	delete treeCache_;
+	delete tagCache_;
+	delete blobCache_;
 
 	close();
 }
@@ -1180,26 +1611,6 @@ int Repository::getCommit(git_oid *id, git_commit **commit) {
 	return result;
 }
 
-int Repository::createCommit(git_commit **commit) {
-	int result;
-	
-	LOCK_MUTEX(gitLock_);
-	result = git_commit_new(commit, repo_);
-	UNLOCK_MUTEX(gitLock_);
-
-	return result;
-}
-
-int Repository::createTree(git_tree **tree) {
-	int result;
-	
-	LOCK_MUTEX(gitLock_);
-	result = git_tree_new(tree, repo_);
-	UNLOCK_MUTEX(gitLock_);
-	
-	return result;
-}
-
 int Repository::getTree(git_oid *id, git_tree **tree) {
 	int result;
 	
@@ -1210,11 +1621,11 @@ int Repository::getTree(git_oid *id, git_tree **tree) {
 	return result;
 }
 
-int Repository::createTag(git_tag **tag) {
+int Repository::getBlob(git_oid *id, git_blob **blob) {
 	int result;
 
 	LOCK_MUTEX(gitLock_);
-	result = git_tag_new(tag, repo_);
+	result = git_blob_lookup(blob, repo_, id);
 	UNLOCK_MUTEX(gitLock_);
 
 	return result;
@@ -1236,21 +1647,6 @@ int Repository::getReference(const char* name, git_reference** ref) {
 	LOCK_MUTEX(gitLock_);
 	result = git_reference_lookup(ref, repo_, name);
 	UNLOCK_MUTEX(gitLock_);
-
-	return result;
-}
-
-int Repository::getRawObject(git_oid *id, git_rawobj **objPtr) {
-	int result;
-
-	LOCK_MUTEX(gitLock_);
-	git_rawobj *obj = new git_rawobj;
-	result = git_odb_read(obj, odb_, id);
-	UNLOCK_MUTEX(gitLock_);
-	
-	if(result == GIT_SUCCESS) {
-		*objPtr = obj;
-	}
 
 	return result;
 }
@@ -1277,14 +1673,6 @@ RevWalker *Repository::wrapRevWalker(git_revwalk *walker) {
 	return walkerObj;
 }
 
-int Repository::createRawObject(git_rawobj** rawObj) {
-	*rawObj = new git_rawobj;
-	(*rawObj)->len = 0;
-	(*rawObj)->type = GIT_OBJ_BAD;
-
-	return GIT_SUCCESS;
-}
-
 void Repository::notifyIndexDead() {
 	index_ = NULL;
 }
@@ -1295,6 +1683,14 @@ void Repository::lockRepository() {
 
 void Repository::unlockRepository() {
 	UNLOCK_MUTEX(gitLock_);
+}
+
+void Repository::lockRefs() {
+	LOCK_MUTEX(refLock_);
+}
+
+void Repository::unlockRefs() {
+	UNLOCK_MUTEX(refLock_);
 }
 
 } // namespace gitteh

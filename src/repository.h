@@ -2,7 +2,7 @@
 #define GITTEH_REPO_H
 
 #include "gitteh.h"
-#include "object_store.h"
+#include "object_cache.h"
 
 namespace gitteh {
 
@@ -13,6 +13,7 @@ class Index;
 class RawObject;
 class Reference;
 class RevWalker;
+class Blob;
 
 template <class, class, class> class ObjectFactory;
 
@@ -32,11 +33,14 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
-	ObjectFactory<Repository, Commit, git_commit> *commitFactory_;
-	ObjectFactory<Repository, Tag, git_tag> *tagFactory_;
-	ObjectFactory<Repository, Tree, git_tree> *treeFactory_;
-	ObjectFactory<Repository, RawObject, git_rawobj> *rawObjFactory_;
-	ObjectFactory<Repository, Reference, git_reference> *referenceFactory_;
+	void lockRefs();
+	void unlockRefs();
+
+	WrappedGitObjectCache<Commit, git_commit> *commitCache_;
+	WrappedGitObjectCache<Tag, git_tag> *tagCache_;
+	WrappedGitObjectCache<Tree, git_tree> *treeCache_;
+	WrappedGitObjectCache<Reference, git_reference> *referenceCache_;
+	WrappedGitObjectCache<Blob, git_blob> *blobCache_;
 
 	void notifyIndexDead();
 
@@ -46,7 +50,6 @@ public:
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);
-	static Handle<Value> OpenRepository2(const Arguments&);
 	static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);
@@ -56,6 +59,7 @@ protected:
 	static Handle<Value> GetTag(const Arguments&);
 	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
+	static Handle<Value> GetBlob(const Arguments&);
 
 	static Handle<Value> GetIndex(const Arguments&);
 
@@ -68,25 +72,22 @@ protected:
 	static Handle<Value> CreateWalker(const Arguments&);
 	static Handle<Value> CreateSymbolicRef(const Arguments&);
 	static Handle<Value> CreateOidRef(const Arguments&);
+	static Handle<Value> CreateBlob(const Arguments&);
 
 	static Handle<Value> ListReferences(const Arguments&);
+	static Handle<Value> PackReferences(const Arguments&);
 
 	void close();
-
 
 private:
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
-	int getRawObject(git_oid*, git_rawobj**);
+	int getBlob(git_oid*, git_blob**);
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
-	int createTree(git_tree**);
-	int createCommit(git_commit**);
-	int createTag(git_tag**);
-	int createRawObject(git_rawobj**);
 	int createRevWalker(git_revwalk**);
 
 	static int EIO_Exists(eio_req*);
@@ -102,7 +103,6 @@ private:
 	static int EIO_AfterInitRepository(eio_req*);
 
 	static int EIO_GetCommit(eio_req*);
-	static int EIO_CreateCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
 	
 	static int EIO_GetTree(eio_req*);
@@ -110,7 +110,6 @@ private:
 	static int EIO_ReturnTree(eio_req*);
 	
 	static int EIO_GetTag(eio_req*);
-	static int EIO_CreateTag(eio_req*);
 	static int EIO_ReturnTag(eio_req*);
 	
 	static int EIO_GetRawObject(eio_req*);
@@ -128,8 +127,16 @@ private:
 	static int EIO_GetRefList(eio_req*);
 	static int EIO_AfterGetRefList(eio_req*);
 
+	static int EIO_PackRefs(eio_req*);
+	static int EIO_AfterPackRefs(eio_req*);
+
 	static int EIO_InitIndex(eio_req*);
 	static int EIO_ReturnIndex(eio_req*);
+
+	static int EIO_GetBlob(eio_req*);
+	static int EIO_ReturnBlob(eio_req*);
+
+	int DoRefPacking();
 
 	Index *index_;
 
@@ -141,6 +148,13 @@ private:
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
 	gitteh_lock gitLock_;
+
+	// This lock is used during ref packing. The problem is ref packing will
+	// invalidate our previously cached pointers. Ugh. So what we do is update
+	// those pointers after we pack references right? Cool. Only thing is with
+	// async that process might get fucked if we don't stop any more refs from
+	// being opened created while we're in the process of packing. Hence this lock.
+	gitteh_lock refLock_;
 };
 
 } // namespace gitteh

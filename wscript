@@ -15,10 +15,15 @@ def set_options(opt):
 					default = False,
 					help = "Compile gitteh and libgit2 (if using bundled version) with debug flags.")
 
+	opt.add_option("--use-bundled-libgit2",
+					action = "store_true",
+					default = False,
+					help = "Don't use libgit2 installed on system, configure and compile an internal copy instead.")
+
 def configure_libgit2(ctx):
 	o = Options.options
 	
-	if not ctx.check(lib = "git2", uselib_store = "GIT2"):
+	if o.use_bundled_libgit2 or not ctx.check(lib = "git2", uselib_store = "GIT2"):
 		# Checkout libgit2 submodule if it isn't already.
 		if exists(".git"): 
 			if not exists("vendor/libgit2") or not os.listdir("vendor/libgit2"):
@@ -74,5 +79,5 @@ def build(ctx):
 
 	obj = ctx.new_task_gen('cxx', 'shlib', 'node_addon')
 	obj.target = 'gitteh'
-	obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/tree_entry.cc src/rawobj.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc' 
+	obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc src/blob.cc' 
 	obj.uselib = 'GIT2'

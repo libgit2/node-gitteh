@@ -94,7 +94,7 @@ vows.describe("Repository").addBatch({
 	
 	"Opening a repository with custom options *asynchronously*": {
 		topic: function() {
-			gitteh.openRepository2(fixtureValues.WORKING_DIR, this.callback);
+			gitteh.openRepository(fixtureValues.WORKING_DIR, this.callback);
 		},
 		
 		"gives us a Repository": function(repo) {
@@ -108,7 +108,7 @@ vows.describe("Repository").addBatch({
 	
 	"Opening a repository with custom options *synchronously*": {
 		topic: function() {
-			return gitteh.openRepository2(fixtureValues.WORKING_DIR);
+			return gitteh.openRepository(fixtureValues.WORKING_DIR);
 		},
 		
 		"gives us a Repository": function(repo) {

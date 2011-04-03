@@ -26,9 +26,11 @@
 	assert = require("assert"),
 	gitteh = require("gitteh"),
 	path = require("path"),
-	fixtureValues = require("./fixtures/values");
+	fixtureValues = require("./fixtures/values"),
+	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH); 
+var testRepo = helpers.createTestRepo("tag");
 
 var createTagTestContext = function(topic, tagFixture) {
 	var context = {
@@ -93,110 +95,61 @@ vows.describe("Tag").addBatch({
 	"Tag *test_tag*, *asynchronously*": createAsyncTagTestContext(fixtureValues.TEST_TAG),
 	"Tag *test_tag*, *synchronously*": createSyncTagTestContext(fixtureValues.TEST_TAG),
 	
-	"Creating a new tag *synchronously*": {
-		topic: function() {
-			return repo.createTag();
-		},
-
-		"tag is in identity state": function(tag) {
-			assert.isNull(tag.id);
-			assert.isNull(tag.name);
-			assert.isNull(tag.message);
-			assert.isNull(tag.tagger);
-			assert.isNull(tag.targetId);
-			assert.isNull(tag.targetType);
-		},
-	},
-	
 	"Creating a new tag *asynchronously*": {
 		topic: function() {
-			repo.createTag(this.callback);
+			testRepo.createTag({
+				name: "async_test_tag",
+				message: "Async Test tag.",
+				tagger: {
+					name: "Sam Day",
+					email: "sam.c.day@gmail.com",
+					time: new Date(1988, 12, 12)
+				},
+				targetId: testRepo.TEST_BLOB
+			}, this.callback);
 		},
 
-		"tag is in identity state": function(tag) {
-			assert.isNull(tag.id);
-			assert.isNull(tag.name);
-			assert.isNull(tag.message);
-			assert.isNull(tag.tagger);
-			assert.isNull(tag.targetId);
-			assert.isNull(tag.targetType);
-		},
-	},
-		
-	"saving identity results in an error": function(tag) {
-		var tag = repo.createTag();
-		assert.throws(function() {
-			tag.save();
-		}, Error);
-	},
-		
-	"Saving tag *asynchronously*": {
-		topic: function(tag) {
-			var tag = repo.createTag();
-			tag.name = "Async Test Tag";
-			tag.message = "Async Test tag.";
-			tag.tagger = {
-				name: "Sam Day",
-				email: "sam.c.day@gmail.com",
-				time: new Date()
-			};
-			tag.targetId = fixtureValues.FIRST_COMMIT.id;
-			
-			this.context.tag = tag;
-			
-			tag.save(this.callback);
+		"gives us a tag": function(tag) {
+			assert.isTrue(!!tag);
 		},
 		
-		"works": function(result) {
-			assert.isTrue(result);
-		},
-		
-		"tag has correct id": function() {
-			assert.equal(this.context.tag.id, "19d361418f74421ab4b2baddb9619ea0449a8bdb");
-		},
-		
-		"tag type is correct": function() {
-			assert.equal(this.context.tag.targetType, "commit");
-		},
-
-		"tag is reachable from repo": function() {
-			assert.isTrue(this.context.tag === repo.getTag(this.context.tag.id));
+		"with correct values": function(tag) {
+			assert.equal(tag.name, "async_test_tag");
+			assert.equal(tag.message, "Async Test tag.");
+			assert.equal(tag.tagger.name, "Sam Day");
+			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
+			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
+			assert.equal(tag.targetId, testRepo.TEST_BLOB);
+			assert.equal(tag.targetType, "blob");
 		}
 	},
-		
-	"Saving tag *synchronously*": {
-		topic: function(tag) {
-			var tag = repo.createTag();
-			tag.name = "Sync Test Tag";
-			tag.message = "Sync Test tag.";
-			tag.tagger = {
-				name: "Sam Day",
-				email: "sam.c.day@gmail.com",
-				time: new Date()
-			};
-			tag.targetId = fixtureValues.FIRST_COMMIT.id;
-			
-			this.context.tag = tag;
-			
-			return function() {
-				tag.save();
-			};
-		},
-		
-		"works": function(fn) {
-			assert.doesNotThrow(fn, Error);
-		},
-		
-		"tag has correct id": function() {
-			assert.equal(this.context.tag.id, "a912c342ece537e69f60352eae2f717a7f72ab2d");
-		},
-		
-		"tag type is correct": function() {
-			assert.equal(this.context.tag.targetType, "commit");
+	
+	"Creating a new tag *synchronously*": {
+		topic: function() {
+			return testRepo.createTag({
+				name: "sync_test_tag",
+				message: "Sync Test tag.",
+				tagger: {
+					name: "Sam Day",
+					email: "sam.c.day@gmail.com",
+					time: new Date(1988, 12, 12)
+				},
+				targetId: testRepo.TEST_BLOB
+			});
 		},
 
-		"tag is reachable from repo": function() {
-			assert.isTrue(this.context.tag === repo.getTag(this.context.tag.id));
+		"gives us a tag": function(tag) {
+			assert.isTrue(!!tag);
+		},
+		
+		"with correct values": function(tag) {
+			assert.equal(tag.name, "sync_test_tag");
+			assert.equal(tag.message, "Sync Test tag.");
+			assert.equal(tag.tagger.name, "Sam Day");
+			assert.equal(tag.tagger.email, "sam.c.day@gmail.com");
+			assert.equal(tag.tagger.time.getTime(), new Date(1988, 12, 12).getTime());
+			assert.equal(tag.targetId, testRepo.TEST_BLOB);
+			assert.equal(tag.targetType, "blob");
 		}
 	}
 }).export(module);

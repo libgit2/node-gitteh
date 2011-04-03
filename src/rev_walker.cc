@@ -25,14 +25,17 @@
 #include "rev_walker.h"
 #include "commit.h"
 #include "repository.h"
-#include "object_factory.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
+
+static Persistent<String> revwalker_class_symbol;
 
 struct walker_request {
 	Persistent<Function> callback;
 	RevWalker *walker;
 	git_commit *commit;
+	Commit *commitObject;
 	std::string *id;
 	int error;
 };
@@ -54,14 +57,11 @@ Persistent<FunctionTemplate> RevWalker::constructor_template;
 void RevWalker::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	target->Set(String::New("SORT_NONE"), Integer::New(GIT_SORT_NONE));
-	target->Set(String::New("SORT_TOPOLOGICAL"), Integer::New(GIT_SORT_TOPOLOGICAL));
-	target->Set(String::New("SORT_TIME"), Integer::New(GIT_SORT_TIME));
-	target->Set(String::New("SORT_REVERSE"), Integer::New(GIT_SORT_REVERSE));
+	revwalker_class_symbol = NODE_PSYMBOL("RevisionWalker");
 
 	Handle<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("RevWalker"));
+	constructor_template->SetClassName(revwalker_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "push", Push);
@@ -69,6 +69,13 @@ void RevWalker::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "next", Next);
 	NODE_SET_PROTOTYPE_METHOD(t, "sort", Sort);
 	NODE_SET_PROTOTYPE_METHOD(t, "reset", Reset);
+
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_NONE);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_TOPOLOGICAL);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_TIME);
+	NODE_DEFINE_CONSTANT(target, GIT_SORT_REVERSE);
+
+	target->Set(revwalker_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> RevWalker::New(const Arguments& args) {
@@ -106,6 +113,9 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 			// EIO threadpool? I think it should be ok since we're not
 			// referencing the js object, but just the underlying commit itself
 			// which shouldn't get gc'd.
+			// FIXME: No, with the new libgit2 changes the git_commit is freed
+			// when the wrapping object is gc'd. We need to make sure that doesn't
+			// happen.
 			//request->commit->Ref();
 		}
 		else {
@@ -143,7 +153,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 		if(res != GIT_SUCCESS)
 			THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 
@@ -249,7 +259,7 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 		if(res != GIT_SUCCESS)
 			THROW_GIT_ERROR("Couldn't hide commit.", res);
 	
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 
@@ -346,7 +356,8 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 			THROW_GIT_ERROR("Couldn't get next commit.", result);
 		}
 
-		return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
+		return scope.Close(walker->repo_->commitCache_->syncRequest(commit));
+		//return scope.Close(walker->repo_->commitFactory_->syncRequestObject(commit)->handle_);
 	}
 }
 
@@ -361,6 +372,11 @@ int RevWalker::EIO_Next(eio_req *req) {
 	if(reqData->error == GIT_SUCCESS) {
 		reqData->error = git_commit_lookup(&reqData->commit,
 				reqData->walker->repo_->repo_, &id);
+
+		if(reqData->error == GIT_SUCCESS) {
+			reqData->error = reqData->walker->repo_->commitCache_->asyncRequest(
+					reqData->commit, &reqData->commitObject);
+		}
 	}
 
 	return 0;
@@ -384,14 +400,16 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't get next commit."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
-
- 		TRIGGER_CALLBACK();
- 		reqData->callback.Dispose();
 	}
 	else {
-		reqData->walker->repo_->commitFactory_->asyncRequestObject(
-				reqData->commit, reqData->callback);
+		reqData->commitObject->ensureWrapped();
+
+		callbackArgs[0] = Undefined();
+		callbackArgs[1] = Local<Object>::New(reqData->commitObject->handle_);
 	}
+
+	TRIGGER_CALLBACK();
+	reqData->callback.Dispose();
 
 	delete reqData;
 
@@ -422,12 +440,10 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 	else {
 
 		walker->repo_->lockRepository();
-		int result = git_revwalk_sorting(walker->walker_, sorting);
+		git_revwalk_sorting(walker->walker_, sorting);
 		walker->repo_->unlockRepository();
-		if(result != GIT_SUCCESS)
-			THROW_GIT_ERROR("Couldn't sort rev walker.", result);
 
-		return Undefined();
+		return True();
 	}
 }
 
@@ -435,7 +451,8 @@ int RevWalker::EIO_Sort(eio_req *req) {
 	sort_request *reqData = static_cast<sort_request*>(req->data);
 
 	reqData->walker->repo_->lockRepository();
-	reqData->error = git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
+	git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
+	reqData->error = GIT_SUCCESS;
 	reqData->walker->repo_->unlockRepository();
 
 	return 0;
@@ -487,7 +504,7 @@ Handle<Value> RevWalker::Reset(const Arguments& args) {
 		git_revwalk_reset(walker->walker_);
 		walker->repo_->unlockRepository();
 
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 

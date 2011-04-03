@@ -69,6 +69,10 @@ public:
 		store_.deleteObjectFor(gitObject);
 	}
 
+	inline T **getAllObjects(int *count) {
+		return store_.getAllObjects(count);
+	}
+
 protected:
 	inline T *wrap(S *gitObj) {
 		T *object;
@@ -116,7 +120,7 @@ private:
 		return 0;
 	}
 
-	static inline void ReturnWrappedObject(ThreadSafeObjectWrap *obj,
+	static inline void ReturnWrappedObject(GitObjectWrap *obj,
 		Persistent<Function>& callback) {
 		Handle<Value> callbackArgs[2];
 		callbackArgs[0] = Null();

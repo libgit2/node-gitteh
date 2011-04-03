@@ -2,24 +2,18 @@
 #define GITTEH_TREE_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
-#include "object_factory.h"
+#include "gitobjectwrap_new.h"
 
 namespace gitteh {
 
 class TreeEntry;
 class Repository;
 
-#define TREE_ID_SYMBOL String::NewSymbol("id")
-#define TREE_LENGTH_SYMBOL String::NewSymbol("length")
+struct tree_data;
 
-template <class, class, class> class ObjectFactory;
-
-class Tree : public ThreadSafeObjectWrap {
+class Tree : public WrappedGitObject<Tree, git_tree> {
 public:
-	template<class, class,class> friend class ObjectFactory;
-
-	Tree();
+	Tree(git_tree*);
 	~Tree();
 
 	void setOwner(void*);
@@ -32,33 +26,16 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments&);
-
-	static Handle<Value> GetEntry(const Arguments&);
-	static Handle<Value> AddEntry(const Arguments&);
-	static Handle<Value> RemoveEntry(const Arguments&);
-	static Handle<Value> Clear(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void*);
-	void* loadInitData();
+	void processInitData();
+	int doInit();
 
-	size_t entryCount_;
-	ObjectFactory<Tree, TreeEntry, git_tree_entry> *entryFactory_;
 private:
-	static int EIO_GetEntry(eio_req*);
-	static int EIO_AfterGetEntry(eio_req*);
-
-	static int EIO_AddEntry(eio_req*);
-	static int EIO_AfterAddEntry(eio_req*);
-
-	static int EIO_RemoveEntry(eio_req*);
-	static int EIO_AfterRemoveEntry(eio_req*);
-
-	static int EIO_ClearEntries(eio_req*);
-	static int EIO_AfterClearEntries(eio_req*);
-
 	static int EIO_Save(eio_req*);
 	static int EIO_AfterSave(eio_req*);
+
+	tree_data *initData_;
 };
 
 } // namespace gitteh

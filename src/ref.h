@@ -2,55 +2,43 @@
 #define GITTEH_REF_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap_new.h"
 
 namespace gitteh {
 
 class Repository;
+struct ref_data;
 
-class Reference : public ThreadSafeObjectWrap {
+class Reference : public WrappedGitObject<Reference, git_reference> {
 public:
-	Reference();
+	Reference(git_reference*);
 
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
 	void setOwner(void*);
 
+	void lock();
+	void unlock();
+
 	Repository *repository_;
+	git_reference *ref_;
+	bool deleted_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
 
 	static Handle<Value> Rename(const Arguments&);
-	//static Handle<Value> Delete(const Arguments&);
+	static Handle<Value> Delete(const Arguments&);
 	static Handle<Value> Resolve(const Arguments&);
 	static Handle<Value> SetTarget(const Arguments&);
 
-	void processInitData(void *data);
-	void* loadInitData();
+	void processInitData();
+	int doInit();
 
-	git_reference *ref_;
 	git_rtype type_;
 
-	//gitteh_lock refLock_;
-	bool deleted_;
-
 private:
-	inline bool isDeleted() {
-		/*bool deleted;
-
-		LOCK_MUTEX(refLock_);
-		deleted = deleted_;
-		UNLOCK_MUTEX(refLock_);
-
-		return deleted_;*/
-
-		// TODO:
-
-		return false;
-	}
-
 	static int EIO_Rename(eio_req*);
 	static int EIO_AfterRename(eio_req*);
 
@@ -62,6 +50,9 @@ private:
 
 	static int EIO_SetTarget(eio_req*);
 	static int EIO_AfterSetTarget(eio_req*);
+
+	gitteh_lock lock_;
+	ref_data *initData_;
 };
 
 } // namespace gitteh

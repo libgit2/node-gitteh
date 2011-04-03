@@ -2,13 +2,13 @@
 #define GITTEH_INDEX_ENTRY_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap.h"
 
 namespace gitteh {
 
 class Index;
 
-class IndexEntry : public ThreadSafeObjectWrap {
+class IndexEntry : public GitObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);

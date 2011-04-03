@@ -93,6 +93,26 @@ public:
 		UNLOCK_MUTEX(objectsLock);
 	}
 
+	inline T **getAllObjects(int *countRet) {
+		int count = *countRet = objects.size();
+
+		LOCK_MUTEX(objectsLock);
+
+		typename std::map<size_t, ManagedObject<T,S>* >::const_iterator it = objects.begin();
+		typename std::map<size_t, ManagedObject<T,S>* >::const_iterator end = objects.end();
+		ManagedObject<T,S>* managedObject;
+
+		T **objectPtrs = new T*[count];
+		int i = 0;
+		while(it != end) {
+			managedObject = it->second;
+			objectPtrs[i++] = managedObject->object;
+			++it;
+		}
+
+		UNLOCK_MUTEX(objectsLock);
+	}
+
 	inline bool objectExistsFor(S* ref) {
 		bool exists = false;
 		LOCK_MUTEX(objectsLock);

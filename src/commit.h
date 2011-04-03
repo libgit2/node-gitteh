@@ -2,20 +2,23 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
-#include "ts_objectwrap.h"
+#include "gitobjectwrap_new.h"
 
 namespace gitteh {
 
+struct commit_data;
 class Repository;
 
-class Commit : public ThreadSafeObjectWrap {
+class Commit : public WrappedGitObject<Commit, git_commit> {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
-	Commit();
+	Commit(git_commit*);
 	~Commit();
 
-	void setOwner(void*);
+	static Handle<Value> SaveObject(Handle<Object>, Repository*, Handle<Value>, bool);
+
+	void setOwner(Repository*);
 
 	Repository *repository_;
 	git_commit *commit_;
@@ -28,26 +31,16 @@ protected:
 	static Handle<Value> GetParent(const Arguments&);
 	static Handle<Value> Save(const Arguments&);
 
-	void processInitData(void *data);
-	void* loadInitData();
+	void processInitData();
+	int doInit();
 
 	int parentCount_;
 
 private:
-	static int EIO_AddParent(eio_req*);
-	static int EIO_AfterAddParent(eio_req*);
-
-	static int EIO_GetParent(eio_req*);
-	static int EIO_AfterGetParent(eio_req*);
-
-	static int EIO_GetTree(eio_req*);
-	static int EIO_AfterGetTree(eio_req*);
-
-	static int EIO_SetTree(eio_req*);
-	static int EIO_AfterSetTree(eio_req*);
-
 	static int EIO_Save(eio_req*);
 	static int EIO_AfterSave(eio_req*);
+
+	commit_data *initData_;
 };
 
 } // namespace gitteh

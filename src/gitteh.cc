@@ -26,8 +26,6 @@
 
 #include "commit.h"
 #include "tree.h"
-#include "tree_entry.h"
-#include "rawobj.h"
 #include "repository.h"
 #include "index.h"
 #include "index_entry.h"
@@ -35,32 +33,26 @@
 #include "rev_walker.h"
 #include "error.h"
 #include "ref.h"
+#include "blob.h"
+#include "thread.h"
 
 namespace gitteh {
-
-#if 0
-static void gcNotif(GCType type, GCCallbackFlags flags) {
-	std::cout << "gc is happening yo.\n";
-}
-#endif
 
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
 	Repository::Init(target);
-	RawObject::Init(target);
+
 	Commit::Init(target);
 	Tree::Init(target);
-	TreeEntry::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);
 	RevWalker::Init(target);
 	Reference::Init(target);
+	Blob::Init(target);
 
 	ErrorInit(target);
-
-	//V8::AddGCPrologueCallback(gcNotif);
 }
 
 } // namespace gitteh

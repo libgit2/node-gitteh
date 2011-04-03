@@ -27,10 +27,11 @@ var vows = require("vows"),
 	gitteh = require("../build/default/gitteh"),
 	path = require("path"),
 	fixtureValues = require("./fixtures/values"),
-	fs = require("fs");
+	fs = require("fs"),
+	helpers = require("./fixtures/helpers");
 
 var repo = gitteh.openRepository(fixtureValues.REPO_PATH);
-var workingRepo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
+var workingRepo = gitteh.openRepository(fixtureValues.WORKING_DIR);
 
 vows.describe("Index").addBatch({
 	"Opening index on bare repo *asynchronously*": {
@@ -127,8 +128,8 @@ vows.describe("Index").addBatch({
 	
 	"Adding an entry from checked out repo *asynchronously*": {
 		topic: function() {
-			var repo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
-			var index = this.context.index = workingRepo.getIndex();
+			var repo = this.context.repo = helpers.createTestRepo("asyncindexadd");
+			var index = this.context.index = repo.getIndex();
 			
 			this.context.oldIndexCount = index.entryCount;
 			index.addEntry("unstaged.txt", 1, this.callback);
@@ -144,7 +145,7 @@ vows.describe("Index").addBatch({
 		
 		"new entry has correct values": function() {
 			var entry = this.context.index.getEntry(this.context.oldIndexCount);
-			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR.gitDirectory, "..", "unstaged.txt"));
+			var stats = fs.statSync(path.join(this.context.repo.path, "..", "unstaged.txt"));
 
 			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
 			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
@@ -157,8 +158,8 @@ vows.describe("Index").addBatch({
 	
 	"Adding an entry from checked out repo *synchronously*": {
 		topic: function() {
-			var repo = gitteh.openRepository2(fixtureValues.WORKING_DIR);
-			var index = this.context.index = workingRepo.getIndex();
+			var repo = this.context.repo = helpers.createTestRepo("syncindexadd");
+			var index = this.context.index = repo	.getIndex();
 			
 			this.context.oldIndexCount = index.entryCount;
 			return index.addEntry("unstaged.txt", 1);
@@ -174,7 +175,7 @@ vows.describe("Index").addBatch({
 		
 		"new entry has correct values": function() {
 			var entry = this.context.index.getEntry(this.context.oldIndexCount);
-			var stats = fs.statSync(path.join(fixtureValues.WORKING_DIR.gitDirectory, "..", "unstaged.txt"));
+			var stats = fs.statSync(path.join(this.context.repo.path, "..", "unstaged.txt"));
 
 			assert.equal(entry.mtime.getTime(), stats.mtime.getTime());
 			assert.equal(entry.ctime.getTime(), stats.ctime.getTime());
