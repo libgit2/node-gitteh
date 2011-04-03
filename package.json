@@ -19,5 +19,5 @@
 		"install": "node-waf build",
     	"test": "vows test/*.test.js --spec"
 	},
-    "main": "./build/default/gitteh"
+    "main": "./lib/gitteh"
 }
