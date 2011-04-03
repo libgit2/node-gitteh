@@ -1,0 +1,1572 @@
+
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	<head>
+		<meta charset="utf-8"></meta>
+		<meta name="generator" content="JsDoc Toolkit"></meta>
+		<title>Repository | JsDoc Reference</title>
+
+		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0;"></meta>
+		<meta name="mobileoptimized" content="0"></meta>
+	
+		<link rel="stylesheet" href="../css/all.css" media="all"></link>
+		<link rel="stylesheet" href="../css/handheld.css" media="only screen and (max-width: 660px)"></link>
+		<link rel="stylesheet" href="../css/handheld.css" media="handheld"></link>
+		<link rel="stylesheet" href="../css/screen.css" media="screen and (min-width: 661px)"></link>
+
+		<script src="../javascript/all.js"></script>
+		<!--[if lt IE 9]>
+			<script src="../javascript/html5.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+<div class="index">
+	<div class="menu">
+		<div class="indexLinks">
+			<a href="../index.html">Classes</a>
+			<a href="../files.html">Files</a>
+		</div>
+	
+		<h2 class="heading1">Classes</h2>
+		
+		<input type="text" name="classFilter" class="classFilter" id="ClassFilter" placeholder="Filter"></input>
+		
+		<nav>
+			<ul class="classList" id="ClassList">
+				
+					<li><a href="../symbols/Blob.html">Blob</a></li>
+				
+					<li><a href="../symbols/Commit.html">Commit</a></li>
+				
+					<li><a href="../symbols/GitError.html">GitError</a></li>
+				
+					<li><a href="../symbols/Gitteh.html">Gitteh</a></li>
+				
+					<li><a href="../symbols/Gitteh.error.html">Gitteh<span class='break'> </span>.<span class='break'> </span>error</a></li>
+				
+					<li><a href="../symbols/Index.html">Index</a></li>
+				
+					<li><a href="../symbols/IndexEntry.html">IndexEntry</a></li>
+				
+					<li><a href="../symbols/Reference.html">Reference</a></li>
+				
+					<li><a href="../symbols/Repository.html">Repository</a></li>
+				
+					<li><a href="../symbols/RevisionWalker.html">RevisionWalker</a></li>
+				
+					<li><a href="../symbols/Signature.html">Signature</a></li>
+				
+					<li><a href="../symbols/Tag.html">Tag</a></li>
+				
+					<li><a href="../symbols/Tree.html">Tree</a></li>
+				
+					<li><a href="../symbols/TreeEntry.html">TreeEntry</a></li>
+				
+			</ul>
+		</nav>
+	</div>
+	<div class="fineprint" style="clear:both">
+		
+		Documentation generator: <a href="http://code.google.com/p/jsdoc-toolkit/" target="_blank">JsDoc Toolkit</a> 2.4.0<br />
+		Template: <a href="http://www.thebrightlines.com/2010/05/06/new-template-for-jsdoctoolkit-codeview/" target="_blank">Codeview</a> 1.2<br />
+		Generated on: 2011-3-3 14:20
+	</div>
+</div>
+
+<div class="index indexStatic"></div>
+
+<div class="content">
+	<div class="innerContent">
+		<h1 class="classTitle">
+			
+			Class <span>Repository</span>
+		</h1>
+		
+		<div class="intro">
+			<p class="description summary">
+				
+			</p>
+				
+			
+				<ul class="summary">
+					
+					
+					
+						<li>Defined in: <a href="../symbols/src/lib_bindings_bindings.js.html">bindings.js</a></li>
+					
+						
+				</ul>
+			
+		</div>
+		
+		
+			<div class="props">
+				<table class="summaryTable" cellspacing="0" summary="A summary of the constructor documented in the class Repository.">
+					<caption class="sectionTitle">Class Summary</caption>
+					<thead>
+						<tr>
+							<th scope="col">Constructor Attributes</th>
+							<th scope="col">Constructor Name and Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td class="attributes">&nbsp;</td>
+							<td class="nameDescription" >
+								<div class="fixedFont">
+									<b><a href="../symbols/Repository.html#constructor">Repository</a></b>()
+								</div>
+								<div class="description">Represents an open Git repository.</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		
+		
+		
+<!--
+#### METHODS SUMMARY
+-->
+		
+			
+			
+			<div class="props">
+				<h2 class="sectionTitle">Method Summary</h2>
+				
+				
+					<table class="summaryTable" id="MethodsList" cellspacing="0" summary="A summary of the methods documented in the class Repository.">
+						<thead>
+							<tr>
+								<th scope="col">Method Attributes</th>
+								<th scope="col">Method Name and Description</th>
+							</tr>
+						</thead>
+						
+						<tbody>
+							
+							
+								<tr
+									 class='item0'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createBlob">createBlob</a></b>(data, callback)
+										</div>
+										<div class="description">Creates a new <a href="../symbols/Blob.html">Blob</a> in the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item1'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createCommit">createCommit</a></b>(data, callback)
+										</div>
+										<div class="description">Creates a new Commit and immediately stores it in the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item2'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createOidReference">createOidReference</a></b>(name, oid, callback)
+										</div>
+										<div class="description">Creates a new OID (direct) <a href="../symbols/Reference.html">Reference</a> in the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item3'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createSymbolicReference">createSymbolicReference</a></b>(name, target, callback)
+										</div>
+										<div class="description">Creates a new symbolic (indirect) <a href="../symbols/Reference.html">Reference</a> in the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item4'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createTag">createTag</a></b>(data, callback)
+										</div>
+										<div class="description">Creates a new <a href="../symbols/Tag.html">Tag</a> with the provided data.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item5'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createTree">createTree</a></b>(data, callback)
+										</div>
+										<div class="description">Creates a new <a href="../symbols/Tree.html">Tree</a> in the Repository with the given data.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item6'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#createWalker">createWalker</a></b>(callback)
+										</div>
+										<div class="description">Creates a new <a href="../symbols/RevisionWalker.html">RevisionWalker</a>.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item7'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#exists">exists</a></b>(sha1, callback, true)
+										</div>
+										<div class="description">Checks if the Repository contains an object with the specified sha1 hash.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item8'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getBlob">getBlob</a></b>(sha1, callback)
+										</div>
+										<div class="description">Retrieves a Blob from the Repository with given id.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item9'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getCommit">getCommit</a></b>(sha1, callback)
+										</div>
+										<div class="description">Retrieves a <a href="../symbols/Commit.html">Commit</a> from the repository with the given sha1 hash id.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item10'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getIndex">getIndex</a></b>(callback)
+										</div>
+										<div class="description">Loads the Index for the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item11'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getReference">getReference</a></b>(name, callback)
+										</div>
+										<div class="description">Retrieves a <a href="../symbols/Reference.html">Reference</a> from the Repository with the given name.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item12'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getTag">getTag</a></b>(sha1, callback)
+										</div>
+										<div class="description">Gets a <a href="../symbols/Tag.html">Tag</a> from the Repository with the given sha1 hash id.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item13'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#getTree">getTree</a></b>(sha1, callback)
+										</div>
+										<div class="description">Retrieves a <a href="../symbols/Tree.html">Tree</a> from the repository with the given sha1 hash id.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item14'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#listReferences">listReferences</a></b>(flags, callback)
+										</div>
+										<div class="description">Requests a list of References from the Repository.</div>
+									</td>
+								</tr>
+							
+								<tr
+									 class='item15'
+								>
+									<td class="attributes">&nbsp;</td>
+									<td class="nameDescription">
+										<div class="fixedFont"><b><a href="../symbols/Repository.html#packReferences">packReferences</a></b>(callback)
+										</div>
+										<div class="description">Orders the Repository to pack all loose <a href="../symbols/Reference.html">Reference</a>s.</div>
+									</td>
+								</tr>
+							
+						</tbody>
+					</table>
+				
+			
+				
+			</div>
+		
+		
+<!--
+#### EVENTS SUMMARY
+-->
+		
+<!--
+#### CONSTRUCTOR DETAILS
+-->
+		
+			<div class="details props">
+				<div class="innerProps">
+					<h2 class="sectionTitle" id="constructor">
+						Class Detail
+					</h2>
+					
+					<div class="fixedFont">
+						<b>Repository</b>()
+					</div>
+					
+					<div class="description">
+						Represents an open Git repository. The majority of the functionality offered by Gitteh is contained in here.
+						
+					</div>
+					
+					
+				
+					
+					
+					
+				</div>
+			</div>
+		
+<!--
+#### FIELD DETAILS
+-->
+		
+<!--
+#### METHOD DETAILS
+-->		
+		
+			<div class="details props">
+				<div class="innerProps">
+					<h2 class="sectionTitle">
+						Method Detail
+					</h2>
+					
+					<ul class="methodDetail" id="MethodDetail">
+						
+						
+							<li 
+								 class='item0'
+							>
+								<div class="fixedFont heading" id="createBlob">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Blob.html">Blob</a>}</span>
+									
+									<b>createBlob</b>(data, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new <a href="../symbols/Blob.html">Blob</a> in the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Object}</span> <b>data</b>
+												
+											</dt>
+											<dd>The data for the Blob. Valid fields in this data are the same as the fields in <a href="../symbols/Blob.html">Blob</a></dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the Blob will be created asynchronously, and the results passed to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs while creating the Blob.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Blob.html">Blob</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item1'
+							>
+								<div class="fixedFont heading" id="createCommit">
+									<span class='lighter'>
+									
+									</span>
+									
+									
+									
+									<b>createCommit</b>(data, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new Commit and immediately stores it in the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Object}</span> <b>data</b>
+												
+											</dt>
+											<dd>The data for the commit. Should be the same properties that a <a href="../symbols/Commit.html">Commit</a> contains.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the Commit will be created asynchronously, and the newly created Commit object returned to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If Commit couldn't be created.</dd>
+											
+										
+										
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item2'
+							>
+								<div class="fixedFont heading" id="createOidReference">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Reference.html">Reference</a>}</span>
+									
+									<b>createOidReference</b>(name, oid, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new OID (direct) <a href="../symbols/Reference.html">Reference</a> in the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>name</b>
+												
+											</dt>
+											<dd>The name of the Reference to be created.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>oid</b>
+												
+											</dt>
+											<dd>The ID of the <a href="../symbols/Commit.html">Commit</a> being pointed to.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>When provided, the Reference shall be created asynchronously. The callback will be notified when creation is complete.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If there was an error creating the Reference.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Reference.html">Reference</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item3'
+							>
+								<div class="fixedFont heading" id="createSymbolicReference">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Reference.html">Reference</a>}</span>
+									
+									<b>createSymbolicReference</b>(name, target, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new symbolic (indirect) <a href="../symbols/Reference.html">Reference</a> in the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>name</b>
+												
+											</dt>
+											<dd>The name of the Reference to be created.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>target</b>
+												
+											</dt>
+											<dd>The name of the Reference being pointed to.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>When provided, the Reference shall be created asynchronously. The callback will be notified when creation is complete.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If there was an error creating the Reference.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Reference.html">Reference</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item4'
+							>
+								<div class="fixedFont heading" id="createTag">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Tag.html">Tag</a>}</span>
+									
+									<b>createTag</b>(data, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new <a href="../symbols/Tag.html">Tag</a> with the provided data.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Object}</span> <b>data</b>
+												
+											</dt>
+											<dd>The data to be stored in the Tag. The fields in this object should be the same as the fields in a <a href="../symbols/Tag.html">Tag</a>.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the tag will be created asynchronously and the newly created Tag provided to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurred whilst creating the Tag.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Tag.html">Tag</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item5'
+							>
+								<div class="fixedFont heading" id="createTree">
+									<span class='lighter'>
+									
+									</span>
+									
+									
+									
+									<b>createTree</b>(data, callback)
+								</div>
+								
+								<div class="description">
+									Creates a new <a href="../symbols/Tree.html">Tree</a> in the Repository with the given data. <b>NOTE:</b>this is currently unimplemented.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Object}</span> <b>data</b>
+												
+											</dt>
+											<dd></dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd></dd>
+										
+									</dl>
+								
+								
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item6'
+							>
+								<div class="fixedFont heading" id="createWalker">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/RevisionWalker.html">RevisionWalker</a>}</span>
+									
+									<b>createWalker</b>(callback)
+								</div>
+								
+								<div class="description">
+									Creates a new <a href="../symbols/RevisionWalker.html">RevisionWalker</a>.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the walker will be created asychronously.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/RevisionWalker.html">RevisionWalker</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item7'
+							>
+								<div class="fixedFont heading" id="exists">
+									<span class='lighter'>
+									
+									</span>
+									
+									
+									
+									<b>exists</b>(sha1, callback, true)
+								</div>
+								
+								<div class="description">
+									Checks if the Repository contains an object with the specified sha1 hash.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>sha1</b>
+												
+											</dt>
+											<dd>SHA1 hash id of the object being searched for.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the search will be performed asynchronously, with the result passed back to callback.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Boolean}</span> <b>true</b>
+												
+											</dt>
+											<dd>if object exists, false if not.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs.</dd>
+											
+										
+										
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item8'
+							>
+								<div class="fixedFont heading" id="getBlob">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Blob.html">Blob</a>}</span>
+									
+									<b>getBlob</b>(sha1, callback)
+								</div>
+								
+								<div class="description">
+									Retrieves a Blob from the Repository with given id.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>sha1</b>
+												
+											</dt>
+											<dd>The sha1 hash id of the blob.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the Blob will be retrieved asynchronously, and provided to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs while loading the Blob.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Blob.html">Blob</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item9'
+							>
+								<div class="fixedFont heading" id="getCommit">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Commit.html">Commit</a>}</span>
+									
+									<b>getCommit</b>(sha1, callback)
+								</div>
+								
+								<div class="description">
+									Retrieves a <a href="../symbols/Commit.html">Commit</a> from the repository with the given sha1 hash id.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>sha1</b>
+												
+											</dt>
+											<dd>The sha1 hash ID of the commit.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If callback is provided, Vommit will be retrieved asynchronously and passed to to the callback provided.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If commit wasn't found, or there is some other error.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Commit.html">Commit</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item10'
+							>
+								<div class="fixedFont heading" id="getIndex">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Index.html">Index</a>}</span>
+									
+									<b>getIndex</b>(callback)
+								</div>
+								
+								<div class="description">
+									Loads the Index for the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the Index will be loaded asynchronously, and the result handed to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurred while loading Index.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Index.html">Index</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item11'
+							>
+								<div class="fixedFont heading" id="getReference">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Reference.html">Reference</a>}</span>
+									
+									<b>getReference</b>(name, callback)
+								</div>
+								
+								<div class="description">
+									Retrieves a <a href="../symbols/Reference.html">Reference</a> from the Repository with the given name.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>name</b>
+												
+											</dt>
+											<dd>The name of the reference, for example: refs/heads/master. You may also retrieve <i>HEAD</i> using this method.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the reference will be obtained asychronously, and provided to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If Reference does not exist, or some other error occured.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Reference.html">Reference</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item12'
+							>
+								<div class="fixedFont heading" id="getTag">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Tag.html">Tag</a>}</span>
+									
+									<b>getTag</b>(sha1, callback)
+								</div>
+								
+								<div class="description">
+									Gets a <a href="../symbols/Tag.html">Tag</a> from the Repository with the given sha1 hash id.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>sha1</b>
+												
+											</dt>
+											<dd>the sha1 hash ID of the Tag.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>When provided, the Tag will be retrieved asynchronously and results handed to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurred while loading the Tag.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Tag.html">Tag</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item13'
+							>
+								<div class="fixedFont heading" id="getTree">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{<a href="../symbols/Tree.html">Tree</a>}</span>
+									
+									<b>getTree</b>(sha1, callback)
+								</div>
+								
+								<div class="description">
+									Retrieves a <a href="../symbols/Tree.html">Tree</a> from the repository with the given sha1 hash id.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{String}</span> <b>sha1</b>
+												
+											</dt>
+											<dd>The sha1 hash ID of the tree.</dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If a callback is provided, the Tree will be retrieved asynchronously and returned via the callback given.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If Tree wasn't found, or some other error occurs.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{<a href="../symbols/Tree.html">Tree</a>}</span> </dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item14'
+							>
+								<div class="fixedFont heading" id="listReferences">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{String[]}</span>
+									
+									<b>listReferences</b>(flags, callback)
+								</div>
+								
+								<div class="description">
+									Requests a list of References from the Repository. This will return a list ofStrings, each String is a name of a reference in the Repository.
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Integer}</span> <b>flags</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the list will be filtered based on input. Valid values are <a href="../symbols/Gitteh.html#.GIT_REF_OID">Gitteh.GIT_REF_OID</a>, <a href="../symbols/Gitteh.html#.GIT_REF_SYMBOLIC">Gitteh.GIT_REF_SYMBOLIC</a>, <a href="../symbols/Gitteh.html#.GIT_REF_PACKED">Gitteh.GIT_REF_PACKED</a>, and <a href="../symbols/Gitteh.html#.GIT_REF_LISTALL">Gitteh.GIT_REF_LISTALL</a></dd>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the list will be built asynchronously, and the results provided to the callback.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs during the listing process.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{String[]}</span> </dd>
+											
+										
+										
+										
+										
+										
+											<dt class="heading">See:</dt>
+											
+												<dd><a href="../symbols/Gitteh.html#.GIT_REF_OID">Gitteh.GIT_REF_OID</a></dd>
+											
+												<dd><a href="../symbols/Gitteh.html#.GIT_REF_SYMBOLIC">Gitteh.GIT_REF_SYMBOLIC</a></dd>
+											
+												<dd><a href="../symbols/Gitteh.html#.GIT_REF_PACKED">Gitteh.GIT_REF_PACKED</a></dd>
+											
+												<dd><a href="../symbols/Gitteh.html#.GIT_REF_LISTALL">Gitteh.GIT_REF_LISTALL</a></dd>
+											
+										
+									
+									</dl>
+								
+								<div class="hr"></div>
+							</li>
+						
+							<li 
+								 class='item15'
+							>
+								<div class="fixedFont heading" id="packReferences">
+									<span class='lighter'>
+									
+									</span>
+									
+									<span class="light">{Boolean}</span>
+									
+									<b>packReferences</b>(callback)
+								</div>
+								
+								<div class="description">
+									Orders the Repository to pack all loose <a href="../symbols/Reference.html">Reference</a>s. This method willensure any currently active <a href="../symbols/Reference.html">Reference</a>s remain valid (even though theyhave now been moved inside the packed-references file).
+									
+									
+									
+									
+								</div>
+								
+								
+								
+								
+									<dl class="detailList params">
+										<dt class="heading">Parameters:</dt>
+										
+											<dt>
+												<span class="light fixedFont">{Function}</span> <b>callback</b>
+												<i>Optional</i>
+											</dt>
+											<dd>If provided, the packing process will be performed asynchronously and the callback notified of the result.</dd>
+										
+									</dl>
+								
+								
+								
+									<dl class="detailList nomargin">
+									
+										
+										
+										
+										
+										
+											<dt class="heading">Throws:</dt>
+											
+												<dt>
+													 <b></b>
+												</dt>
+												<dd>If an error occurs during the packing process.</dd>
+											
+										
+										
+										
+											<dt class="heading">Returns:</dt>
+											
+												<dd><span class="light fixedFont">{Boolean}</span> true if successful</dd>
+											
+										
+										
+										
+										
+										
+									
+									</dl>
+								
+								
+							</li>
+						
+					</ul>
+				</div>
+			</div>
+		
+		
+<!--
+#### EVENT DETAILS
+-->		
+		
+	</div>
+</div>
+		<script type="text/javascript">
+			wbos.CssTools.MediaQueryFallBack.LoadCss('../css/screen.css', '../css/handheld.css', 660)
+			codeview.classFilter.Init()
+		</script>
+	</body>
+</html>
+

@@ -1,0 +1,681 @@
+<html><head><meta http-equiv="content-type" content="text/html; charset=utf-8"> <style>
+	.KEYW {color: #933;}
+	.COMM {color: #bbb; font-style: italic;}
+	.NUMB {color: #393;}
+	.STRN {color: #393;}
+	.REGX {color: #339;}
+	.line {border-right: 1px dotted #666; color: #666; font-style: normal;}
+	</style></head><body><pre><span class='line'>  1</span> <span class="COMM">/**
+<span class='line'>  2</span>  * @fileOverview This is just an empty file containing JSDoc markup to generate nice documentation for stuff that is actually implemented in C++.
+<span class='line'>  3</span>  * @author Sam Day
+<span class='line'>  4</span>  * @version 0.1.0
+<span class='line'>  5</span>  */</span><span class="WHIT">
+<span class='line'>  6</span> 
+<span class='line'>  7</span> </span><span class="COMM">/**
+<span class='line'>  8</span>  * Represents an open Git repository. The majority of the functionality offered 
+<span class='line'>  9</span>  * by Gitteh is contained in here.
+<span class='line'> 10</span>  * @class
+<span class='line'> 11</span>  */</span><span class="WHIT">
+<span class='line'> 12</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Repository</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 13</span> 
+<span class='line'> 14</span> </span><span class="COMM">/**
+<span class='line'> 15</span>  * This is the namespace of the Gitteh module.
+<span class='line'> 16</span>  * @namespace
+<span class='line'> 17</span>  * @example
+<span class='line'> 18</span>  * var gitteh = require("gitteh");
+<span class='line'> 19</span>  */</span><span class="WHIT">
+<span class='line'> 20</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Gitteh</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 21</span> 
+<span class='line'> 22</span> </span><span class="COMM">/**
+<span class='line'> 23</span>  * Opens a Git repository at the location provided. You can either provide a
+<span class='line'> 24</span>  * path to a Git repository, which will open the repository "bare" (no working
+<span class='line'> 25</span>  * directory), or you can provide an object containing paths to the various 
+<span class='line'> 26</span>  * critical Git directories needed for Git to operate.
+<span class='line'> 27</span>  * @param {String|Object} path
+<span class='line'> 28</span>  * @param {String} path.gitDirectory The path to the Git repository folder (e.g /foo/.git)
+<span class='line'> 29</span>  * @param {String} [path.workTree] The path to the Git working directory (e.g /foo). Omitting this will assume the repository is bare.
+<span class='line'> 30</span>  * @param {String} [path.objectDirectory] The path to the ODB directory (e.g /foo/.git/objects). Omitting this will default to path.gitDirectory + "/objects"
+<span class='line'> 31</span>  * @param {String} [path.indexFile] The path to the repository index file (e.g /foo/.git/index). Omitting this will default to path.gitDirectory + "/index"
+<span class='line'> 32</span>  * @param {Function} [callback] If provided, the repository will be opened asynchronously, and the provided callback will be fired when the repository has been opened.
+<span class='line'> 33</span>  * @returns {Repository}
+<span class='line'> 34</span>  * @throws If the path provided is incorrect, or the repository is corrupt in some way. 
+<span class='line'> 35</span>  */</span><span class="WHIT">
+<span class='line'> 36</span> </span><span class="NAME">Gitteh.openRepository</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">path</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 37</span> 
+<span class='line'> 38</span> </span><span class="COMM">/**
+<span class='line'> 39</span>  * Creates a new Git repository at the provided path. The repository will be
+<span class='line'> 40</span>  * created at the path provided, unless bare is set to true, in which case the 
+<span class='line'> 41</span>  * repository will be initialized in a &lt;i>.git&lt;/i> directory inside the path
+<span class='line'> 42</span>  * provided.
+<span class='line'> 43</span>  * @param {String} path The path to initialize the new Git repository in.
+<span class='line'> 44</span>  * @param {Boolean} [bare] Initialize the repository as bare or "checked out".
+<span class='line'> 45</span>  * @param {Function} [callback] If provided, the repository will be created asynchronously. The provided callback will be fired when the repository has been created.
+<span class='line'> 46</span>  */</span><span class="WHIT">
+<span class='line'> 47</span> </span><span class="NAME">Gitteh.initRepository</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">path</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">bare</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 48</span> 
+<span class='line'> 49</span> </span><span class="COMM">/**
+<span class='line'> 50</span>  * Contains the various error constants found throughout Gitteh.
+<span class='line'> 51</span>  * @namespace
+<span class='line'> 52</span>  */</span><span class="WHIT">
+<span class='line'> 53</span> </span><span class="NAME">Gitteh.error</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 54</span> 
+<span class='line'> 55</span> </span><span class="COMM">// Ffs. There's supposed to be a JSDoc "metatag" that allows me to define one</span><span class="WHIT">
+<span class='line'> 56</span> </span><span class="COMM">// set of tags and it will apply to everything that follows. It doesn't work.</span><span class="WHIT">
+<span class='line'> 57</span> </span><span class="COMM">// Hence the bullshit here.</span><span class="WHIT">
+<span class='line'> 58</span> </span><span class="COMM">/**
+<span class='line'> 59</span>  * @static
+<span class='line'> 60</span>  * @constant
+<span class='line'> 61</span>  */</span><span class="WHIT">
+<span class='line'> 62</span> </span><span class="NAME">Gitteh.error.GIT_SUCCESS</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 63</span> </span><span class="COMM">/**
+<span class='line'> 64</span>  * @static
+<span class='line'> 65</span>  * @constant
+<span class='line'> 66</span>  */</span><span class="WHIT">
+<span class='line'> 67</span> </span><span class="NAME">Gitteh.error.GIT_ERROR</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 68</span> </span><span class="COMM">/**
+<span class='line'> 69</span>  * @static
+<span class='line'> 70</span>  * @constant
+<span class='line'> 71</span>  */</span><span class="WHIT">
+<span class='line'> 72</span> </span><span class="NAME">Gitteh.error.GIT_ENOTOID</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 73</span> </span><span class="COMM">/**
+<span class='line'> 74</span>  * @static
+<span class='line'> 75</span>  * @constant
+<span class='line'> 76</span>  */</span><span class="WHIT">
+<span class='line'> 77</span> </span><span class="NAME">Gitteh.error.GIT_ENOTFOUND</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 78</span> </span><span class="COMM">/**
+<span class='line'> 79</span>  * @static
+<span class='line'> 80</span>  * @constant
+<span class='line'> 81</span>  */</span><span class="WHIT">
+<span class='line'> 82</span> </span><span class="NAME">Gitteh.error.GIT_ENOMEM</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 83</span> </span><span class="COMM">/**
+<span class='line'> 84</span>  * @static
+<span class='line'> 85</span>  * @constant
+<span class='line'> 86</span>  */</span><span class="WHIT">
+<span class='line'> 87</span> </span><span class="NAME">Gitteh.error.GIT_EOSERR</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 88</span> </span><span class="COMM">/**
+<span class='line'> 89</span>  * @static
+<span class='line'> 90</span>  * @constant
+<span class='line'> 91</span>  */</span><span class="WHIT">
+<span class='line'> 92</span> </span><span class="NAME">Gitteh.error.GIT_EOBJTYPE</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 93</span> </span><span class="COMM">/**
+<span class='line'> 94</span>  * @static
+<span class='line'> 95</span>  * @constant
+<span class='line'> 96</span>  */</span><span class="WHIT">
+<span class='line'> 97</span> </span><span class="NAME">Gitteh.error.GIT_EOBJCORRUPTED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'> 98</span> </span><span class="COMM">/**
+<span class='line'> 99</span>  * @static
+<span class='line'>100</span>  * @constant
+<span class='line'>101</span>  */</span><span class="WHIT">
+<span class='line'>102</span> </span><span class="NAME">Gitteh.error.GIT_ENOTAREPO</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>103</span> </span><span class="COMM">/**
+<span class='line'>104</span>  * @static
+<span class='line'>105</span>  * @constant
+<span class='line'>106</span>  */</span><span class="WHIT">
+<span class='line'>107</span> </span><span class="NAME">Gitteh.error.GIT_EINVALIDTYPE</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>108</span> </span><span class="COMM">/**
+<span class='line'>109</span>  * @static
+<span class='line'>110</span>  * @constant
+<span class='line'>111</span>  */</span><span class="WHIT">
+<span class='line'>112</span> </span><span class="NAME">Gitteh.error.GIT_EMISSINGOBJDATA</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>113</span> </span><span class="COMM">/**
+<span class='line'>114</span>  * @static
+<span class='line'>115</span>  * @constant
+<span class='line'>116</span>  */</span><span class="WHIT">
+<span class='line'>117</span> </span><span class="NAME">Gitteh.error.GIT_EPACKCORRUPTED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>118</span> </span><span class="COMM">/**
+<span class='line'>119</span>  * @static
+<span class='line'>120</span>  * @constant
+<span class='line'>121</span>  */</span><span class="WHIT">
+<span class='line'>122</span> </span><span class="NAME">Gitteh.error.GIT_EFLOCKFAIL</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>123</span> </span><span class="COMM">/**
+<span class='line'>124</span>  * @static
+<span class='line'>125</span>  * @constant
+<span class='line'>126</span>  */</span><span class="WHIT">
+<span class='line'>127</span> </span><span class="NAME">Gitteh.error.GIT_EZLIB</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>128</span> </span><span class="COMM">/**
+<span class='line'>129</span>  * @static
+<span class='line'>130</span>  * @constant
+<span class='line'>131</span>  */</span><span class="WHIT">
+<span class='line'>132</span> </span><span class="NAME">Gitteh.error.GIT_EBUSY</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>133</span> </span><span class="COMM">/**
+<span class='line'>134</span>  * @static
+<span class='line'>135</span>  * @constant
+<span class='line'>136</span>  */</span><span class="WHIT">
+<span class='line'>137</span> </span><span class="NAME">Gitteh.error.GIT_EBAREINDEX</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>138</span> </span><span class="COMM">/**
+<span class='line'>139</span>  * @static
+<span class='line'>140</span>  * @constant
+<span class='line'>141</span>  */</span><span class="WHIT">
+<span class='line'>142</span> </span><span class="NAME">Gitteh.error.GIT_EINVALIDREFNAME</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>143</span> </span><span class="COMM">/**
+<span class='line'>144</span>  * @static
+<span class='line'>145</span>  * @constant
+<span class='line'>146</span>  */</span><span class="WHIT">
+<span class='line'>147</span> </span><span class="NAME">Gitteh.error.GIT_EREFCORRUPTED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>148</span> </span><span class="COMM">/**
+<span class='line'>149</span>  * @static
+<span class='line'>150</span>  * @constant
+<span class='line'>151</span>  */</span><span class="WHIT">
+<span class='line'>152</span> </span><span class="NAME">Gitteh.error.GIT_ETOONESTEDSYMREF</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>153</span> </span><span class="COMM">/**
+<span class='line'>154</span>  * @static
+<span class='line'>155</span>  * @constant
+<span class='line'>156</span>  */</span><span class="WHIT">
+<span class='line'>157</span> </span><span class="NAME">Gitteh.error.GIT_EPACKEDREFSCORRUPTED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>158</span> </span><span class="COMM">/**
+<span class='line'>159</span>  * @static
+<span class='line'>160</span>  * @constant
+<span class='line'>161</span>  */</span><span class="WHIT">
+<span class='line'>162</span> </span><span class="NAME">Gitteh.error.GIT_EINVALIDPATH</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>163</span> </span><span class="COMM">/**
+<span class='line'>164</span>  * @static
+<span class='line'>165</span>  * @constant
+<span class='line'>166</span>  */</span><span class="WHIT">
+<span class='line'>167</span> </span><span class="NAME">Gitteh.error.GIT_EREVWALKOVER</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>168</span> </span><span class="COMM">/**
+<span class='line'>169</span>  * @static
+<span class='line'>170</span>  * @constant
+<span class='line'>171</span>  */</span><span class="WHIT">
+<span class='line'>172</span> </span><span class="NAME">Gitteh.error.GIT_EINVALIDREFSTATE</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>173</span> </span><span class="COMM">/**
+<span class='line'>174</span>  * @static
+<span class='line'>175</span>  * @constant
+<span class='line'>176</span>  */</span><span class="WHIT">
+<span class='line'>177</span> </span><span class="NAME">Gitteh.error.GIT_ENOTIMPLEMENTED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>178</span> 
+<span class='line'>179</span> </span><span class="COMM">/**
+<span class='line'>180</span>  * Retrieves a {@link Commit} from the repository with the given sha1 hash id.
+<span class='line'>181</span>  * @param {String} sha1 The sha1 hash ID of the commit.
+<span class='line'>182</span>  * @param {Function} [callback] If callback is provided, Vommit will be retrieved asynchronously and passed to to the callback provided.
+<span class='line'>183</span>  * @return {Commit}
+<span class='line'>184</span>  * @throws If commit wasn't found, or there is some other error. 
+<span class='line'>185</span>  */</span><span class="WHIT">
+<span class='line'>186</span> </span><span class="NAME">Repository.prototype.getCommit</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sha1</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>187</span> 
+<span class='line'>188</span> </span><span class="COMM">/**
+<span class='line'>189</span>  * Creates a new Commit and immediately stores it in the Repository.
+<span class='line'>190</span>  * @param {Object} data The data for the commit. Should be the same properties that a {@link Commit} contains.
+<span class='line'>191</span>  * @param {Function} [callback] If provided, the Commit will be created asynchronously, and the newly created Commit object returned to the callback.
+<span class='line'>192</span>  * @throws If Commit couldn't be created.
+<span class='line'>193</span>  */</span><span class="WHIT">
+<span class='line'>194</span> </span><span class="NAME">Repository.prototype.createCommit</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">data</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>195</span> 
+<span class='line'>196</span> </span><span class="COMM">/**
+<span class='line'>197</span>  * Retrieves a {@link Tree} from the repository with the given sha1 hash id.
+<span class='line'>198</span>  * @param {String} sha1 The sha1 hash ID of the tree.
+<span class='line'>199</span>  * @param {Function} [callback] If a callback is provided, the Tree will be retrieved asynchronously and returned via the callback given.
+<span class='line'>200</span>  * @return {Tree}
+<span class='line'>201</span>  * @throws If Tree wasn't found, or some other error occurs. 
+<span class='line'>202</span>  */</span><span class="WHIT">
+<span class='line'>203</span> </span><span class="NAME">Repository.prototype.getTree</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sha1</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>204</span> 
+<span class='line'>205</span> </span><span class="COMM">/**
+<span class='line'>206</span>  * Creates a new {@link Tree} in the Repository with the given data. &lt;b>NOTE:&lt;/b>
+<span class='line'>207</span>  * this is currently unimplemented.
+<span class='line'>208</span>  * @param {Object} data
+<span class='line'>209</span>  * @param {Function} [callback]
+<span class='line'>210</span>  */</span><span class="WHIT">
+<span class='line'>211</span> </span><span class="NAME">Repository.prototype.createTree</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">data</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>212</span> 
+<span class='line'>213</span> </span><span class="COMM">/**
+<span class='line'>214</span>  * Retrieves a {@link Reference} from the Repository with the given name.
+<span class='line'>215</span>  * @param {String} name The name of the reference, for example: refs/heads/master. You may also retrieve &lt;i>HEAD&lt;/i> using this method.
+<span class='line'>216</span>  * @param {Function} [callback] If provided, the reference will be obtained asychronously, and provided to the callback.
+<span class='line'>217</span>  * @return {Reference}
+<span class='line'>218</span>  * @throws If Reference does not exist, or some other error occured. 
+<span class='line'>219</span>  */</span><span class="WHIT">
+<span class='line'>220</span> </span><span class="NAME">Repository.prototype.getReference</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">name</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>221</span> 
+<span class='line'>222</span> </span><span class="COMM">/**
+<span class='line'>223</span>  * Creates a new OID (direct) {@link Reference} in the Repository.
+<span class='line'>224</span>  * @param {String} name The name of the Reference to be created.
+<span class='line'>225</span>  * @param {String} oid The ID of the {@link Commit} being pointed to.
+<span class='line'>226</span>  * @param {Function} [callback] When provided, the Reference shall be created asynchronously. The callback will be notified when creation is complete.
+<span class='line'>227</span>  * @returns {Reference}
+<span class='line'>228</span>  * @throws If there was an error creating the Reference.
+<span class='line'>229</span>  */</span><span class="WHIT">
+<span class='line'>230</span> </span><span class="NAME">Repository.prototype.createOidReference</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">name</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">oid</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>231</span> 
+<span class='line'>232</span> </span><span class="COMM">/**
+<span class='line'>233</span>  * Creates a new symbolic (indirect) {@link Reference} in the Repository.
+<span class='line'>234</span>  * @param {String} name The name of the Reference to be created.
+<span class='line'>235</span>  * @param {String} target The name of the Reference being pointed to.
+<span class='line'>236</span>  * @param {Function} [callback] When provided, the Reference shall be created asynchronously. The callback will be notified when creation is complete.
+<span class='line'>237</span>  * @returns {Reference}
+<span class='line'>238</span>  * @throws If there was an error creating the Reference.
+<span class='line'>239</span>  */</span><span class="WHIT">
+<span class='line'>240</span> </span><span class="NAME">Repository.prototype.createSymbolicReference</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">name</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">target</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>241</span> 
+<span class='line'>242</span> </span><span class="COMM">/**
+<span class='line'>243</span>  * Requests a list of References from the Repository. This will return a list of
+<span class='line'>244</span>  * Strings, each String is a name of a reference in the Repository.
+<span class='line'>245</span>  * @param {Integer} [flags] If provided, the list will be filtered based on input. Valid values are {@link Gitteh.GIT_REF_OID}, {@link Gitteh.GIT_REF_SYMBOLIC}, {@link Gitteh.GIT_REF_PACKED}, and {@link Gitteh.GIT_REF_LISTALL}
+<span class='line'>246</span>  * @param {Function} [callback] If provided, the list will be built asynchronously, and the results provided to the callback.
+<span class='line'>247</span>  * @returns {String[]}
+<span class='line'>248</span>  * @throws If an error occurs during the listing process.
+<span class='line'>249</span>  * 
+<span class='line'>250</span>  * @see Gitteh.GIT_REF_OID
+<span class='line'>251</span>  * @see Gitteh.GIT_REF_SYMBOLIC
+<span class='line'>252</span>  * @see Gitteh.GIT_REF_PACKED
+<span class='line'>253</span>  * @see Gitteh.GIT_REF_LISTALL
+<span class='line'>254</span>  */</span><span class="WHIT">
+<span class='line'>255</span> </span><span class="NAME">Repository.prototype.listReferences</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">flags</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>256</span> 
+<span class='line'>257</span> </span><span class="COMM">/**
+<span class='line'>258</span>  * Orders the Repository to pack all loose {@link Reference}s. This method will
+<span class='line'>259</span>  * ensure any currently active {@link Reference}s remain valid (even though they
+<span class='line'>260</span>  * have now been moved inside the packed-references file).  
+<span class='line'>261</span>  * @param {Function} [callback] If provided, the packing process will be performed asynchronously and the callback notified of the result.
+<span class='line'>262</span>  * @returns {Boolean} true if successful
+<span class='line'>263</span>  * @throws If an error occurs during the packing process.
+<span class='line'>264</span>  */</span><span class="WHIT">
+<span class='line'>265</span> </span><span class="NAME">Repository.prototype.packReferences</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>266</span> 
+<span class='line'>267</span> </span><span class="COMM">/**
+<span class='line'>268</span>  * Creates a new {@link RevisionWalker}.
+<span class='line'>269</span>  * @param {Function} [callback] If provided, the walker will be created asychronously.
+<span class='line'>270</span>  * @returns {RevisionWalker}
+<span class='line'>271</span>  * @throws If an error occurs.	
+<span class='line'>272</span>  */</span><span class="WHIT">
+<span class='line'>273</span> </span><span class="NAME">Repository.prototype.createWalker</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>274</span> 
+<span class='line'>275</span> </span><span class="COMM">/**
+<span class='line'>276</span>  * Loads the Index for the Repository.
+<span class='line'>277</span>  * @param {Function} [callback] If provided, the Index will be loaded asynchronously, and the result handed to the callback.
+<span class='line'>278</span>  * @returns {Index}
+<span class='line'>279</span>  * @throws If an error occurred while loading Index.
+<span class='line'>280</span>  */</span><span class="WHIT">
+<span class='line'>281</span> </span><span class="NAME">Repository.prototype.getIndex</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>282</span> 
+<span class='line'>283</span> </span><span class="COMM">/**
+<span class='line'>284</span>  * Creates a new {@link Tag} with the provided data.  
+<span class='line'>285</span>  * @param {Object} data The data to be stored in the Tag. The fields in this object should be the same as the fields in a {@link Tag}.
+<span class='line'>286</span>  * @param {Function} [callback] If provided, the tag will be created asynchronously and the newly created Tag provided to the callback.
+<span class='line'>287</span>  * @return {Tag}
+<span class='line'>288</span>  * @throws If an error occurred whilst creating the Tag.
+<span class='line'>289</span>  */</span><span class="WHIT">
+<span class='line'>290</span> </span><span class="NAME">Repository.prototype.createTag</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">data</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>291</span> 
+<span class='line'>292</span> </span><span class="COMM">/**
+<span class='line'>293</span>  * Gets a {@link Tag} from the Repository with the given sha1 hash id. 
+<span class='line'>294</span>  * @param {String} sha1 the sha1 hash ID of the Tag.
+<span class='line'>295</span>  * @param {Function} [callback] When provided, the Tag will be retrieved asynchronously and results handed to the callback.
+<span class='line'>296</span>  * @return {Tag}
+<span class='line'>297</span>  * @throws If an error occurred while loading the Tag.
+<span class='line'>298</span>  */</span><span class="WHIT">	</span><span class="WHIT">
+<span class='line'>299</span> </span><span class="NAME">Repository.prototype.getTag</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sha1</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>300</span> 
+<span class='line'>301</span> </span><span class="COMM">/**
+<span class='line'>302</span>  * Creates a new {@link Blob} in the Repository.
+<span class='line'>303</span>  * @param {Object} data The data for the Blob. Valid fields in this data are the same as the fields in {@link Blob}
+<span class='line'>304</span>  * @param {Function} [callback] If provided, the Blob will be created asynchronously, and the results passed to the callback.
+<span class='line'>305</span>  * @returns {Blob}
+<span class='line'>306</span>  * @throws If an error occurs while creating the Blob.
+<span class='line'>307</span>  */</span><span class="WHIT">
+<span class='line'>308</span> </span><span class="NAME">Repository.prototype.createBlob</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">data</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>309</span> 
+<span class='line'>310</span> </span><span class="COMM">/**
+<span class='line'>311</span>  * Retrieves a Blob from the Repository with given id.
+<span class='line'>312</span>  * @param {String} sha1 The sha1 hash id of the blob.
+<span class='line'>313</span>  * @param {Function} [callback] If provided, the Blob will be retrieved asynchronously, and provided to the callback.
+<span class='line'>314</span>  * @returns {Blob}
+<span class='line'>315</span>  * @throws If an error occurs while loading the Blob.
+<span class='line'>316</span>  */</span><span class="WHIT">
+<span class='line'>317</span> </span><span class="NAME">Repository.prototype.getBlob</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sha1</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>318</span> 
+<span class='line'>319</span> </span><span class="COMM">/**
+<span class='line'>320</span>  * Checks if the Repository contains an object with the specified sha1 hash.
+<span class='line'>321</span>  * @param {String} sha1 SHA1 hash id of the object being searched for.
+<span class='line'>322</span>  * @param {Function} [callback] If provided, the search will be performed asynchronously, with the result passed back to callback.
+<span class='line'>323</span>  * @param {Boolean} true if object exists, false if not.
+<span class='line'>324</span>  * @throws If an error occurs.
+<span class='line'>325</span>  */</span><span class="WHIT">
+<span class='line'>326</span> </span><span class="NAME">Repository.prototype.exists</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sha1</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>327</span> 
+<span class='line'>328</span> </span><span class="COMM">/** 
+<span class='line'>329</span>  * @class
+<span class='line'>330</span>  * @property {String} id The id of the commit. This property is read-only.
+<span class='line'>331</span>  * @property {String} message The commit message.
+<span class='line'>332</span>  * @property {Signature} author The author of the commit.
+<span class='line'>333</span>  * @property {Signature} committer The commit committer.
+<span class='line'>334</span>  * @property {Tree} tree The tree associated with the commit.
+<span class='line'>335</span>  * @property {Commit[]} parents The parents of this commit, if any.
+<span class='line'>336</span>  * 
+<span class='line'>337</span>  * @see Repository#getCommit
+<span class='line'>338</span>  * @see Repository#createCommit
+<span class='line'>339</span>  */</span><span class="WHIT">
+<span class='line'>340</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Commit</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>341</span> 
+<span class='line'>342</span> </span><span class="COMM">/**
+<span class='line'>343</span>  * Saves the commit to the repository. This will update the {@link id} property
+<span class='line'>344</span>  * when successful.
+<span class='line'>345</span>  * @param {Function} [callback] If provided, commit will be saved asynchronously, and the result of the save will be passed to the callback.
+<span class='line'>346</span>  * @return {Boolean} true if successful.
+<span class='line'>347</span>  * @throws If the commit failed to save.
+<span class='line'>348</span>  */</span><span class="WHIT">
+<span class='line'>349</span> </span><span class="NAME">Commit.prototype.save</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>350</span> 
+<span class='line'>351</span> </span><span class="COMM">/**
+<span class='line'>352</span>  * A Tree represents the snapshot of a repo for a specific {@link Commit}.
+<span class='line'>353</span>  * @class
+<span class='line'>354</span>  * @property {String} id The sha1 hash of this Tree.
+<span class='line'>355</span>  * @property {TreeEntry[]} entries The entries contained in this Tree.
+<span class='line'>356</span>  * 
+<span class='line'>357</span>  * @see Repository#getTree
+<span class='line'>358</span>  * @see Repository#createTree
+<span class='line'>359</span>  */</span><span class="WHIT">
+<span class='line'>360</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Tree</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>361</span> 
+<span class='line'>362</span> </span><span class="COMM">/**
+<span class='line'>363</span>  * Saves the Tree to the Repository. &lt;b>THIS IS UNIMPLEMENTED CURRENTLY&lt;/b>
+<span class='line'>364</span>  * @throws If called, because it's currently unimplemented.
+<span class='line'>365</span>  */</span><span class="WHIT">
+<span class='line'>366</span> </span><span class="NAME">Tree.prototype.save</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>367</span> 
+<span class='line'>368</span> </span><span class="COMM">/**
+<span class='line'>369</span>  * A single entry in a {@link Tree}. Note this isn't a "real" class, as there's
+<span class='line'>370</span>  * no constructor. Tree entries are just plain old Javascript objects. This is  
+<span class='line'>371</span>  * just here for reference.
+<span class='line'>372</span>  * @class
+<span class='line'>373</span>  * @property {String} id SHA1 hash of the {@link Blob} this entry points to.
+<span class='line'>374</span>  * @property {String} name Filename of the entry.
+<span class='line'>375</span>  * @property {Integer} attributes File attributes for the entry.
+<span class='line'>376</span>  */</span><span class="WHIT">
+<span class='line'>377</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">TreeEntry</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>378</span> 
+<span class='line'>379</span> </span><span class="COMM">/**
+<span class='line'>380</span>  * A reference serves as a pointer of sorts to a specific Commit. References can
+<span class='line'>381</span>  * either be &lt;i>direct&lt;/i> or &lt;i>symbolic&lt;/i>. Direct references point to a commit
+<span class='line'>382</span>  * OID, symbolic references point to other references (which may also be symbolic).
+<span class='line'>383</span>  * @class
+<span class='line'>384</span>  * @property {String} name The name of the reference - e.g refs/heads/master
+<span class='line'>385</span>  * @property {String} type The type of reference this is. Can be either "oid" or "symbolic". CANNOT be changed.
+<span class='line'>386</span>  * @property {String} target Either the SHA1 hash of the {@link Commit} being pointed to by this Reference, if it's type is "oid". If it's a symbolic Reference, this will point to another reference name.
+<span class='line'>387</span>  * 
+<span class='line'>388</span>  * @see Repository#getReference
+<span class='line'>389</span>  * @see Repository#createOidReference
+<span class='line'>390</span>  * @see Repository#createSymbolicReference
+<span class='line'>391</span>  */</span><span class="WHIT"> </span><span class="WHIT">
+<span class='line'>392</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Reference</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>393</span> 
+<span class='line'>394</span> </span><span class="COMM">/**
+<span class='line'>395</span>  * Renames this Reference. Name of the new Reference must not already exist in the Repository.
+<span class='line'>396</span>  * @param {String} newName The new name.
+<span class='line'>397</span>  * @param {Function} [callback] If provided, the rename will occur asynchronously, and the callback will be fired when rename has completed.
+<span class='line'>398</span>  * @return {Boolean} true if successful.
+<span class='line'>399</span>  * @throws If an error occurred during renaming process.
+<span class='line'>400</span>  */</span><span class="WHIT">
+<span class='line'>401</span> </span><span class="NAME">Reference.prototype.rename</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">newName</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>402</span> 
+<span class='line'>403</span> </span><span class="COMM">/**
+<span class='line'>404</span>  * Deletes the Reference permanently. Once deleted, the Reference will no longer
+<span class='line'>405</span>  * be accessible from the Repository. It will be deleted from the filesystem
+<span class='line'>406</span>  * also. If this Reference is involved in any symbolic link chains, they will
+<span class='line'>407</span>  * become invalid. After calling this, any further calls on the Reference will
+<span class='line'>408</span>  * throw an Error.
+<span class='line'>409</span>  * @name Reference#delete
+<span class='line'>410</span>  * @function
+<span class='line'>411</span>  * @param {Function} [callback] If provided, the deletion will occur asynchronously and return the status of the delete to the callback.
+<span class='line'>412</span>  * @return {Boolean} true if successful
+<span class='line'>413</span>  * @throws If an error occurred while deleting the Reference.
+<span class='line'>414</span>  */</span><span class="WHIT">
+<span class='line'>415</span> </span><span class="COMM">// Used @name tag because Eclipse linter doesn't like method name being "delete".</span><span class="WHIT">
+<span class='line'>416</span> </span><span class="COMM">//Reference.prototype.delete = function(callback) { };</span><span class="WHIT">
+<span class='line'>417</span> 
+<span class='line'>418</span> </span><span class="COMM">/**
+<span class='line'>419</span>  * Resolves this Reference to a direct oid Reference. This means it will follow
+<span class='line'>420</span>  * symbolic links until it arrives at the direct link pointing to a {@ link Commit}.
+<span class='line'>421</span>  * Note that if you call this on a Reference that is already pointing to a Commit, it
+<span class='line'>422</span>  * will just return the Reference.
+<span class='line'>423</span>  * @param {Function} [callback] When given, the resolution will be done asynchronously and the resulting Reference passed to the callback.
+<span class='line'>424</span>  * @return {Reference} The result of the resolution.
+<span class='line'>425</span>  * @throws If an error occurred while resolving the Reference.
+<span class='line'>426</span>  */</span><span class="WHIT">
+<span class='line'>427</span> </span><span class="NAME">Reference.prototype.resolve</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>428</span> 
+<span class='line'>429</span> </span><span class="COMM">/**
+<span class='line'>430</span>  * Sets the target of this Reference. This change is immediate. &lt;b>Note:&lt;/b> You
+<span class='line'>431</span>  * can't change the type of a Reference. For example, if this Reference is an
+<span class='line'>432</span>  * OID reference, you can't set the target to another Reference. If you need to
+<span class='line'>433</span>  * do this, delete the original ref, and recreate it as the other type. 
+<span class='line'>434</span>  * @param {String} newTarget either the oid, or name of another Reference. 
+<span class='line'>435</span>  * @param {Function} [callback] If provided, the Reference will be re-targeted asynchronously. The callback will be notified when this occurs.
+<span class='line'>436</span>  * @return {Boolean} true if successful.
+<span class='line'>437</span>  * @throws If an error occurred while setting target.
+<span class='line'>438</span>  */</span><span class="WHIT">
+<span class='line'>439</span> </span><span class="NAME">Reference.prototype.setTarget</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">newTarget</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="WHIT"> </span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>440</span> 
+<span class='line'>441</span> </span><span class="COMM">/**
+<span class='line'>442</span>  * List OID (direct) References
+<span class='line'>443</span>  * @static
+<span class='line'>444</span>  */</span><span class="WHIT">
+<span class='line'>445</span> </span><span class="NAME">Gitteh.GIT_REF_OID</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>446</span> </span><span class="COMM">/**
+<span class='line'>447</span>  * List symbolic (indirect) References.
+<span class='line'>448</span>  * @static
+<span class='line'>449</span>  */</span><span class="WHIT">
+<span class='line'>450</span> </span><span class="NAME">Gitteh.GIT_REF_SYMBOLIC</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>451</span> </span><span class="COMM">/**
+<span class='line'>452</span>  * Include packed References in list.
+<span class='line'>453</span>  * @static
+<span class='line'>454</span>  */</span><span class="WHIT">
+<span class='line'>455</span> </span><span class="NAME">Gitteh.GIT_REF_PACKED</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>456</span> </span><span class="COMM">/**
+<span class='line'>457</span>  * List all References in the Repository.
+<span class='line'>458</span>  * @static
+<span class='line'>459</span>  */</span><span class="WHIT">
+<span class='line'>460</span> </span><span class="NAME">Gitteh.GIT_REF_LISTALL</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>461</span> 
+<span class='line'>462</span> </span><span class="COMM">/**
+<span class='line'>463</span>  * A Blob is a binary store of a specific file that has been committed into a
+<span class='line'>464</span>  * Repository at some point.
+<span class='line'>465</span>  * @class
+<span class='line'>466</span>  * @property {String} id The SHA1 id of the Blob.
+<span class='line'>467</span>  * @property {Buffer} data The data this Blob contains.
+<span class='line'>468</span>  * 
+<span class='line'>469</span>  * @see Repository#createBlob
+<span class='line'>470</span>  * @see Repository#getBlob
+<span class='line'>471</span>  */</span><span class="WHIT">
+<span class='line'>472</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Blob</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>473</span> 
+<span class='line'>474</span> </span><span class="COMM">/**
+<span class='line'>475</span>  * Saves this blob to Repository and updates its id.
+<span class='line'>476</span>  * @param {Function} [callback] If provided, the save will be performed asynchronously, and the result passed to the callback.
+<span class='line'>477</span>  * @return {Boolean} true if successful.
+<span class='line'>478</span>  * @throws If save was not successful.
+<span class='line'>479</span>  */</span><span class="WHIT">
+<span class='line'>480</span> </span><span class="NAME">Blob.prototype.save</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>481</span> 
+<span class='line'>482</span> </span><span class="COMM">/**
+<span class='line'>483</span>  * The Index represents the cache Git stores for your working directory. When
+<span class='line'>484</span>  * you "stage" a file in Git, this is basically just a command that will add 
+<span class='line'>485</span>  * or update your file in the Git index. Running a Commit in Git is essentially
+<span class='line'>486</span>  * just writing a Commit with a Tree that matches an Index. &lt;b>Note:&lt;/b> There
+<span class='line'>487</span>  * will be a method soon to create a Tree from an opened Index, this feature has
+<span class='line'>488</span>  * not yet been implemented by libgit2, as soon as it is it will be in Gitteh.
+<span class='line'>489</span>  * @class
+<span class='line'>490</span>  * @property {Integer} entryCount &lt;i>Read-only&lt;/i> How many entries are contained in the Index.
+<span class='line'>491</span>  * 
+<span class='line'>492</span>  * @see Repository#getIndex
+<span class='line'>493</span>  */</span><span class="WHIT">
+<span class='line'>494</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Index</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>495</span> 
+<span class='line'>496</span> </span><span class="COMM">/**
+<span class='line'>497</span>  * Retrieves an {@link IndexEntry} from the Index.
+<span class='line'>498</span>  * @param {Integer} index The index to retrieve. 
+<span class='line'>499</span>  * @param {Function} [callback] When provided, IndexEntry will be retrieved asynchronously and provided back to the callback.
+<span class='line'>500</span>  * @return {IndexEntry}
+<span class='line'>501</span>  * @throws If index is out of bounds, or some other error occurs.
+<span class='line'>502</span>  */</span><span class="WHIT">
+<span class='line'>503</span> </span><span class="NAME">Index.prototype.getEntry</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">index</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>504</span> 
+<span class='line'>505</span> </span><span class="COMM">/**
+<span class='line'>506</span>  * Searches the Index for an entry that matches the given filename.
+<span class='line'>507</span>  * @param {String} [fileName] The filename of entry to search for.
+<span class='line'>508</span>  * @param {Function} [callback] If provided, entry will be searched for in a non-blocking manner, and results returned to the callback.
+<span class='line'>509</span>  * @return {IndexEntry}
+<span class='line'>510</span>  * @throws If entry could not be found, or some other error occurs.
+<span class='line'>511</span>  */</span><span class="WHIT">
+<span class='line'>512</span> </span><span class="NAME">Index.prototype.findEntry</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">fileName</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>513</span> 
+<span class='line'>514</span> </span><span class="COMM">/**
+<span class='line'>515</span>  * Adds an entry to the Index for the given fileName. This file should already 
+<span class='line'>516</span>  * exist in the working directory of the Repository. &lt;b>Note:&lt;/b> this function
+<span class='line'>517</span>  * will fail if called on a Index for a bare repository, as it has no working
+<span class='line'>518</span>  * directory.
+<span class='line'>519</span>  * @param {String} fileName Name of the file to update index entry for.
+<span class='line'>520</span>  * @param {Function} [callback] When provided, the callback will be notified when the entry has been added asynchronously.
+<span class='line'>521</span>  * @returns {Boolean} true if successful
+<span class='line'>522</span>  * @throws If there was an error adding the entry.
+<span class='line'>523</span>  */</span><span class="WHIT">
+<span class='line'>524</span> </span><span class="NAME">Index.prototype.addEntry</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">fileName</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>525</span> 
+<span class='line'>526</span> </span><span class="COMM">/**
+<span class='line'>527</span>  * Changes to an Index will not be updated on the actual index file until this 
+<span class='line'>528</span>  * method is called.
+<span class='line'>529</span>  * @param {Function} [callback] When provided, the writeback will be performed in an asynchronous fashion, and the result will be passed back to the callback.
+<span class='line'>530</span>  * @returns {Boolean} true if successful.
+<span class='line'>531</span>  * @throws If there was an error writing the Index.
+<span class='line'>532</span>  */</span><span class="WHIT">
+<span class='line'>533</span> </span><span class="NAME">Index.prototype.write</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>534</span> 
+<span class='line'>535</span> </span><span class="COMM">/**
+<span class='line'>536</span>  * Represents a single entry in the Git {@link Index}. &lt;b>Note:&lt;/b> While the 
+<span class='line'>537</span>  * constructor for this class &lt;i>is&lt;/i> being exposed, it is not recommended to
+<span class='line'>538</span>  * extend its functionality, as it may be removed altogether in a future release.
+<span class='line'>539</span>  * @class
+<span class='line'>540</span>  * @property {Date} ctime
+<span class='line'>541</span>  * @property {Date} mtime
+<span class='line'>542</span>  * @property {Integer} dev
+<span class='line'>543</span>  * @property {Integer} ino
+<span class='line'>544</span>  * @property {Integer} mode
+<span class='line'>545</span>  * @property {Integer} uid
+<span class='line'>546</span>  * @property {Integer} gid
+<span class='line'>547</span>  * @property {Integer} file_size
+<span class='line'>548</span>  * @property {String} oid
+<span class='line'>549</span>  * @property {Integer} flags
+<span class='line'>550</span>  * @property {Integer} flags_extended
+<span class='line'>551</span>  * @property {String} path
+<span class='line'>552</span>  */</span><span class="WHIT">
+<span class='line'>553</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">IndexEntry</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>554</span> 
+<span class='line'>555</span> </span><span class="COMM">/**
+<span class='line'>556</span>  * A RevisionWalker provides a clean interface to walk the commit history of a
+<span class='line'>557</span>  * {@link Repository}. A RevisionWalker may be obtained via {@link Repository#createWalker}
+<span class='line'>558</span>  * @class 
+<span class='line'>559</span>  * 
+<span class='line'>560</span>  * @see Repository#createWalker
+<span class='line'>561</span>  */</span><span class="WHIT">
+<span class='line'>562</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">RevisionWalker</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>563</span> 
+<span class='line'>564</span> </span><span class="COMM">/**
+<span class='line'>565</span>  * Pushes a Commit onto the Revision Walker to begin the walking process.
+<span class='line'>566</span>  * @param {String|Commit} commit The commit to push onto the walker. Can either be an sha1 id string, or a previously loaded Commit.
+<span class='line'>567</span>  * @returns {Boolean} true if successful.
+<span class='line'>568</span>  * @throws If there was an error pushing the Commit.
+<span class='line'>569</span>  */</span><span class="WHIT">
+<span class='line'>570</span> </span><span class="NAME">RevisionWalker.prototype.push</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">commit</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>571</span> 
+<span class='line'>572</span> </span><span class="COMM">/**
+<span class='line'>573</span>  * Hides a specific Commit (and all its ancestors/descendants) from the walker.
+<span class='line'>574</span>  * @param {String|Commit} commit The commit to ignore. Can either be a sha1 id string, or a previously loaded Commit.
+<span class='line'>575</span>  * @param {Function} [callback] If provided, the hide process will be performed in a non-blocking fashion, and the results passed back to the callback.
+<span class='line'>576</span>  * @returns {Boolean} true if successful.
+<span class='line'>577</span>  * @throws If there was an error hiding the Commit.
+<span class='line'>578</span>  */</span><span class="WHIT">
+<span class='line'>579</span> </span><span class="NAME">RevisionWalker.prototype.hide</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">commit</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>580</span> 
+<span class='line'>581</span> </span><span class="COMM">/**
+<span class='line'>582</span>  * Gets the next Commit in the queue from the RevisionWalker.
+<span class='line'>583</span>  * @param {Function} [callback] If provided, the next Commit will be retrieved asynchronously, and the results passed back to callback.
+<span class='line'>584</span>  * @returns {Commit}
+<span class='line'>585</span>  * @throws If an error occurs while getting the next Commit.
+<span class='line'>586</span>  */</span><span class="WHIT">
+<span class='line'>587</span> </span><span class="NAME">RevisionWalker.prototype.next</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>588</span> 
+<span class='line'>589</span> </span><span class="COMM">/**
+<span class='line'>590</span>  * Sets a specific sorting method on the RevisionWalker.
+<span class='line'>591</span>  * @param {Integer} sorting The sorting method to use on this walker. The valid values are {@link Gitteh.GIT_SORT_NONE}, {@link Gitteh.GIT_SORT_TOPOLOGICAL}, {@link Gitteh.GIT_SORT_TIME}, and {@link Gitteh.GIT_SORT_REVERSE}.
+<span class='line'>592</span>  * @param {Function} [callback] If provided, walker will be configured with sorting options in a non-blocking manner, and the results of the operation passsed to the callback.
+<span class='line'>593</span>  * @returns {Boolean} true if successful.
+<span class='line'>594</span>  * @throws If an error occurred while setting sorting.
+<span class='line'>595</span>  * @see Gitteh.GIT_SORT_NONE
+<span class='line'>596</span>  * @see Gitteh.GIT_SORT_TOPOLOGICAL
+<span class='line'>597</span>  * @see Gitteh.GIT_SORT_TIME
+<span class='line'>598</span>  * @see Gitteh.GIT_SORT_REVERSE
+<span class='line'>599</span>  */</span><span class="WHIT">
+<span class='line'>600</span> </span><span class="NAME">RevisionWalker.prototype.sort</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">sorting</span><span class="PUNC">,</span><span class="WHIT"> </span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>601</span> 
+<span class='line'>602</span> </span><span class="COMM">/**
+<span class='line'>603</span>  * Resets the RevisionWalker to an identity state ready to begin another walk.
+<span class='line'>604</span>  * @param {Function} [callback] If provided, the walker will be reset asynchronously and the results passed to the callback.
+<span class='line'>605</span>  * @returns {Boolean} true if successful.
+<span class='line'>606</span>  * @throws If an error occurred.
+<span class='line'>607</span>  */</span><span class="WHIT">
+<span class='line'>608</span> </span><span class="NAME">RevisionWalker.prototype.reset</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>609</span> 
+<span class='line'>610</span> </span><span class="COMM">/**
+<span class='line'>611</span>  * @public
+<span class='line'>612</span>  * @static
+<span class='line'>613</span>  */</span><span class="WHIT">
+<span class='line'>614</span> </span><span class="NAME">Gitteh.GIT_SORT_NONE</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>615</span> </span><span class="COMM">/**
+<span class='line'>616</span>  * @public
+<span class='line'>617</span>  * @static
+<span class='line'>618</span>  */</span><span class="WHIT">
+<span class='line'>619</span> </span><span class="NAME">Gitteh.GIT_SORT_TOPOLOGICAL</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>620</span> </span><span class="COMM">/**
+<span class='line'>621</span>  * @public
+<span class='line'>622</span>  * @static
+<span class='line'>623</span>  */</span><span class="WHIT">
+<span class='line'>624</span> </span><span class="NAME">Gitteh.GIT_SORT_TIME</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>625</span> </span><span class="COMM">/**
+<span class='line'>626</span>  * @public
+<span class='line'>627</span>  * @static
+<span class='line'>628</span>  */</span><span class="WHIT">
+<span class='line'>629</span> </span><span class="NAME">Gitteh.GIT_SORT_REVERSE</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="NAME">undefined</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>630</span> 
+<span class='line'>631</span> </span><span class="COMM">/**
+<span class='line'>632</span>  * @class
+<span class='line'>633</span>  * @property {String} id &lt;i>Read-only&lt;/i> The sha1 hash of this Tag.
+<span class='line'>634</span>  * @property {String} message The message associated with this Tag.
+<span class='line'>635</span>  * @property {String} name The name of this Tag.
+<span class='line'>636</span>  * @property {Signature} tagger The person who created this Tag.
+<span class='line'>637</span>  * @property {String} targetId The object this Tag is pointing at.
+<span class='line'>638</span>  * @property {String} targetType The type of object this Tag is pointing at.
+<span class='line'>639</span>  * 
+<span class='line'>640</span>  * @see Repository#getTag
+<span class='line'>641</span>  * @see Repository#createTag
+<span class='line'>642</span>  */</span><span class="WHIT">
+<span class='line'>643</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Tag</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>644</span> 
+<span class='line'>645</span> </span><span class="COMM">/**
+<span class='line'>646</span>  * Saves the data contained in this Tag and updates the ID.
+<span class='line'>647</span>  * @param {Function} [callback] If provided, the Tag will be saved asynchronously and the results provided to the callback.
+<span class='line'>648</span>  * @returns {Boolean} true if successful.
+<span class='line'>649</span>  * @throws If an error occurs during save process.
+<span class='line'>650</span>  */</span><span class="WHIT">
+<span class='line'>651</span> </span><span class="NAME">Tag.prototype.save</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="NAME">callback</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>652</span> 
+<span class='line'>653</span> </span><span class="COMM">/**
+<span class='line'>654</span>  * A Signature is used to store metadata about a person. It is used in {@link Commit}s
+<span class='line'>655</span>  * and {@link Tag}s. Note that there is no actual constructor for a Signature,
+<span class='line'>656</span>  * it's just a regular JS object. This documentation just serves as a guide to
+<span class='line'>657</span>  * what properties should be in a Signature. 
+<span class='line'>658</span>  * @class
+<span class='line'>659</span>  * @property {String} name 
+<span class='line'>660</span>  * @property {String} email
+<span class='line'>661</span>  * @property {Date} time
+<span class='line'>662</span>  * @property {Integer} timeOffset In seconds. e.g GMT+10 is stored as 600.
+<span class='line'>663</span>  */</span><span class="WHIT">
+<span class='line'>664</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">Signature</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span><span class="WHIT">
+<span class='line'>665</span> 
+<span class='line'>666</span> </span><span class="COMM">/**
+<span class='line'>667</span>  * Errors thrown by Gitteh will generally include additional data if it's a Git
+<span class='line'>668</span>  * related issue. Note that there is no actual Error type called GitError, this 
+<span class='line'>669</span>  * is just for illustrative purposes only.
+<span class='line'>670</span>  * @class
+<span class='line'>671</span>  * @property {Integer} gitError The error number. The possible errors are detailed in {@link Gitteh.error}.
+<span class='line'>672</span>  * @property {String} gitErrorStr A short message explaining the error.
+<span class='line'>673</span>  */</span><span class="WHIT">
+<span class='line'>674</span> </span><span class="KEYW">var</span><span class="WHIT"> </span><span class="NAME">GitError</span><span class="WHIT"> </span><span class="PUNC">=</span><span class="WHIT"> </span><span class="KEYW">function</span><span class="PUNC">(</span><span class="PUNC">)</span><span class="WHIT"> </span><span class="PUNC">{</span><span class="PUNC">}</span><span class="PUNC">;</span></pre></body></html>
