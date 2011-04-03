@@ -15,7 +15,7 @@
          "url" : "https://github.com/samcday/node-gitteh.git"
     },
     "scripts": {
-		"preinstall": "node-waf configure",
+		"preinstall": "node-waf configure --use-bundled-libgit2",
 		"install": "node-waf build",
     	"test": "vows test/*.test.js --spec"
 	},
