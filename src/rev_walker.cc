@@ -113,6 +113,9 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 			// EIO threadpool? I think it should be ok since we're not
 			// referencing the js object, but just the underlying commit itself
 			// which shouldn't get gc'd.
+			// FIXME: No, with the new libgit2 changes the git_commit is freed
+			// when the wrapping object is gc'd. We need to make sure that doesn't
+			// happen.
 			//request->commit->Ref();
 		}
 		else {
@@ -150,7 +153,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 		if(res != GIT_SUCCESS)
 			THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 
