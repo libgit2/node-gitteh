@@ -259,7 +259,7 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 		if(res != GIT_SUCCESS)
 			THROW_GIT_ERROR("Couldn't hide commit.", res);
 	
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 
@@ -443,7 +443,7 @@ Handle<Value> RevWalker::Sort(const Arguments& args) {
 		git_revwalk_sorting(walker->walker_, sorting);
 		walker->repo_->unlockRepository();
 
-		return Undefined();
+		return True();
 	}
 }
 
@@ -504,7 +504,7 @@ Handle<Value> RevWalker::Reset(const Arguments& args) {
 		git_revwalk_reset(walker->walker_);
 		walker->repo_->unlockRepository();
 
-		return scope.Close(Undefined());
+		return scope.Close(True());
 	}
 }
 
