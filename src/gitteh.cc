@@ -35,6 +35,7 @@
 #include "ref.h"
 #include "blob.h"
 #include "thread.h"
+#include "odb.h"
 
 namespace gitteh {
 
@@ -51,6 +52,7 @@ init(Handle<Object> target) {
 	RevWalker::Init(target);
 	Reference::Init(target);
 	Blob::Init(target);
+	ObjectDatabase::Init(target);
 
 	ErrorInit(target);
 }

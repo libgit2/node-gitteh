@@ -64,6 +64,21 @@ using namespace node;
                   String::New("Argument " #I " must be an integer")));  \
   VAR = args[I]->Int32Value();
 
+#define REQ_INT_ARG(I, VAR)                                             \
+  int VAR;                                                              \
+  if (args.Length() <= (I) || !args[I]->IsInt32())                      \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be an integer")));  \
+  VAR = args[I]->Int32Value();
+
+
+#define REQ_BOOL_ARG(I, VAR)                                             \
+  bool VAR;                                                              \
+  if (args.Length() <= (I) || !args[I]->IsBoolean())                     \
+    return ThrowException(Exception::TypeError(                         \
+                  String::New("Argument " #I " must be an integer")));  \
+  VAR = args[I]->BooleanValue();
+
 #define REQ_FUN_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsFunction())                   \
     return ThrowException(Exception::TypeError(                         \
