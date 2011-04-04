@@ -23,9 +23,15 @@ Installation can be done via npm.
 
 	npm install gitteh
 	
-Gitteh will automatically build the correct version of libgit2 if you don't already have it installed on your computer. If you do install libgit2 yourself however, please note that libgit2 v0.10.0 is required for the current release.
+Currently, installing Gitteh via NPM will mean that Gitteh will compile it's own
+bundled version of libgit2, even if it's already installed on your system. I've
+done this because libgit2 is releasing quite rapidly and each release is breaking
+functionality. So while libgit2 is in alpha state, I will be forcing a specific
+version of libgit2 with each release of Gitteh.
 
-Documentation coming soon to a Markdown README near you. In the meantime, check out the examples, you can also look at some of the stress tests and test code I wrote.
+The current version of Gitteh requires libgit2 v0.11.0.
+
+[Documentation can be found here.](http://libgit2.github.com/node-gitteh/docs/index.html). You should also check out the examples in the examples/ dir in the repo.
 
 ## Halp?
 
