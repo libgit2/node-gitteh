@@ -13,6 +13,14 @@ struct open_request {
 	int error;
 };
 
+struct get_request {
+	Persistent<Function> callback;
+	ObjectDatabase *odb;
+	git_oid oid;
+	git_odb_object *obj;
+	int error;
+};
+
 void ObjectDatabase::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -127,15 +135,44 @@ Handle<Value> ObjectDatabase::Exists(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(HAS_CALLBACK_ARG) {
-
+		THROW_ERROR("Unimplemented.");
 	}
 	else {
-		return scope.Close(Boolean::New(git_odb_exists(odb->odb_, &oidArg)));
+		odb->lockOdb();
+		bool result = git_odb_exists(odb->odb_, &oidArg);
+		odb->unlockOdb();
+
+		return scope.Close(Boolean::New(result));
 	}
 }
 
-ObjectDatabase::ObjectDatabase() {
+Handle<Value> ObjectDatabase::Get(const Arguments& args) {
+	HandleScope scope;
+	ObjectDatabase *odb = ObjectWrap::Unwrap<ObjectDatabase>(args.This());
 
+	REQ_ARGS(1);
+	REQ_OID_ARG(0, oidArg);
+
+	if(HAS_CALLBACK_ARG) {
+		THROW_ERROR("Unimplemented.");
+	}
+	else {
+		odb->lockOdb();
+
+		odb->unlockOdb();
+	}
+}
+
+int ObjectDatabase::EIO_Get(eio_req *req) {
+
+}
+
+int ObjectDatabase::EIO_AfterGet(eio_req *req) {
+	HandleScope scope;
+}
+
+ObjectDatabase::ObjectDatabase() {
+	//objectCache_ = new WrappedGitObjectCache<ODBObject, git_odb_object>(this);
 }
 
 ObjectDatabase::~ObjectDatabase() {
