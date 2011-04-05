@@ -36,6 +36,7 @@
 #include "blob.h"
 #include "thread.h"
 #include "odb.h"
+#include "odb_obj.h"
 
 namespace gitteh {
 
@@ -53,6 +54,7 @@ init(Handle<Object> target) {
 	Reference::Init(target);
 	Blob::Init(target);
 	ObjectDatabase::Init(target);
+	ODBObject::Init(target);
 
 	ErrorInit(target);
 }

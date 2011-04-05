@@ -32,6 +32,7 @@ void ObjectDatabase::Init(Handle<Object> target) {
 	constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
+	NODE_SET_PROTOTYPE_METHOD(t, "get", Get);
 
 	target->Set(odb_class_symbol, constructor_template->GetFunction());
 	NODE_SET_METHOD(target, "openODB", Open);
@@ -158,8 +159,15 @@ Handle<Value> ObjectDatabase::Get(const Arguments& args) {
 	}
 	else {
 		odb->lockOdb();
-
+		git_odb_object *obj;
+		int result = git_odb_read(&obj, odb->odb_, &oidArg);
 		odb->unlockOdb();
+
+		if(result != GIT_SUCCESS) {
+			THROW_GIT_ERROR("Couldn't load object.", result);
+		}
+
+		return odb->objectCache_->syncRequest(obj);
 	}
 }
 
@@ -172,10 +180,14 @@ int ObjectDatabase::EIO_AfterGet(eio_req *req) {
 }
 
 ObjectDatabase::ObjectDatabase() {
+	CREATE_MUTEX(odbLock_);
+
 	objectCache_ = new WrappedGitObjectCache<ObjectDatabase, ODBObject, git_odb_object>(this);
 }
 
 ObjectDatabase::~ObjectDatabase() {
+	DESTROY_MUTEX(odbLock_);
+
 	if(created_) {
 		git_odb_close(odb_);
 	}

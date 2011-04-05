@@ -14,6 +14,14 @@ public:
 	ObjectDatabase();
 	~ObjectDatabase();
 
+	inline void lockOdb() {
+		LOCK_MUTEX(odbLock_);
+	}
+
+	inline void unlockOdb() {
+		UNLOCK_MUTEX(odbLock_);
+	}
+
 	static void Init(Handle<Object>);
 
 protected:
@@ -29,14 +37,6 @@ private:
 
 	static int EIO_Get(eio_req*);
 	static int EIO_AfterGet(eio_req*);
-
-	inline void lockOdb() {
-		LOCK_MUTEX(odbLock_);
-	}
-
-	inline void unlockOdb() {
-		UNLOCK_MUTEX(odbLock_);
-	}
 
 	WrappedGitObjectCache<ObjectDatabase, ODBObject, git_odb_object> *objectCache_;
 	gitteh_lock odbLock_;
