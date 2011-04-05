@@ -10,7 +10,7 @@ class Repository;
 
 struct blob_data;
 
-class Blob : public WrappedGitObject<Blob, git_blob> {
+class Blob : public WrappedGitObject<Repository, Blob, git_blob> {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
@@ -20,7 +20,7 @@ public:
 	Blob(git_blob*);
 	~Blob();
 
-	void setOwner(void*);
+	void setOwner(Repository*);
 
 protected:
 	static Handle<Value> New(const Arguments&);

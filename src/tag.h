@@ -9,7 +9,7 @@ namespace gitteh {
 class Repository;
 struct tag_data;
 
-class Tag : public WrappedGitObject<Tag, git_tag>  {
+class Tag : public WrappedGitObject<Repository, Tag, git_tag>  {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
@@ -18,7 +18,7 @@ public:
 
 	Tag(git_tag*);
 	~Tag();
-	void setOwner(void*);
+	void setOwner(Repository*);
 
 	Repository *repository_;
 

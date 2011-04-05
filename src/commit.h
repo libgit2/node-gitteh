@@ -9,7 +9,7 @@ namespace gitteh {
 struct commit_data;
 class Repository;
 
-class Commit : public WrappedGitObject<Commit, git_commit> {
+class Commit : public WrappedGitObject<Repository, Commit, git_commit> {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);

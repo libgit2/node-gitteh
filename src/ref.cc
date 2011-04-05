@@ -548,8 +548,8 @@ int Reference::doInit() {
 	return GIT_SUCCESS;
 }
 
-void Reference::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
+void Reference::setOwner(Repository *owner) {
+	repository_ = owner;
 }
 
 } // namespace gitteh

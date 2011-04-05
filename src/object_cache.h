@@ -6,14 +6,14 @@
 
 namespace gitteh {
 
-template<class T, class S> class CachedObject;
+template<class P, class T, class S> class CachedObject;
 
 class Repository;
 
-template<class T, class S>
+template<class P, class T, class S>
 class WrappedGitObjectCache {
 public:
-	WrappedGitObjectCache(Repository *owner) {
+	WrappedGitObjectCache(P *owner) {
 		owner_ = owner;
 		CREATE_MUTEX(objectsLock_);
 	}
@@ -39,7 +39,7 @@ public:
 	}
 
 	inline void remove(S *gitObject) {
-		CachedObject<T, S> *cachedObject;
+		CachedObject<P, T, S> *cachedObject;
 
 		LOCK_MUTEX(objectsLock_);
 		cachedObject = objects_[(size_t)gitObject];
@@ -49,7 +49,7 @@ public:
 				cachedObject->handle.Dispose();
 			}
 
-			typename std::map<size_t, CachedObject<T,S>* >::iterator it;
+			typename std::map<size_t, CachedObject<P, T, S>* >::iterator it;
 			it = objects_.find((size_t)gitObject);
 			objects_.erase(it);
 
@@ -61,7 +61,7 @@ public:
 
 	inline void objectWrapped(T *wrappedObject) {
 		LOCK_MUTEX(objectsLock_);
-		CachedObject<T, S> *cachedObject = objectsByWrapped_[wrappedObject];
+		CachedObject<P, T, S> *cachedObject = objectsByWrapped_[wrappedObject];
 		cachedObject->handle = Persistent<Object>::New(wrappedObject->handle_);
 		cachedObject->handle.MakeWeak(cachedObject, WeakCallback);
 		UNLOCK_MUTEX(objectsLock_);
@@ -69,7 +69,7 @@ public:
 
 	inline void unrefWrapped(T *wrappedObject) {
 		LOCK_MUTEX(objectsLock_);
-		CachedObject<T, S> *cachedObject = objectsByWrapped_[wrappedObject];
+		CachedObject<P, T, S> *cachedObject = objectsByWrapped_[wrappedObject];
 		cachedObject->references--;
 		UNLOCK_MUTEX(objectsLock_);
 	}
@@ -78,9 +78,9 @@ public:
 		LOCK_MUTEX(objectsLock_);
 		int count = *countRet = objects_.size();
 
-		typename std::map<size_t, CachedObject<T,S>* >::const_iterator it = objects_.begin();
-		typename std::map<size_t, CachedObject<T,S>* >::const_iterator end = objects_.end();
-		CachedObject<T,S>* cachedObject;
+		typename std::map<size_t, CachedObject<P, T, S>* >::const_iterator it = objects_.begin();
+		typename std::map<size_t, CachedObject<P, T, S>* >::const_iterator end = objects_.end();
+		CachedObject<P, T, S>* cachedObject;
 
 		T **objectPtrs = new T*[count];
 		int i = 0;
@@ -102,10 +102,10 @@ public:
 		LOCK_MUTEX(objectsLock_);
 
 		// Grab the current cache entry.
-		CachedObject<T, S> *cachedObject = objects_[(size_t)oldRef];
+		CachedObject<P, T, S> *cachedObject = objects_[(size_t)oldRef];
 
 		// Delete the cache entry from store pointed to by old ref.
-		typename std::map<size_t, CachedObject<T,S>* >::iterator it;
+		typename std::map<size_t, CachedObject<P, T, S>* >::iterator it;
 		it = objects_.find((size_t)oldRef);
 		objects_.erase(it);
 
@@ -120,14 +120,14 @@ private:
 		int result;
 
 		LOCK_MUTEX(objectsLock_);
-		CachedObject<T, S> *cachedObject = objects_[(size_t)gitObject];
+		CachedObject<P, T, S> *cachedObject = objects_[(size_t)gitObject];
 
 		if(cachedObject == NULL) {
 			T *wrappedObject = new T(gitObject);
 			wrappedObject->setCache(this);
 			wrappedObject->setOwner(owner_);
 
-			cachedObject = new CachedObject<T, S>;
+			cachedObject = new CachedObject<P, T, S>;
 			cachedObject->cache = this;
 			cachedObject->object = wrappedObject;
 			cachedObject->ref = gitObject;
@@ -165,11 +165,11 @@ private:
 	}
 
 	static void WeakCallback (Persistent<Value> value, void *data) {
-		CachedObject<T, S> *cachedObject = static_cast<CachedObject<T, S>*>(data);
+		CachedObject<P, T, S> *cachedObject = static_cast<CachedObject<P, T, S>*>(data);
 
 		assert(cachedObject->handle.IsNearDeath());
 
-		WrappedGitObjectCache<T, S> *cache = cachedObject->cache;
+		WrappedGitObjectCache<P, T, S> *cache = cachedObject->cache;
 
 		LOCK_MUTEX(cache->objectsLock_);
 
@@ -184,11 +184,11 @@ private:
 			return;
 		}
 
-		typename std::map<size_t, CachedObject<T,S>* >::iterator it;
+		typename std::map<size_t, CachedObject<P, T, S>* >::iterator it;
 		it = cache->objects_.find((size_t)cachedObject->ref);
 		cache->objects_.erase(it);
 
-		typename std::map<T*, CachedObject<T,S>* >::iterator alsoIt;
+		typename std::map<T*, CachedObject<P, T, S>* >::iterator alsoIt;
 		alsoIt = cache->objectsByWrapped_.find(cachedObject->object);
 		cache->objectsByWrapped_.erase(alsoIt);
 
@@ -199,16 +199,16 @@ private:
 		UNLOCK_MUTEX(cache->objectsLock_);
 	}
 
-	Repository *owner_;
-	std::map<size_t, CachedObject<T, S>*> objects_;
-	std::map<T*, CachedObject<T, S>*> objectsByWrapped_;
+	P *owner_;
+	std::map<size_t, CachedObject<P, T, S>*> objects_;
+	std::map<T*, CachedObject<P, T, S>*> objectsByWrapped_;
 	gitteh_lock objectsLock_;
 };
 
-template <class T, class S>
+template <class P, class T, class S>
 class CachedObject {
 public:
-	WrappedGitObjectCache<T, S> *cache;
+	WrappedGitObjectCache<P, T, S> *cache;
 	T *object;
 	S *ref;
 	Persistent<Object> handle;

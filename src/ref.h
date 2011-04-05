@@ -9,14 +9,14 @@ namespace gitteh {
 class Repository;
 struct ref_data;
 
-class Reference : public WrappedGitObject<Reference, git_reference> {
+class Reference : public WrappedGitObject<Repository, Reference, git_reference> {
 public:
 	Reference(git_reference*);
 
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
 
-	void setOwner(void*);
+	void setOwner(Repository*);
 
 	void lock();
 	void unlock();

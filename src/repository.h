@@ -36,11 +36,11 @@ public:
 	void lockRefs();
 	void unlockRefs();
 
-	WrappedGitObjectCache<Commit, git_commit> *commitCache_;
-	WrappedGitObjectCache<Tag, git_tag> *tagCache_;
-	WrappedGitObjectCache<Tree, git_tree> *treeCache_;
-	WrappedGitObjectCache<Reference, git_reference> *referenceCache_;
-	WrappedGitObjectCache<Blob, git_blob> *blobCache_;
+	WrappedGitObjectCache<Repository, Commit, git_commit> *commitCache_;
+	WrappedGitObjectCache<Repository, Tag, git_tag> *tagCache_;
+	WrappedGitObjectCache<Repository, Tree, git_tree> *treeCache_;
+	WrappedGitObjectCache<Repository, Reference, git_reference> *referenceCache_;
+	WrappedGitObjectCache<Repository, Blob, git_blob> *blobCache_;
 
 	void notifyIndexDead();
 

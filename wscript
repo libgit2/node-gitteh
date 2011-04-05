@@ -79,5 +79,5 @@ def build(ctx):
 
 	obj = ctx.new_task_gen('cxx', 'shlib', 'node_addon')
 	obj.target = 'gitteh'
-	obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc src/blob.cc src/odb.cc' 
+	obj.source = 'src/gitteh.cc src/commit.cc src/tree.cc src/repository.cc src/index.cc src/index_entry.cc src/tag.cc src/rev_walker.cc src/ref.cc src/blob.cc src/odb.cc src/odb_obj.cc' 
 	obj.uselib = 'GIT2'

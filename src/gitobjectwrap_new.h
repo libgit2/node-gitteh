@@ -7,7 +7,7 @@
 
 namespace gitteh {
 
-template<class T, class S>
+template<class P, class T, class S>
 class WrappedGitObject : public ObjectWrap {
 public:
 	WrappedGitObject() {
@@ -22,7 +22,7 @@ public:
 		DESTROY_MUTEX(gatekeeperLock_);
 	}
 
-	inline void setCache(WrappedGitObjectCache<T, S> *cache) {
+	inline void setCache(WrappedGitObjectCache<P, T, S> *cache) {
 		cache_ = cache;
 	}
 
@@ -109,6 +109,8 @@ public:
 		Unref();
 	}
 
+	virtual void setOwner(P *owner) = 0;
+
 protected:
 	virtual int doInit() = 0;
 
@@ -121,7 +123,7 @@ private:
 	int initResult_;
 	int initInterest_;
 
-	WrappedGitObjectCache<T, S> *cache_;
+	WrappedGitObjectCache<P, T, S> *cache_;
 };
 
 } // namespace gitteh

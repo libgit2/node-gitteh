@@ -3,6 +3,7 @@
 
 #include "gitteh.h"
 #include "object_cache.h"
+#include "odb_obj.h"
 
 namespace gitteh {
 
@@ -37,7 +38,7 @@ private:
 		UNLOCK_MUTEX(odbLock_);
 	}
 
-	WrappedGitObjectCache<ODBObject, git_odb_object> *objectCache_;
+	WrappedGitObjectCache<ObjectDatabase, ODBObject, git_odb_object> *objectCache_;
 	gitteh_lock odbLock_;
 	git_odb *odb_;
 	bool created_;	// If true, this ODB was created independently of a repo, and should be free'd once wrapping obj is destroyed.

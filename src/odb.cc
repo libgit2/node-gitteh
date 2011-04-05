@@ -172,7 +172,7 @@ int ObjectDatabase::EIO_AfterGet(eio_req *req) {
 }
 
 ObjectDatabase::ObjectDatabase() {
-	//objectCache_ = new WrappedGitObjectCache<ODBObject, git_odb_object>(this);
+	objectCache_ = new WrappedGitObjectCache<ObjectDatabase, ODBObject, git_odb_object>(this);
 }
 
 ObjectDatabase::~ObjectDatabase() {

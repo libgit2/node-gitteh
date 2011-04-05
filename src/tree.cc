@@ -204,8 +204,8 @@ int Tree::doInit() {
 	return GIT_SUCCESS;
 }
 
-void Tree::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
+void Tree::setOwner(Repository *owner) {
+	repository_ = owner;
 }
 
 } // namespace gitteh

@@ -347,8 +347,8 @@ int Tag::doInit() {
 	return GIT_SUCCESS;
 }
 
-void Tag::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
+void Tag::setOwner(Repository *owner) {
+	repository_ = owner;
 }
 
 } // namespace gitteh

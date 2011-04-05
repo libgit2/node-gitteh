@@ -2,10 +2,13 @@
 #define GITTEH_ODB_OBJ_H
 
 #include "gitteh.h"
+#include "gitobjectwrap_new.h"
 
 namespace gitteh {
 
-class ODBObject : public WrappedGitObject<ODBObject, git_odb_object> {
+class ObjectDatabase;
+
+class ODBObject : public WrappedGitObject<ObjectDatabase, ODBObject, git_odb_object> {
 public:
 
 protected:

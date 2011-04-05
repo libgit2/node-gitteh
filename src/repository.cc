@@ -1577,11 +1577,11 @@ Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 	CREATE_MUTEX(refLock_);
 
-	commitCache_ = new WrappedGitObjectCache<Commit, git_commit>(this);
-	referenceCache_ = new WrappedGitObjectCache<Reference, git_reference>(this);
-	treeCache_ = new WrappedGitObjectCache<Tree, git_tree>(this);
-	tagCache_ = new WrappedGitObjectCache<Tag, git_tag>(this);
-	blobCache_ = new WrappedGitObjectCache<Blob, git_blob>(this);
+	commitCache_ = new WrappedGitObjectCache<Repository, Commit, git_commit>(this);
+	referenceCache_ = new WrappedGitObjectCache<Repository, Reference, git_reference>(this);
+	treeCache_ = new WrappedGitObjectCache<Repository, Tree, git_tree>(this);
+	tagCache_ = new WrappedGitObjectCache<Repository, Tag, git_tag>(this);
+	blobCache_ = new WrappedGitObjectCache<Repository, Blob, git_blob>(this);
 
 	index_ = NULL;
 }

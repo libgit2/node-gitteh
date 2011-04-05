@@ -246,8 +246,8 @@ int Blob::doInit() {
 	return GIT_SUCCESS;
 }
 
-void Blob::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
+void Blob::setOwner(Repository *owner) {
+	repository_ = owner;
 }
 
 } // namespace gitteh

@@ -11,12 +11,12 @@ class Repository;
 
 struct tree_data;
 
-class Tree : public WrappedGitObject<Tree, git_tree> {
+class Tree : public WrappedGitObject<Repository, Tree, git_tree> {
 public:
 	Tree(git_tree*);
 	~Tree();
 
-	void setOwner(void*);
+	void setOwner(Repository*);
 
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);
