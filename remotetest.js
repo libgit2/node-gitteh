@@ -5,7 +5,11 @@ try {
 	require("wrench").rmdirSyncRecursive(path);
 }catch(e) {console.log(e); };
 //gitteh.Remote.clone("git://github.com/libgit2/node-gitteh.git", "/blah");
-//gitteh.Remote.clone("https://github.com/libgit2/node-gitteh.git", path);
-gitteh.Remote.clone("https://github.com/samcday/asyncevents.git", path, function(err, result) {
+
+gitteh.Remote.clone("https://github.com/libgit2/node-gitteh.git", path, function(err, result) {
 	console.log(arguments);
 });
+
+/*gitteh.Remote.clone("https://github.com/samcday/asyncevents.git", path, function(err, result) {
+	console.log(arguments);
+});*/

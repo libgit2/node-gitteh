@@ -343,20 +343,15 @@ int Commit::doInit() {
 	initData_->parentCount = git_commit_parentcount(commit_);
 	initData_->parentIds = new std::string*[initData_->parentCount];
 
-	for(int i = 0; i< initData_->parentCount; i++) {
-		git_commit *parent;
-		git_commit_parent(&parent, commit_, i);
-
-		const git_oid *oid = git_commit_id(parent);
+	for(int i = 0; i < initData_->parentCount; i++) {
+		const git_oid *oid = git_commit_parent_oid(commit_, i);
 		char oidStr[40];
 		git_oid_fmt(oidStr, oid);
 
 		initData_->parentIds[i] = new std::string(oidStr, 40);
 	}
 
-	git_tree *commitTree;
-	git_commit_tree(&commitTree, commit_);
-	const git_oid *treeOid = git_tree_id(commitTree);
+	const git_oid *treeOid = git_commit_tree_oid(commit_);
 	char treeOidStr[40];
 	git_oid_fmt(treeOidStr, treeOid);
 	initData_->treeId = new std::string(treeOidStr, 40);
