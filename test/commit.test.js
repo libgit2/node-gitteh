@@ -185,5 +185,61 @@ vows.describe("Commit").addBatch({
 			assert.equal(commit.committer.time.getTime(), new Date(1999, 1, 1).getTime());
 			assert.equal(commit.tree, tempRepo.TEST_TREE);
 		}
+	},
+	
+	"Saving an existing commit *asynchronously*": {
+		topic: function() {
+			var sig = {
+				name: "Sam",
+				email: "sam@test.com",
+				time: new Date(1999, 1, 1)
+			};
+ 
+			var commit = this.context.commit = tempRepo.createCommit({
+				message: "Test async commit to be changed.",
+				author: sig,
+				committer: sig,
+				tree: tempRepo.TEST_TREE
+			});
+			
+			commit.message = "Test async commit changed.";
+			commit.save(this.callback);
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"commit is identical to that retrieved from repository": function() {
+			assert.isTrue(this.context.commit === tempRepo.getCommit(this.context.commit.id));
+		}
+	},
+	
+	"Saving an existing commit *synchronously*": {
+		topic: function() {
+			var sig = {
+				name: "Sam",
+				email: "sam@test.com",
+				time: new Date(1999, 1, 1)
+			};
+ 
+			var commit = this.context.commit = tempRepo.createCommit({
+				message: "Test async commit to be changed.",
+				author: sig,
+				committer: sig,
+				tree: tempRepo.TEST_TREE
+			});
+			
+			commit.message = "Test async commit changed.";
+			return commit.save();
+		},
+		
+		"works": function(res) {
+			assert.isTrue(res);
+		},
+		
+		"commit is identical to that retrieved from repository": function() {
+			assert.isTrue(this.context.commit === tempRepo.getCommit(this.context.commit.id));
+		}
 	}
 }).export(module);

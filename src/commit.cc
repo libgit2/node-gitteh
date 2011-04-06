@@ -245,6 +245,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 					&arg));
 		}
 		else {
+			ObjectWrap::Unwrap<Commit>(commitObject)->updateCachedRef(&newId);
 			commitObject->ForceSet(id_symbol, String::New(newIdStr, 40),
 					(PropertyAttribute)(ReadOnly | DontDelete));
 
@@ -319,6 +320,10 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	 		callbackArgs[1] = getCommitFn->Call(reqData->repo->handle_, 1, &arg);
 		}
 		else {
+			git_oid oid;
+			git_oid_mkstr(&oid, reqData->id);
+			reqData->commit->updateCachedRef(&oid);
+
 			reqData->commit->handle_->ForceSet(id_symbol, String::New(reqData->id, 40),
 					(PropertyAttribute)(ReadOnly | DontDelete));
 			callbackArgs[1] = True();
@@ -412,6 +417,16 @@ Commit::Commit(git_commit *commit) {
 Commit::~Commit() {
 	repository_->lockRepository();
 	git_commit_close(commit_);
+	repository_->unlockRepository();
+}
+
+void Commit::updateCachedRef(const git_oid *newId) {
+	repository_->lockRepository();
+	git_commit *newCommit;
+	git_commit_lookup(&newCommit, repository_->repo_, newId);
+	repository_->commitCache_->updateCacheRef(commit_, newCommit);
+	git_commit_close(commit_);
+	commit_ = newCommit;
 	repository_->unlockRepository();
 }
 

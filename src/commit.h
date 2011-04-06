@@ -40,6 +40,8 @@ private:
 	static int EIO_Save(eio_req*);
 	static int EIO_AfterSave(eio_req*);
 
+	void updateCachedRef(const git_oid*);
+
 	commit_data *initData_;
 };
 
