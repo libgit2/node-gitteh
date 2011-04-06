@@ -33,6 +33,7 @@ void ObjectDatabase::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "get", Get);
+	NODE_SET_PROTOTYPE_METHOD(t, "create", Create);
 
 	target->Set(odb_class_symbol, constructor_template->GetFunction());
 	NODE_SET_METHOD(target, "openODB", Open);
@@ -177,6 +178,22 @@ int ObjectDatabase::EIO_Get(eio_req *req) {
 
 int ObjectDatabase::EIO_AfterGet(eio_req *req) {
 	HandleScope scope;
+}
+
+Handle<Value> ObjectDatabase::Create(const Arguments& args) {
+	HandleScope scope;
+	ObjectDatabase *odb = ObjectWrap::Unwrap<ObjectDatabase>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, objObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(ODBObject::SaveObject(objObjArg, odb, callback, true));
 }
 
 ObjectDatabase::ObjectDatabase() {

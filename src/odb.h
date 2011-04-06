@@ -1,4 +1,4 @@
-#ifndef GITTEH_ODB_H_
+#ifndef GITTEH_ODB_H
 #define GITTEH_ODB_H
 
 #include "gitteh.h"
@@ -24,12 +24,15 @@ public:
 
 	static void Init(Handle<Object>);
 
+	git_odb *odb_;
+
 protected:
 	static Handle<Value> New(const Arguments& args);
 	static Handle<Value> Open(const Arguments& args);
 
 	static Handle<Value> Exists(const Arguments& args);
 	static Handle<Value> Get(const Arguments& args);
+	static Handle<Value> Create(const Arguments& args);
 
 private:
 	static int EIO_Open(eio_req*);
@@ -40,7 +43,6 @@ private:
 
 	WrappedGitObjectCache<ObjectDatabase, ODBObject, git_odb_object> *objectCache_;
 	gitteh_lock odbLock_;
-	git_odb *odb_;
 	bool created_;	// If true, this ODB was created independently of a repo, and should be free'd once wrapping obj is destroyed.
 };
 

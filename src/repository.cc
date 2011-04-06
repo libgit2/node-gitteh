@@ -223,6 +223,7 @@ namespace gitteh {
 
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
+static Persistent<String> odb_symbol;
 
 static Persistent<String> git_dir_symbol;
 static Persistent<String> object_dir_symbol;
@@ -299,6 +300,8 @@ void Repository::Init(Handle<Object> target) {
 
 	repo_class_symbol = NODE_PSYMBOL("Repository");
 	path_symbol = NODE_PSYMBOL("path");
+	odb_symbol = NODE_PSYMBOL("odb");
+
 	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
 	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
 	index_file_symbol = NODE_PSYMBOL("indexFile");
@@ -632,7 +635,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
 	repo->path_ = *pathArg;
-	repo->odb_ = git_repository_database(repo->repo_);
+
+	repo->setupODB();
 
 	args.This()->Set(path_symbol, String::New(repo->path_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
@@ -1539,16 +1543,20 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 		REQUEST_DETACH(repo, EIO_Exists, EIO_AfterExists);
 	}
 	else {
-		return Boolean::New(git_odb_exists(repo->odb_, &oidArg));
+		repo->odb_->lockOdb();
+		bool result = git_odb_exists(repo->odb_->odb_, &oidArg);
+		repo->odb_->unlockOdb();
+
+		return scope.Close(Boolean::New(result));
 	}
 }
 
 int Repository::EIO_Exists(eio_req *req) {
 	GET_REQUEST_DATA(exists_request);
 
-	reqData->repo->lockRepository();
-	reqData->exists = git_odb_exists(reqData->repo->odb_, &reqData->oid);
-	reqData->repo->unlockRepository();
+	reqData->repo->odb_->lockOdb();
+	reqData->exists = git_odb_exists(reqData->repo->odb_->odb_, &reqData->oid);
+	reqData->repo->odb_->unlockOdb();
 
 	return 0;
 }
@@ -1691,6 +1699,27 @@ void Repository::lockRefs() {
 
 void Repository::unlockRefs() {
 	UNLOCK_MUTEX(refLock_);
+}
+
+void Repository::setupODB() {
+	HandleScope scope;
+
+	lockRepository();
+	git_odb *odb = git_repository_database(repo_);
+	unlockRepository();
+
+	Handle<Value> constructorArgs[2] = {
+		External::New(odb),
+		Boolean::New(false)
+	};
+
+	Handle<Value> result = ObjectDatabase::constructor_template->GetFunction()->
+			NewInstance(2, constructorArgs);
+
+	// TODO: error handling
+	handle_->Set(odb_symbol, result);
+
+	odb_ = ObjectWrap::Unwrap<ObjectDatabase>(Handle<Object>::Cast(result));
 }
 
 } // namespace gitteh

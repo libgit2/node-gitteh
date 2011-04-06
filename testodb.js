@@ -12,4 +12,17 @@ catch(e) {
 	throw e;
 }
 
-console.log(odb.get("69906ba14f17bb026db62043e2359c97778ab5e7"));
+var o = odb.get("69906ba14f17bb026db62043e2359c97778ab5e7");
+
+console.log(o);
+
+o.data = new Buffer("balls.");
+o.save();
+
+console.log(o);
+
+console.log(odb.create({
+	type: "commit",
+	data: new Buffer("hahahahaha.")
+}));
+

@@ -14,6 +14,7 @@ public:
 	static Persistent<FunctionTemplate> constructor_template;
 
 	static void Init(Handle<Object>);
+	static Handle<Value> SaveObject(Handle<Object>, ObjectDatabase*, Handle<Value>, bool);
 
 	ODBObject(git_odb_object*);
 	~ODBObject();
@@ -21,11 +22,15 @@ public:
 
 protected:
 	static Handle<Value> New(const Arguments&);
+	static Handle<Value> Save(const Arguments&);
 
 	int doInit();
 
 private:
 	void processInitData();
+
+	static int EIO_Save(eio_req*);
+	static int EIO_AfterSave(eio_req*);
 
 	ObjectDatabase *odb_;
 	git_odb_object *obj_;

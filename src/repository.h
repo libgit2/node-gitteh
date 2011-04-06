@@ -3,6 +3,7 @@
 
 #include "gitteh.h"
 #include "object_cache.h"
+#include "odb.h"
 
 namespace gitteh {
 
@@ -45,7 +46,6 @@ public:
 	void notifyIndexDead();
 
 	git_repository *repo_;
-	git_odb *odb_;
 	char *path_;
 
 protected:
@@ -80,6 +80,8 @@ protected:
 	void close();
 
 private:
+	void setupODB();
+
 	int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
@@ -138,6 +140,7 @@ private:
 
 	int DoRefPacking();
 
+	ObjectDatabase *odb_;
 	Index *index_;
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
