@@ -40,6 +40,21 @@
 
 namespace gitteh {
 
+static Handle<Value> AttemptPack(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_STR_ARG(0, fileArg);
+
+	int result = git_pack_build_index(*fileArg);
+
+	if(result != GIT_SUCCESS) {
+		THROW_GIT_ERROR("Couldn't build pack index.", result);
+	}
+
+	return scope.Close(True());
+}
+
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
@@ -57,6 +72,8 @@ init(Handle<Object> target) {
 	ODBObject::Init(target);
 
 	ErrorInit(target);
+
+	NODE_SET_METHOD(target, "attemptPack", AttemptPack);
 }
 
 } // namespace gitteh
