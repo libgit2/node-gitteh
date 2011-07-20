@@ -1,23 +1,25 @@
 {
-	"name": "gitteh",
-	"version": "0.1.0",
-	"description": "Bindings to libgit2.",
-	"keywords": "git, libgit2, bindings",
-	"author": "Sam Day <sam.c.day@gmail.com>",
-	"engines": { "node": ">= 0.4.0" },
-	"dependencies": {
-		"vows": ">= 0.5.6",
-		"glob": ">= 2.0.6",
-		"async": ">= 0.1.8"
-	},
-	"repository" : {
-        "type" : "git",
-         "url" : "https://github.com/samcday/node-gitteh.git"
-    },
-    "scripts": {
-		"preinstall": "node-waf configure --use-bundled-libgit2",
-		"install": "node-waf build",
-    	"test": "vows test/*.test.js --spec"
-	},
-    "main": "./lib/gitteh"
+  "name": "gitteh",
+  "version": "0.1.0",
+  "description": "Bindings to libgit2.",
+  "keywords": "git, libgit2, bindings",
+  "author": "Sam Day <sam.c.day@gmail.com>",
+  "engines": {
+    "node": ">= 0.4.0"
+  },
+  "dependencies": {
+    "vows": ">= 0.5.6",
+    "glob": ">= 2.0.6",
+    "async": ">= 0.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libgit2/node-gitteh.git"
+  },
+  "scripts": {
+    "preinstall": "node-waf configure --use-bundled-libgit2",
+    "install": "node-waf build",
+    "test": "vows test/*.test.js --spec"
+  },
+  "main": "./lib/gitteh"
 }
