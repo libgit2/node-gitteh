@@ -238,7 +238,7 @@ Handle<Value> Tag::Save(const Arguments& args) {
 	return scope.Close(SaveObject(args.This(), tag->repository_, callback, false));
 }
 
-int Tag::EIO_Save(eio_req *req) {
+void Tag::EIO_Save(eio_req *req) {
 	save_request *reqData = static_cast<save_request*>(req->data);
 
 	git_oid newId;
@@ -255,8 +255,6 @@ int Tag::EIO_Save(eio_req *req) {
 	delete reqData->name;
 	delete reqData->message;
 	git_signature_free(reqData->tagger);
-
-	return 0;
 }
 
 int Tag::EIO_AfterSave(eio_req *req) {

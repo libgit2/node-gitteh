@@ -267,7 +267,7 @@ Handle<Value> Commit::Save(const Arguments& args) {
 	return scope.Close(SaveObject(args.This(), commit->repository_, callback, false));
 }
 
-int Commit::EIO_Save(eio_req *req) {
+void Commit::EIO_Save(eio_req *req) {
 	save_commit_request *reqData = static_cast<save_commit_request*>(req->data);
 
 	const git_oid **parentIdsPtr;
@@ -292,8 +292,6 @@ int Commit::EIO_Save(eio_req *req) {
 	delete [] reqData->parentIds;
 	git_signature_free(reqData->committer);
 	git_signature_free(reqData->author);
-
-	return 0;
 }
 
 int Commit::EIO_AfterSave(eio_req *req) {
@@ -333,8 +331,6 @@ int Commit::EIO_AfterSave(eio_req *req) {
 	reqData->callback.Dispose();
 	TRIGGER_CALLBACK();
 	delete reqData;
-
-	return 0;
 }
 
 int Commit::doInit() {

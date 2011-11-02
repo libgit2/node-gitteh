@@ -90,50 +90,50 @@ private:
 
 	int createRevWalker(git_revwalk**);
 
-	static int EIO_Exists(eio_req*);
+	static void EIO_Exists(eio_req*);
 	static int EIO_AfterExists(eio_req*);
 
-	static int EIO_OpenRepository(eio_req*);
+	static void EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
 
-	static int EIO_OpenRepository2(eio_req*);
+	static void EIO_OpenRepository2(eio_req*);
 	static int EIO_AfterOpenRepository2(eio_req*);
 
-	static int EIO_InitRepository(eio_req*);
+	static void EIO_InitRepository(eio_req*);
 	static int EIO_AfterInitRepository(eio_req*);
 
-	static int EIO_GetCommit(eio_req*);
+	static void EIO_GetCommit(eio_req*);
 	static int EIO_ReturnCommit(eio_req*);
 	
-	static int EIO_GetTree(eio_req*);
-	static int EIO_CreateTree(eio_req*);
+	static void EIO_GetTree(eio_req*);
+	static void EIO_CreateTree(eio_req*);
 	static int EIO_ReturnTree(eio_req*);
 	
-	static int EIO_GetTag(eio_req*);
+	static void EIO_GetTag(eio_req*);
 	static int EIO_ReturnTag(eio_req*);
 	
-	static int EIO_GetRawObject(eio_req*);
-	static int EIO_CreateRawObject(eio_req*);
+	static void EIO_GetRawObject(eio_req*);
+	static void EIO_CreateRawObject(eio_req*);
 	static int EIO_ReturnRawObject(eio_req*);
 
-	static int EIO_GetReference(eio_req*);
-	static int EIO_CreateSymbolicRef(eio_req*);
-	static int EIO_CreateOidRef(eio_req*);
+	static void EIO_GetReference(eio_req*);
+	static void EIO_CreateSymbolicRef(eio_req*);
+	static void EIO_CreateOidRef(eio_req*);
 	static int EIO_ReturnReference(eio_req*);
 
-	static int EIO_CreateRevWalker(eio_req*);
+	static void EIO_CreateRevWalker(eio_req*);
 	static int EIO_ReturnRevWalker(eio_req*);
 
-	static int EIO_GetRefList(eio_req*);
+	static void EIO_GetRefList(eio_req*);
 	static int EIO_AfterGetRefList(eio_req*);
 
-	static int EIO_PackRefs(eio_req*);
+	static void EIO_PackRefs(eio_req*);
 	static int EIO_AfterPackRefs(eio_req*);
 
-	static int EIO_InitIndex(eio_req*);
+	static void EIO_InitIndex(eio_req*);
 	static int EIO_ReturnIndex(eio_req*);
 
-	static int EIO_GetBlob(eio_req*);
+	static void EIO_GetBlob(eio_req*);
 	static int EIO_ReturnBlob(eio_req*);
 
 	int DoRefPacking();

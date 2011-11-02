@@ -78,7 +78,7 @@
 
 
 #define FN_ASYNC_GET_OID_OBJECT(TYPE, GIT_TYPE)								\
-	int Repository::EIO_Get##TYPE(eio_req *req) {							\
+	void Repository::EIO_Get##TYPE(eio_req *req) {							\
 		GET_REQUEST_DATA(object_request);									\
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(&reqData->oid,			\
@@ -86,11 +86,10 @@
 		if(reqData->error == GIT_SUCCESS) {									\
 			reqData->object = object;										\
 		}																	\
-		return 0;															\
 	}
 
 #define FN_ASYNC_GET_NAMED_OBJECT(TYPE, GIT_TYPE)							\
-	int Repository::EIO_Get##TYPE(eio_req *req) {							\
+	void Repository::EIO_Get##TYPE(eio_req *req) {							\
 		GET_REQUEST_DATA(object_request);									\
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(reqData->name->c_str(),	\
@@ -99,7 +98,6 @@
 			reqData->object = object;										\
 		}																	\
 		delete reqData->name;												\
-		return 0;															\
 	}
 
 #define FN_ASYNC_RETURN_OBJECT_VIA_FACTORY(TYPE, GIT_TYPE, FACTORY)			\
@@ -162,14 +160,13 @@
 	}
 
 #define FN_ASYNC_CREATE_OBJECT(TYPE, GIT_TYPE)								\
-	int Repository::EIO_Create##TYPE(eio_req *req) {						\
+	void Repository::EIO_Create##TYPE(eio_req *req) {						\
 		GET_REQUEST_DATA(object_request);									\
 		GIT_TYPE* object;													\
 		reqData->error = reqData->repo->create##TYPE(&object);				\
 		if(reqData->error == GIT_SUCCESS) {									\
 			reqData->object = object;										\
 		}																	\
-		return 0;															\
 	}
 
 #define ASYNC_PREPARE_GET_OID_OBJECT(TYPE, GIT_TYPE)						\
@@ -442,12 +439,10 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	THROW_ERROR("Invalid argument.");
 }
 
-int Repository::EIO_OpenRepository(eio_req *req) {
+void Repository::EIO_OpenRepository(eio_req *req) {
 	GET_REQUEST_DATA(open_repo_request);
 
 	reqData->error = git_repository_open(&reqData->repo, **reqData->path);
-
-	return 0;
 }
 
 int Repository::EIO_AfterOpenRepository(eio_req *req) {
@@ -479,7 +474,7 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
 	return 0;
 }
 
-int Repository::EIO_OpenRepository2(eio_req *req) {
+void Repository::EIO_OpenRepository2(eio_req *req) {
 	GET_REQUEST_DATA(open_repo2_request);
 
 	const char *_gitDir = reqData->gitDir->c_str();
@@ -508,8 +503,6 @@ int Repository::EIO_OpenRepository2(eio_req *req) {
 	if(reqData->workTree) {
 		delete reqData->workTree;
 	}
-
-	return 0;
 }
 
 int Repository::EIO_AfterOpenRepository2(eio_req *req) {
@@ -583,12 +576,10 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_InitRepository(eio_req *req) {
+void Repository::EIO_InitRepository(eio_req *req) {
 	GET_REQUEST_DATA(init_repo_request);
 
 	reqData->error = git_repository_init(&reqData->repo, **reqData->path, reqData->bare);
-
-	return 0;
 }
 
 int Repository::EIO_AfterInitRepository(eio_req *req) {
@@ -713,7 +704,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetCommit(eio_req *req) {
+void Repository::EIO_GetCommit(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_commit *commit;
 	reqData->error = reqData->repo->getCommit(&reqData->oid,
@@ -730,8 +721,6 @@ int Repository::EIO_GetCommit(eio_req *req) {
 			reqData->wrappedObject = commitObject;
 		}
 	}
-
-	return 0;
 }
 
 int Repository::EIO_ReturnCommit(eio_req *req) {
@@ -791,7 +780,7 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetTree(eio_req *req) {
+void Repository::EIO_GetTree(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_tree *tree;
 	reqData->error = reqData->repo->getTree(&reqData->oid,
@@ -808,8 +797,6 @@ int Repository::EIO_GetTree(eio_req *req) {
 			reqData->wrappedObject = treeObject;
 		}
 	}
-
-	return 0;
 }
 
 int Repository::EIO_ReturnTree(eio_req *req) {
@@ -878,7 +865,7 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetTag(eio_req *req) {
+void Repository::EIO_GetTag(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_tag *tag;
 	reqData->error = reqData->repo->getTag(&reqData->oid,
@@ -895,8 +882,6 @@ int Repository::EIO_GetTag(eio_req *req) {
 			reqData->wrappedObject = tagObject;
 		}
 	}
-
-	return 0;
 }
 
 int Repository::EIO_ReturnTag(eio_req *req) {
@@ -990,10 +975,9 @@ Handle<Value> Repository::GetIndex(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_InitIndex(eio_req *req) {
+void Repository::EIO_InitIndex(eio_req *req) {
 	GET_REQUEST_DATA(index_request);
 	reqData->repo->index_->waitForInitialization();
-	return 0;
 }
 
 int Repository::EIO_ReturnIndex(eio_req *req) {
@@ -1053,7 +1037,7 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetReference(eio_req *req) {
+void Repository::EIO_GetReference(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_reference *ref;
 
@@ -1075,8 +1059,6 @@ int Repository::EIO_GetReference(eio_req *req) {
 	reqData->repo->unlockRefs();
 
 	delete reqData->name;
-
-	return 0;
 }
 
 int Repository::EIO_ReturnReference(eio_req *req) {
@@ -1129,7 +1111,7 @@ Handle<Value> Repository::GetBlob(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetBlob(eio_req *req) {
+void Repository::EIO_GetBlob(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	git_blob *blob;
 	reqData->error = reqData->repo->getBlob(&reqData->oid,
@@ -1146,8 +1128,6 @@ int Repository::EIO_GetBlob(eio_req *req) {
 			reqData->wrappedObject = blobObject;
 		}
 	}
-
-	return 0;
 }
 
 int Repository::EIO_ReturnBlob(eio_req *req) {
@@ -1220,7 +1200,7 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_CreateSymbolicRef(eio_req *req) {
+void Repository::EIO_CreateSymbolicRef(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 
 	git_reference *ref;
@@ -1244,8 +1224,6 @@ int Repository::EIO_CreateSymbolicRef(eio_req *req) {
 
 	delete reqData->name;
 	delete reqData->target;
-
-	return 0;
 }
 
 Handle<Value> Repository::CreateOidRef(const Arguments& args) {
@@ -1289,7 +1267,7 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_CreateOidRef(eio_req *req) {
+void Repository::EIO_CreateOidRef(eio_req *req) {
 	GET_REQUEST_DATA(object_request);
 	reqData->repo->lockRepository();
 
@@ -1317,8 +1295,6 @@ int Repository::EIO_CreateOidRef(eio_req *req) {
 
 	delete reqData->name;
 	delete reqData->target;
-
-	return 0;
 }
 
 Handle<Value> Repository::ListReferences(const Arguments& args) {
@@ -1362,15 +1338,13 @@ Handle<Value> Repository::ListReferences(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_GetRefList(eio_req *req) {
+void Repository::EIO_GetRefList(eio_req *req) {
 	GET_REQUEST_DATA(reflist_request);
 
 	reqData->repo->lockRepository();
 	reqData->error = git_reference_listall(&reqData->refList, reqData->repo->repo_,
 			reqData->flags);
 	reqData->repo->unlockRepository();
-
-	return 0;
 }
 
 int Repository::EIO_AfterGetRefList(eio_req *req) {
@@ -1492,12 +1466,10 @@ Handle<Value> Repository::PackReferences(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_PackRefs(eio_req *req) {
+void Repository::EIO_PackRefs(eio_req *req) {
 	GET_REQUEST_DATA(ref_pack_request);
 
 	reqData->error = reqData->repo->DoRefPacking();
-
-	return 0;
 }
 
 int Repository::EIO_AfterPackRefs(eio_req *req) {
@@ -1543,14 +1515,12 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	}
 }
 
-int Repository::EIO_Exists(eio_req *req) {
+void Repository::EIO_Exists(eio_req *req) {
 	GET_REQUEST_DATA(exists_request);
 
 	reqData->repo->lockRepository();
 	reqData->exists = git_odb_exists(reqData->repo->odb_, &reqData->oid);
 	reqData->repo->unlockRepository();
-
-	return 0;
 }
 
 int Repository::EIO_AfterExists(eio_req *req) {
