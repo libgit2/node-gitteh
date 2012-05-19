@@ -24,7 +24,7 @@
  
  var vows = require("vows"),
 	assert = require("assert"),
-	gitteh = require("gitteh"),
+	gitteh = require("../lib/gitteh"),
 	path = require("path"),
 	fixtureValues = require("./fixtures/values");
 

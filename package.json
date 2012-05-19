@@ -17,8 +17,8 @@
     "url": "https://github.com/libgit2/node-gitteh.git"
   },
   "scripts": {
-    "preinstall": "node-waf configure --use-bundled-libgit2",
-    "install": "node-waf build",
+    "preinstall": "node-gyp configure",
+    "install": "node-gyp build",
     "test": "vows test/*.test.js --spec"
   },
   "main": "./lib/gitteh"

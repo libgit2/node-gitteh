@@ -40,7 +40,7 @@ namespace gitteh {
 
 extern "C" void
 init(Handle<Object> target) {
-	HandleScope scope;
+	/*HandleScope scope;
 	Repository::Init(target);
 
 	Commit::Init(target);
@@ -52,7 +52,8 @@ init(Handle<Object> target) {
 	Reference::Init(target);
 	Blob::Init(target);
 
-	ErrorInit(target);
+	ErrorInit(target);*/
+	
 }
 
 } // namespace gitteh

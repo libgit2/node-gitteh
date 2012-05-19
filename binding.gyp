@@ -4,6 +4,8 @@
 			'target_name': 'gitteh',
 			'sources': [
 				'src/gitteh.cc',
+			],
+			'todosources': [
 				'src/commit.cc',
 				'src/tree.cc',
 				'src/repository.cc',
