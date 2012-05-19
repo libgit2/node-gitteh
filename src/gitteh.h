@@ -106,6 +106,9 @@ using namespace node;
 #define THROW_GIT_ERROR(errorStr, errorCode)							\
 	return scope.Close(ThrowException(CreateGitError(String::New(errorStr), errorCode)));
 
+#define THROW_GIT_ERROR2(errorStr)              \
+  return scope.Close(ThrowException(CreateGitError(String::New(errorStr), giterr_last())));
+
 #define LOAD_OID_ARG(I, VAR)												\
   if (args.Length() <= (I) || !args[I]->IsString()) 						\
 	return ThrowException(Exception::TypeError(								\

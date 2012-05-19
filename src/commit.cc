@@ -107,6 +107,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	int result, parentCount, i;
 	git_oid treeId;
 	git_oid *parentIds;
+	git_tree *tree;
 
 	HandleScope scope;
 
@@ -185,6 +186,14 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		THROW_ERROR("Author is not a valid signature.");
 	}
 
+	result = git_tree_lookup(&tree, repo->repo_, &treeId);
+	if(result != GIT_OK) {
+		delete [] parentIds;
+		git_signature_free(committer);
+		git_signature_free(author);
+		THROW_ERROR("Invalid tree.")
+	}
+
 	// Okay, we're ready to make this happen. Are we doing it asynchronously
 	// or synchronously?
 	if(callback->IsFunction()) {
@@ -217,21 +226,27 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	else {
 		git_oid newId;
 
-		const git_oid **parentIdsPtr;
-		parentIdsPtr = new const git_oid*[parentCount];
+		git_commit **parentCommits;
+		parentCommits = new git_commit*[parentCount];
 		for(i = 0; i < parentCount; i++) {
-			parentIdsPtr[i] = &parentIds[i];
+			result = git_commit_lookup(&parentCommits[i], repo->repo_, 
+				&parentIds[i]);
+			if(result != GIT_OK) {
+				// TODO: clean up shit here..
+				THROW_ERROR("Couldn't find parent commit.");
+			}
 		}
 		result = git_commit_create(&newId, repo->repo_, NULL, author, committer,
-				*message, &treeId, parentCount, parentIdsPtr);
+				 NULL, *message, tree, parentCount, 
+				 const_cast<const git_commit**>(parentCommits));
 
 		git_signature_free(author);
 		git_signature_free(committer);
-		delete [] parentIdsPtr;
+		delete [] parentCommits;
 		delete [] parentIds;
 
 		if(result != GIT_OK) {
-			THROW_GIT_ERROR("Couldn't save commit.", result);
+			THROW_GIT_ERROR2("Couldn't save commit.");
 		}
 
 		char newIdStr[40];
@@ -267,19 +282,28 @@ Handle<Value> Commit::Save(const Arguments& args) {
 }
 
 void Commit::EIO_Save(eio_req *req) {
+	int i, result;
+
 	save_commit_request *reqData = static_cast<save_commit_request*>(req->data);
 
-	const git_oid **parentIdsPtr;
-	parentIdsPtr = new const git_oid*[reqData->parentCount];
-	for(int i = 0; i < reqData->parentCount; i++) {
-		parentIdsPtr[i] = &reqData->parentIds[i];
+	git_commit **parentCommits;
+	parentCommits = new git_commit*[reqData->parentCount];
+	for(i = 0; i < reqData->parentCount; i++) {
+		result = git_commit_lookup(&parentCommits[i], reqData->repo->repo_, 
+			&reqData->parentIds[i]);
+		if(result != GIT_OK) {
+			// TODO: clean up shit here..
+			return;
+			//THROW_ERROR("Couldn't find parent commit.");
+		}
 	}
 
 	git_oid newId;
 	reqData->repo->lockRepository();
 	reqData->error = git_commit_create(&newId, reqData->repo->repo_, NULL,
-			reqData->author, reqData->committer, reqData->message->c_str(),
-			&reqData->treeId, reqData->parentCount, parentIdsPtr);
+			reqData->author, reqData->committer, NULL, reqData->message->c_str(),
+			&reqData->treeId, reqData->parentCount, 
+			const_cast<const git_commit**>(parentCommits));
 	reqData->repo->unlockRepository();
 
 	if(reqData->error == GIT_OK) {

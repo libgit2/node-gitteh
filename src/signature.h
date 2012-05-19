@@ -32,8 +32,7 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 
 	// TODO: Error handling.
 	git_signature *sig;
-	int error = git_signature_new(&sig, *sigName, *sigEmail, sigTime, offset);
-
+	git_signature_new(&sig, *sigName, *sigEmail, sigTime, offset);
 
 	return sig;
 }
