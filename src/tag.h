@@ -32,7 +32,7 @@ protected:
 	git_tag *tag_;
 
 private:
-	static int EIO_Save(eio_req*);
+	static void EIO_Save(eio_req*);
 	static int EIO_AfterSave(eio_req*);
 
 	tag_data *initData_;

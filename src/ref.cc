@@ -175,7 +175,7 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 	}
 }
 
-int Reference::EIO_Rename(eio_req *req) {
+void Reference::EIO_Rename(eio_req *req) {
 	ref_request *reqData = static_cast<ref_request*>(req->data);
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
@@ -184,8 +184,6 @@ int Reference::EIO_Rename(eio_req *req) {
 		reqData->ref->repository_->unlockRepository();
 		reqData->ref->unlock();
 	}
-
-	return 0;
 }
 
 int Reference::EIO_AfterRename(eio_req *req) {
@@ -258,7 +256,7 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 	return scope.Close(True());
 }
 
-int Reference::EIO_Delete(eio_req *req) {
+void Reference::EIO_Delete(eio_req *req) {
 	ref_request *reqData = static_cast<ref_request*>(req->data);
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
@@ -273,8 +271,6 @@ int Reference::EIO_Delete(eio_req *req) {
 
 		reqData->ref->unlock();
 	}
-
-	return 0;
 }
 
 int Reference::EIO_AfterDelete(eio_req *req) {
@@ -345,7 +341,7 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 	}
 }
 
-int Reference::EIO_Resolve(eio_req *req) {
+void Reference::EIO_Resolve(eio_req *req) {
 	resolve_request *reqData = static_cast<resolve_request*>(req->data);
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
@@ -362,8 +358,6 @@ int Reference::EIO_Resolve(eio_req *req) {
 
 		reqData->ref->repository_->unlockRefs();
 	}
-
-	return 0;
 }
 
 int Reference::EIO_AfterResolve(eio_req *req) {
@@ -450,7 +444,7 @@ Handle<Value> Reference::SetTarget(const Arguments &args) {
 	}
 }
 
-int Reference::EIO_SetTarget(eio_req *req) {
+void Reference::EIO_SetTarget(eio_req *req) {
 	target_request *reqData = static_cast<target_request*>(req->data);
 
 	IF_ASYNC_CHECK_ISNT_DELETED()
@@ -471,8 +465,6 @@ int Reference::EIO_SetTarget(eio_req *req) {
 
 		reqData->ref->unlock();
 	}
-
-	return 0;
 }
 
 int Reference::EIO_AfterSetTarget(eio_req *req) {

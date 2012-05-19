@@ -99,10 +99,9 @@ protected:
 	}
 
 private:
-	static int EIO_BuildObject(eio_req *req) {
+	static void EIO_BuildObject(eio_req *req) {
 		build_object_request<P,T,S> *reqData = static_cast<build_object_request<P,T,S>*>(req->data);
 		reqData->jsObject->waitForInitialization();
-		return 0;
 	}
 
 	static int EIO_ReturnBuiltObject(eio_req *req) {

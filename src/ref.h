@@ -39,16 +39,16 @@ protected:
 	git_ref_t type_;
 
 private:
-	static int EIO_Rename(eio_req*);
+	static void EIO_Rename(eio_req*);
 	static int EIO_AfterRename(eio_req*);
 
-	static int EIO_Delete(eio_req*);
+	static void EIO_Delete(eio_req*);
 	static int EIO_AfterDelete(eio_req*);
 
-	static int EIO_Resolve(eio_req*);
+	static void EIO_Resolve(eio_req*);
 	static int EIO_AfterResolve(eio_req*);
 
-	static int EIO_SetTarget(eio_req*);
+	static void EIO_SetTarget(eio_req*);
 	static int EIO_AfterSetTarget(eio_req*);
 
 	gitteh_lock lock_;

@@ -146,14 +146,12 @@ Handle<Value> Index::GetEntry(const Arguments& args) {
 	}
 }
 
-int Index::EIO_GetEntry(eio_req *req) {
+void Index::EIO_GetEntry(eio_req *req) {
 	entry_request *reqData = static_cast<entry_request*>(req->data);
 
 	reqData->indexObj->repository_->lockRepository();
 	reqData->entry = git_index_get(reqData->indexObj->index_, reqData->index);
 	reqData->indexObj->repository_->unlockRepository();
-
-	return 0;
 }
 
 int Index::EIO_AfterGetEntry(eio_req *req) {
@@ -226,7 +224,7 @@ Handle<Value> Index::FindEntry(const Arguments& args) {
 	}
 }
 
-int Index::EIO_FindEntry(eio_req *req) {
+void Index::EIO_FindEntry(eio_req *req) {
 	entry_request *reqData = static_cast<entry_request*>(req->data);
 
 	reqData->indexObj->repository_->lockRepository();
@@ -241,8 +239,6 @@ int Index::EIO_FindEntry(eio_req *req) {
 
 	delete reqData->name;
 	reqData->indexObj->repository_->unlockRepository();
-
-	return 0;
 }
 
 int Index::EIO_AfterFindEntry(eio_req *req) {
@@ -310,7 +306,7 @@ Handle<Value> Index::AddEntry(const Arguments &args) {
 	}
 }
 
-int Index::EIO_AddEntry(eio_req *req) {
+void Index::EIO_AddEntry(eio_req *req) {
 	add_entry_request *reqData = static_cast<add_entry_request*>(req->data);
 
 	reqData->indexObj->repository_->lockRepository();
@@ -319,8 +315,6 @@ int Index::EIO_AddEntry(eio_req *req) {
 	reqData->indexObj->repository_->unlockRepository();
 
 	delete reqData->path;
-
-	return 0;
 }
 
 int Index::EIO_AfterAddEntry(eio_req *req) {
@@ -380,14 +374,12 @@ Handle<Value> Index::Write(const Arguments& args) {
 	}
 }
 
-int Index::EIO_Write(eio_req *req) {
+void Index::EIO_Write(eio_req *req) {
 	index_request *reqData = static_cast<index_request*>(req->data);
 
 	reqData->indexObj->repository_->lockRepository();
 	reqData->error = git_index_write(reqData->indexObj->index_);
 	reqData->indexObj->repository_->unlockRepository();
-
-	return 0;
 }
 
 int Index::EIO_AfterWrite(eio_req *req) {

@@ -46,16 +46,16 @@ protected:
 private:
 	void updateEntryCount();
 
-	static int EIO_GetEntry(eio_req*);
+	static void EIO_GetEntry(eio_req*);
 	static int EIO_AfterGetEntry(eio_req*);
 
-	static int EIO_Write(eio_req*);
+	static void EIO_Write(eio_req*);
 	static int EIO_AfterWrite(eio_req*);
 
-	static int EIO_AddEntry(eio_req*);
+	static void EIO_AddEntry(eio_req*);
 	static int EIO_AfterAddEntry(eio_req*);
 
-	static int EIO_FindEntry(eio_req*);
+	static void EIO_FindEntry(eio_req*);
 	static int EIO_AfterFindEntry(eio_req*);
 
 	Repository *repository_;
