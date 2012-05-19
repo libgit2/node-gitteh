@@ -119,7 +119,7 @@ using namespace node;
 
 namespace gitteh {
 
-static inline Handle<Value> CreateGitError(Handle<String> message, const git_error* error) {
+/*static inline Handle<Value> CreateGitError(Handle<String> message, const git_error* error) {
 	HandleScope scope;
 
 	Handle<Object> errorObj = Handle<Object>::Cast(Exception::Error(message));
@@ -127,6 +127,19 @@ static inline Handle<Value> CreateGitError(Handle<String> message, const git_err
 	errorObj->Set(String::New("gitErrorStr"), String::New(error->message));
 
 	return scope.Close(errorObj);
+}*/
+
+static inline Handle<Value> CreateGitError() {
+  const git_error *err = giterr_last();
+  Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
+    String::New(err->message)));
+  errObj->Set(String::New("code"), Integer::New(err->klass));
+
+  return errObj;
+}
+
+static inline Handle<Value> ThrowGitError() {
+  return ThrowException(CreateGitError());
 }
 
 } // namespace gitteh

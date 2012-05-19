@@ -31,7 +31,8 @@ public:
 		T *wrappedObject;
 		int result = wrap(gitObject, &wrappedObject);
 		if(result != GIT_OK) {
-			THROW_GIT_ERROR("Couldn't load object.", result);
+			// TODO: fixme.
+			// THROW_GIT_ERROR("Couldn't load object.", result);
 		}
 
 		wrappedObject->ensureWrapped();

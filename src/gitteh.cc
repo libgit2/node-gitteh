@@ -23,10 +23,10 @@
  */
 
 #include "gitteh.h"
-
+#include "repository.h"
+/*
 #include "commit.h"
 #include "tree.h"
-#include "repository.h"
 #include "index.h"
 #include "index_entry.h"
 #include "tag.h"
@@ -34,16 +34,20 @@
 #include "error.h"
 #include "ref.h"
 #include "blob.h"
-#include "thread.h"
+#include "thread.h"*/
 
 namespace gitteh {
 
 extern "C" void
 init(Handle<Object> target) {
-	/*HandleScope scope;
-	Repository::Init(target);
+	HandleScope scope;
 
-	Commit::Init(target);
+	// Initialize libgit2's thread system.
+	// git_threads_init();
+
+	// Repository::Init(target);
+
+	/*Commit::Init(target);
 	Tree::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
@@ -53,7 +57,7 @@ init(Handle<Object> target) {
 	Blob::Init(target);
 
 	ErrorInit(target);*/
-	
+
 }
 
 } // namespace gitteh

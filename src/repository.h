@@ -6,22 +6,22 @@
 
 namespace gitteh {
 
-class Tree;
+/*class Tree;
 class Tag;
 class Commit;
 class Index;
 class RawObject;
 class Reference;
 class RevWalker;
-class Blob;
+class Blob;*/
 
-template <class, class, class> class ObjectFactory;
+// template <class, class, class> class ObjectFactory;
 
 class Repository : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
-	template<class, class,class> friend class ObjectFactory;
+	// template<class, class,class> friend class ObjectFactory;
 
 	Repository();
 	~Repository();
@@ -30,30 +30,30 @@ public:
 	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
 	// on a libgit2 repository needs to be locked to one thread at a time, as
 	// libgit2 is not thread safe in the slightest.
-	void lockRepository();
-	void unlockRepository();
+	// void lockRepository();
+	// void unlockRepository();
 
-	void lockRefs();
-	void unlockRefs();
+	// void lockRefs();
+	// void unlockRefs();
 
-	WrappedGitObjectCache<Commit, git_commit> *commitCache_;
+	/*WrappedGitObjectCache<Commit, git_commit> *commitCache_;
 	WrappedGitObjectCache<Tag, git_tag> *tagCache_;
 	WrappedGitObjectCache<Tree, git_tree> *treeCache_;
 	WrappedGitObjectCache<Reference, git_reference> *referenceCache_;
-	WrappedGitObjectCache<Blob, git_blob> *blobCache_;
+	WrappedGitObjectCache<Blob, git_blob> *blobCache_;*/
 
-	void notifyIndexDead();
+	// void notifyIndexDead();
 
 	git_repository *repo_;
 	git_odb *odb_;
-	char *path_;
+	const char *path_;
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);
-	static Handle<Value> InitRepository(const Arguments&);
+	// static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> GetODB(const Arguments&);
+	/*static Handle<Value> GetODB(const Arguments&);
 	static Handle<Value> GetCommit(const Arguments&);
 	static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> GetTag(const Arguments&);
@@ -75,12 +75,12 @@ protected:
 	static Handle<Value> CreateBlob(const Arguments&);
 
 	static Handle<Value> ListReferences(const Arguments&);
-	static Handle<Value> PackReferences(const Arguments&);
+	static Handle<Value> PackReferences(const Arguments&);*/
 
-	void close();
+	// void close();
 
 private:
-	int getTree(git_oid*, git_tree**);
+	/*int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
 	int getReference(const char*, git_reference**);
@@ -88,13 +88,13 @@ private:
 
 	RevWalker *wrapRevWalker(git_revwalk*);
 
-	int createRevWalker(git_revwalk**);
-
-	static void EIO_Exists(eio_req*);
-	static int EIO_AfterExists(eio_req*);
+	int createRevWalker(git_revwalk**);*/
 
 	static void EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
+
+/*	static void EIO_Exists(eio_req*);
+	static int EIO_AfterExists(eio_req*);
 
 	static void EIO_OpenRepository2(eio_req*);
 	static int EIO_AfterOpenRepository2(eio_req*);
@@ -138,7 +138,7 @@ private:
 
 	int DoRefPacking();
 
-	Index *index_;
+	Index *index_;*/
 
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,
@@ -147,14 +147,14 @@ private:
 	// example. However for now I want this thing to *just work*, I'll worry 
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
-	gitteh_lock gitLock_;
+	// gitteh_lock gitLock_;
 
 	// This lock is used during ref packing. The problem is ref packing will
 	// invalidate our previously cached pointers. Ugh. So what we do is update
 	// those pointers after we pack references right? Cool. Only thing is with
 	// async that process might get fucked if we don't stop any more refs from
 	// being opened created while we're in the process of packing. Hence this lock.
-	gitteh_lock refLock_;
+	// gitteh_lock refLock_;
 };
 
 } // namespace gitteh

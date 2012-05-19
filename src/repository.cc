@@ -23,13 +23,13 @@
  */
 
 #include "repository.h"
-#include "commit.h"
+/*#include "commit.h"
 #include "tree.h"
 #include "index.h"
 #include "tag.h"
 #include "rev_walker.h"
 #include "ref.h"
-#include "blob.h"
+#include "blob.h"*/
 #include <sys/time.h>
 
 // DANGER, WILL ROBINSON!
@@ -217,7 +217,6 @@
 			newObject(object)->handle_);
 
 namespace gitteh {
-
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
 
@@ -226,6 +225,14 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_tree_symbol;
 
+struct open_repo_request {
+	Persistent<Function> callback;
+	int error;
+	String::Utf8Value *path;
+	git_repository *repo;
+};
+
+/*
 struct object_request {
 	Persistent<Function> callback;
 	Repository *repo;
@@ -243,13 +250,6 @@ struct exists_request {
 	Repository *repo;
 	git_oid oid;
 	bool exists;
-};
-
-struct open_repo_request {
-	Persistent<Function> callback;
-	int error;
-	String::Utf8Value *path;
-	git_repository *repo;
 };
 
 struct open_repo2_request {
@@ -287,9 +287,32 @@ struct ref_pack_request {
 struct index_request {
 	Persistent<Function> callback;
 	Repository *repo;
-};
+};*/
 
 Persistent<FunctionTemplate> Repository::constructor_template;
+
+Repository::Repository() {
+	/*CREATE_MUTEX(gitLock_);
+	CREATE_MUTEX(refLock_);
+
+	commitCache_ = new WrappedGitObjectCache<Commit, git_commit>(this);
+	referenceCache_ = new WrappedGitObjectCache<Reference, git_reference>(this);
+	treeCache_ = new WrappedGitObjectCache<Tree, git_tree>(this);
+	tagCache_ = new WrappedGitObjectCache<Tag, git_tag>(this);
+	blobCache_ = new WrappedGitObjectCache<Blob, git_blob>(this);
+
+	index_ = NULL;*/
+}
+
+Repository::~Repository() {
+	/*delete commitCache_;
+	delete referenceCache_;
+	delete treeCache_;
+	delete tagCache_;
+	delete blobCache_;
+
+	close();*/
+}
 
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
@@ -301,11 +324,11 @@ void Repository::Init(Handle<Object> target) {
 	index_file_symbol = NODE_PSYMBOL("indexFile");
 	work_tree_symbol = NODE_PSYMBOL("workTree");
 
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
+	/*Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(repo_class_symbol);
-	t->InstanceTemplate()->SetInternalFieldCount(1);
-
+	t->InstanceTemplate()->SetInternalFieldCount(1);*/
+/*
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
@@ -324,17 +347,60 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
+*/
+	// NODE_SET_METHOD(target, "openRepository", OpenRepository);
+	// NODE_SET_METHOD(target, "initRepository", InitRepository);
 
-	NODE_SET_METHOD(target, "openRepository", OpenRepository);
-	NODE_SET_METHOD(target, "initRepository", InitRepository);
-
-	target->Set(repo_class_symbol, constructor_template->GetFunction());
+	// target->Set(repo_class_symbol, constructor_template->GetFunction());
 }
 
+Handle<Value> Repository::New(const Arguments& args) {
+	HandleScope scope;
+
+	REQ_ARGS(1);
+	REQ_EXT_ARG(0, repoArg);
+
+	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
+	const char *repoPath = git_repository_path(repo);/*
+
+	Repository *repoObj = new Repository();
+	repoObj->Wrap(args.This());
+
+	repoObj->repo_ = repo;
+	repoObj->path_ = repoPath;
+	// repoObj->odb_ = git_repository_odb(repoObj->repo_);
+
+	args.This()->Set(path_symbol, String::New(repoObj->path_),
+			(PropertyAttribute)(ReadOnly | DontDelete));
+
+	// HUGE FUCKING TODO:
+	// IN MOTHER FUCKING CAPITALS.
+	// FOR SOME FUCKING REASON THE REPOSITORY IS GETTING GARBAGE COLLECTED MID
+	// RUN WHEN I DO STRESS TESTS LIKE TRAVERSING COMMIT HISTORY 1000 TIMES
+	// SIMULTANEOUSLY. THIS IS FUCKING STUPID BECAUSE THE FUCKING REPO OBJECT
+	// STILL HAS A FUCKING REF IN THE FUCKING USERLAND SCRIPT, BUT CUNTS WILL BE
+	// FUCKING CUNTS RIGHT? SO ANYWAY I FOUND THIS OUT AFTER LIKE 8 HOURS OF
+	// DEBUGGING BULLSHIT FUCKING RANDOM SEGFAULTS ALL OVER THE PLACE. YEAH.
+	// AWESOME. I GOT LUCKY IN ONE OF THE SEGFAULTS AND SAW IN GDB THAT THE CUNT
+	// WAS ALL FUCKED UP. ANYWAY, I DISCOVERED THAT IF I ATTACHED THE REPO TO
+	// THE GLOBAL PROCESS OBJECT THEN REPO WOULDN'T GET REAPO'D AND AS SUCH MY
+	// HARD WORK WOULDN'T COME UNDONE LIKE A HOOKER'S BRA CLASP. THERE MUST BE
+	// SOME SORT OF WEIRD V8 OPTIMIZATION THAT LOOKS AT LOCAL VARIABLES IN A
+	// SCRIPT AND SENSES IF THE CUNTS AREN'T BEING REFERENCED ANYMORE, THEN IT
+	// MUST CONSIDER THE LOCAL JS VARIABLE "WEAK" OR SOME SHIT. ANYWAY, IT'S
+	// FUCKED AND I DON'T LIKE IT. FOR NOW I'M ADDING REF() HERE TO MAKE SURE
+	// THAT A REPO OBJECT CAN NEVER BE MOTHERFUCKING GARBAGE COLLECTED. WHEN I
+	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
+	// THIS SUCKER.
+	repoObj->Ref();
+	return args.This();*/
+}
+
+/*
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 	REQ_ARGS(1);
-
+/*
 	if(args[0]->IsObject()) {
 		Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
 		if(pathsObj->Get(git_dir_symbol)->Equals(Null())) {
@@ -406,7 +472,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 					->NewInstance(2, constructorArgs));
 		}
 	}
-	else if(args[0]->IsString()) {
+	else if(args[0]->IsString()) {*//*
 		REQ_STR_ARG(0, pathArg);
 
 		if(HAS_CALLBACK_ARG) {
@@ -423,18 +489,18 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 			git_repository* repo;
 			int result = git_repository_open(&repo, *pathArg);
 			if(result != GIT_OK) {
-				THROW_GIT_ERROR("Couldn't open repository.", result);
+				return scope.Close(ThrowGitError());
+				// THROW_GIT_ERROR("Couldn't open repository.", result);
 			}
 
-			Handle<Value> constructorArgs[2] = {
-				External::New(repo),
-				args[0]
+			Handle<Value> constructorArgs[1] = {
+				External::New(repo)
 			};
 
 			return scope.Close(Repository::constructor_template->GetFunction()
-					->NewInstance(2, constructorArgs));
+					->NewInstance(1, constructorArgs));
 		}
-	}
+	// }
 
 	THROW_ERROR("Invalid argument.");
 }
@@ -451,18 +517,17 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
  	if(reqData->error) {
- 		Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
+ 		Handle<Value> error = CreateGitError();
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
 	}
 	else {
-		Handle<Value> constructorArgs[2] = {
-			External::New(reqData->repo),
-			String::New(**reqData->path)
+		Handle<Value> constructorArgs[1] = {
+			External::New(reqData->repo)
 		};
 		callbackArgs[0] = Null();
 		callbackArgs[1] = Repository::constructor_template->GetFunction()
-						->NewInstance(2, constructorArgs);
+						->NewInstance(1, constructorArgs);
 	}
 
  	TRIGGER_CALLBACK();
@@ -473,7 +538,7 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
  	ev_unref(EV_DEFAULT_UC);
 	return 0;
 }
-
+/*
 void Repository::EIO_OpenRepository2(eio_req *req) {
 	GET_REQUEST_DATA(open_repo2_request);
 
@@ -563,7 +628,8 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 		git_repository* repo;
 		int result = git_repository_init(&repo, *pathArg, bare);
 		if(result != GIT_OK) {
-			THROW_GIT_ERROR("Couldn't init repository.", result);
+			// THROW_GIT_ERROR("Couldn't init repository.", result);
+			return scope.Close(ThrowGitError());
 		}
 
 		Handle<Value> constructorArgs[2] = {
@@ -609,46 +675,6 @@ int Repository::EIO_AfterInitRepository(eio_req *req) {
 	delete reqData;
 	ev_unref(EV_DEFAULT_UC);
 	return 0;
-}
-
-Handle<Value> Repository::New(const Arguments& args) {
-	HandleScope scope;
-
-	REQ_ARGS(2);
-	REQ_EXT_ARG(0, repoArg);
-	REQ_STR_ARG(1, pathArg);
-
-	Repository *repo = new Repository();
-	repo->Wrap(args.This());
-
-	repo->repo_ = static_cast<git_repository*>(repoArg->Value());
-	repo->path_ = *pathArg;
-	repo->odb_ = git_repository_database(repo->repo_);
-
-	args.This()->Set(path_symbol, String::New(repo->path_),
-			(PropertyAttribute)(ReadOnly | DontDelete));
-
-	// HUGE FUCKING TODO:
-	// IN MOTHER FUCKING CAPITALS.
-	// FOR SOME FUCKING REASON THE REPOSITORY IS GETTING GARBAGE COLLECTED MID
-	// RUN WHEN I DO STRESS TESTS LIKE TRAVERSING COMMIT HISTORY 1000 TIMES
-	// SIMULTANEOUSLY. THIS IS FUCKING STUPID BECAUSE THE FUCKING REPO OBJECT
-	// STILL HAS A FUCKING REF IN THE FUCKING USERLAND SCRIPT, BUT CUNTS WILL BE
-	// FUCKING CUNTS RIGHT? SO ANYWAY I FOUND THIS OUT AFTER LIKE 8 HOURS OF
-	// DEBUGGING BULLSHIT FUCKING RANDOM SEGFAULTS ALL OVER THE PLACE. YEAH.
-	// AWESOME. I GOT LUCKY IN ONE OF THE SEGFAULTS AND SAW IN GDB THAT THE CUNT
-	// WAS ALL FUCKED UP. ANYWAY, I DISCOVERED THAT IF I ATTACHED THE REPO TO
-	// THE GLOBAL PROCESS OBJECT THEN REPO WOULDN'T GET REAPO'D AND AS SUCH MY
-	// HARD WORK WOULDN'T COME UNDONE LIKE A HOOKER'S BRA CLASP. THERE MUST BE
-	// SOME SORT OF WEIRD V8 OPTIMIZATION THAT LOOKS AT LOCAL VARIABLES IN A
-	// SCRIPT AND SENSES IF THE CUNTS AREN'T BEING REFERENCED ANYMORE, THEN IT
-	// MUST CONSIDER THE LOCAL JS VARIABLE "WEAK" OR SOME SHIT. ANYWAY, IT'S
-	// FUCKED AND I DON'T LIKE IT. FOR NOW I'M ADDING REF() HERE TO MAKE SURE
-	// THAT A REPO OBJECT CAN NEVER BE MOTHERFUCKING GARBAGE COLLECTED. WHEN I
-	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
-	// THIS SUCKER.
-	repo->Ref();
-	return args.This();
 }
 
 Handle<Value> Repository::CreateCommit(const Arguments& args) {
@@ -1543,29 +1569,6 @@ int Repository::EIO_AfterExists(eio_req *req) {
 FN_ASYNC_CREATE_OBJECT(RevWalker, git_revwalk)
 FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 
-Repository::Repository() {
-	CREATE_MUTEX(gitLock_);
-	CREATE_MUTEX(refLock_);
-
-	commitCache_ = new WrappedGitObjectCache<Commit, git_commit>(this);
-	referenceCache_ = new WrappedGitObjectCache<Reference, git_reference>(this);
-	treeCache_ = new WrappedGitObjectCache<Tree, git_tree>(this);
-	tagCache_ = new WrappedGitObjectCache<Tag, git_tag>(this);
-	blobCache_ = new WrappedGitObjectCache<Blob, git_blob>(this);
-
-	index_ = NULL;
-}
-
-Repository::~Repository() {
-	delete commitCache_;
-	delete referenceCache_;
-	delete treeCache_;
-	delete tagCache_;
-	delete blobCache_;
-
-	close();
-}
-
 void Repository::close() {
 	if(repo_) {
 		git_repository_free(repo_);
@@ -1661,6 +1664,6 @@ void Repository::lockRefs() {
 
 void Repository::unlockRefs() {
 	UNLOCK_MUTEX(refLock_);
-}
+}*/
 
 } // namespace gitteh
