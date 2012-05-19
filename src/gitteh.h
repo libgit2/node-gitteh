@@ -116,19 +116,6 @@ using namespace node;
 
 namespace gitteh {
 
-static inline bool LoadOidArg(const Arguments& args, int index, git_oid *id) {
-	if(args.Length() <= index || !args[index]->IsString()) {
-		return false;
-	}
-
-	if(git_oid_mkstr(id, *(String::Utf8Value(args[index]->ToString())))
-			== GIT_ENOTOID) {
-		return false;
-	}
-
-	return true;
-}
-
 static inline Handle<Value> CreateGitError(Handle<String> message, int gitErrorCode) {
 	HandleScope scope;
 
