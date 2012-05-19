@@ -1295,7 +1295,7 @@ int Repository::EIO_CreateOidRef(eio_req *req) {
 
 	// Ignoring the result of this, as we know it's definitely a good oid.
 	git_oid oid;
-	git_oid_mkstr(&oid, reqData->target->c_str());
+	git_oid_fromstr(&oid, reqData->target->c_str());
 
 	git_reference *ref;
 	reqData->error = git_reference_create_oid(&ref, reqData->repo->repo_,

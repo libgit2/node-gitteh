@@ -145,7 +145,7 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 
 	git_object* targetObj;
 	git_oid targetOid;
-	git_oid_mkstr(&targetOid, *targetId);
+	git_oid_fromstr(&targetOid, *targetId);
 	result = git_object_lookup(&targetObj, repo->repo_, &targetOid, GIT_OBJ_ANY);
 	if(result != GIT_OK) {
 		THROW_GIT_ERROR("Couldn't find target object.", result);

@@ -136,8 +136,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		THROW_ERROR("Tree is required.");
 	}
 
-	treeId;
-	result = git_oid_mkstr(&treeId, *treeIdStr);
+	result = git_oid_fromstr(&treeId, *treeIdStr);
 	if(result != GIT_OK) {
 		THROW_ERROR("Tree ID is invalid.");
 	}
@@ -166,7 +165,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	parentCount = parents->Length();
 	parentIds = new git_oid[parentCount];
 	for(i = 0; i < parentCount; i++) {
-		result = git_oid_mkstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
+		result = git_oid_fromstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
 		if(result != GIT_OK) {
 			delete [] parentIds;
 			THROW_ERROR("Parent id is invalid.");
@@ -321,7 +320,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
 		}
 		else {
 			git_oid oid;
-			git_oid_mkstr(&oid, reqData->id);
+			git_oid_fromstr(&oid, reqData->id);
 			reqData->commit->updateCachedRef(&oid);
 
 			reqData->commit->handle_->ForceSet(id_symbol, String::New(reqData->id, 40),

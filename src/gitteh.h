@@ -88,7 +88,7 @@ using namespace node;
 	return ThrowException(Exception::TypeError(							\
 				  String::New("Argument " #I " invalid")));				\
   git_oid VAR;															\
-  if(git_oid_mkstr(& VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
+  if(git_oid_fromstr(& VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
   	return ThrowException(Exception::TypeError(							\
   				  String::New("Argument " #I " is not an oid")));
 
@@ -110,7 +110,7 @@ using namespace node;
   if (args.Length() <= (I) || !args[I]->IsString()) 						\
 	return ThrowException(Exception::TypeError(								\
 				  String::New("Argument " #I " invalid")));					\
-  if(git_oid_mkstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
+  if(git_oid_fromstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
   	return ThrowException(Exception::TypeError(								\
   				  String::New("Argument " #I " is not an oid")));
 

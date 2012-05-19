@@ -457,7 +457,7 @@ int Reference::EIO_SetTarget(eio_req *req) {
 		reqData->ref->repository_->lockRepository();
 		if(reqData->ref->type_ == GIT_REF_OID) {
 			git_oid id;
-			reqData->error = git_oid_mkstr(&id, reqData->target->c_str());
+			reqData->error = git_oid_fromstr(&id, reqData->target->c_str());
 
 			if(reqData->error == GIT_OK) {
 				reqData->error = git_reference_set_oid(reqData->ref->ref_, &id);

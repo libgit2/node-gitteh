@@ -168,7 +168,7 @@ int RevWalker::EIO_Push(eio_req *req) {
 	else {
 		reqData->walker->repo_->lockRepository();
 		git_oid commitOid;
-		git_oid_mkstr(&commitOid, reqData->id->c_str());
+		git_oid_fromstr(&commitOid, reqData->id->c_str());
 		reqData->error = git_commit_lookup(&commit, reqData->walker->repo_->repo_, &commitOid);
 		reqData->walker->repo_->unlockRepository();
 
@@ -274,7 +274,7 @@ int RevWalker::EIO_Hide(eio_req *req) {
 	else {
 		reqData->walker->repo_->lockRepository();
 		git_oid commitOid;
-		git_oid_mkstr(&commitOid, reqData->id->c_str());
+		git_oid_fromstr(&commitOid, reqData->id->c_str());
 		reqData->error = git_commit_lookup(&commit, reqData->walker->repo_->repo_, &commitOid);
 		reqData->walker->repo_->unlockRepository();
 
