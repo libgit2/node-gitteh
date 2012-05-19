@@ -389,8 +389,6 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
 	if(reqData->error == GIT_EREVWALKOVER) {
 		callbackArgs[0] = Undefined();
 		callbackArgs[1] = Null();
- 		TRIGGER_CALLBACK();
- 		reqData->callback.Dispose();
 	}
 	else if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't get next commit."), reqData->error);
