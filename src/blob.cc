@@ -156,7 +156,7 @@ Handle<Value> Blob::Save(const Arguments &args) {
 	return scope.Close(SaveObject(args.This(), blob->repository_, callback, false));
 }
 
-int Blob::EIO_Save(eio_req *req) {
+void Blob::EIO_Save(eio_req *req) {
 	save_blob_request *reqData = static_cast<save_blob_request*>(req->data);
 
 	git_oid newId;
@@ -168,8 +168,6 @@ int Blob::EIO_Save(eio_req *req) {
 	if(reqData->error == GIT_OK) {
 		git_oid_fmt(reqData->id, &newId);
 	}
-
-	return 0;
 }
 
 int Blob::EIO_AfterSave(eio_req *req) {
