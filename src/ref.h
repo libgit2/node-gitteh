@@ -36,7 +36,7 @@ protected:
 	void processInitData();
 	int doInit();
 
-	git_rtype type_;
+	git_ref_t type_;
 
 private:
 	static int EIO_Rename(eio_req*);

@@ -9,8 +9,8 @@ namespace gitteh {
 
 		Handle<Object> errorsObj = Object::New();
 		target->Set(String::New("error"), errorsObj);
-
-		NODE_DEFINE_CONSTANT(errorsObj, GIT_SUCCESS);
+/*
+		NODE_DEFINE_CONSTANT(errorsObj, GIT_OK);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_ERROR);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_ENOTOID);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_ENOTFOUND);
@@ -33,7 +33,7 @@ namespace gitteh {
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_EINVALIDPATH);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_EREVWALKOVER);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_EINVALIDREFSTATE);
-		NODE_DEFINE_CONSTANT(errorsObj, GIT_ENOTIMPLEMENTED);
+		NODE_DEFINE_CONSTANT(errorsObj, GIT_ENOTIMPLEMENTED);*/
 	}
 }
 

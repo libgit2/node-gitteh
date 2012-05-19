@@ -30,7 +30,7 @@ public:
 
 		T *wrappedObject;
 		int result = wrap(gitObject, &wrappedObject);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't load object.", result);
 		}
 
@@ -155,10 +155,10 @@ private:
 			result = cachedObject->object->initialize(gitObject);
 		}
 		else {
-			result = GIT_SUCCESS;
+			result = GIT_OK;
 		}
 
-		if(result == GIT_SUCCESS) {
+		if(result == GIT_OK) {
 			*object = cachedObject->object;
 		}
 		return result;

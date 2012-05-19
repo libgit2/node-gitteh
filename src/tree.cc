@@ -104,7 +104,7 @@ int Tree::EIO_Save(eio_req *req) {
 	reqData->tree->repository_->lockRepository();
 	reqData->error = git_object_write((git_object *)reqData->tree->tree_);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		const git_oid *treeOid = git_tree_id(reqData->tree->tree_);
 		git_oid_fmt(reqData->id, treeOid);
 	}
@@ -123,7 +123,7 @@ int Tree::EIO_AfterSave(eio_req *req) {
  	reqData->tree->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = Exception::Error(String::New("Couldn't save tree."));
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -201,7 +201,7 @@ int Tree::doInit() {
 	}
 	repository_->unlockRepository();
 
-	return GIT_SUCCESS;
+	return GIT_OK;
 }
 
 void Tree::setOwner(void *owner) {

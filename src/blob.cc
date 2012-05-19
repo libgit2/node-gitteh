@@ -121,7 +121,7 @@ Handle<Value> Blob::SaveObject(Handle<Object> blobObject, Repository *repo,
 		int result = git_blob_create_frombuffer(&newId, repo->repo_, data, dataLen);
 		repo->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't save blob.", result);
 		}
 
@@ -165,7 +165,7 @@ int Blob::EIO_Save(eio_req *req) {
 			reqData->data, reqData->length);
 	reqData->repo->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		git_oid_fmt(reqData->id, &newId);
 	}
 
@@ -181,7 +181,7 @@ int Blob::EIO_AfterSave(eio_req *req) {
  	if(reqData->blob != NULL) reqData->blob->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = Exception::Error(String::New("Couldn't save blob."));
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -243,7 +243,7 @@ int Blob::doInit() {
 
 	repository_->unlockRepository();
 
-	return GIT_SUCCESS;
+	return GIT_OK;
 }
 
 void Blob::setOwner(void *owner) {

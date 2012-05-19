@@ -300,7 +300,7 @@ Handle<Value> Index::AddEntry(const Arguments &args) {
 		int result = git_index_add(index->index_, *pathArg, stageArg);
 		index->repository_->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't add index entry.", result);
 		}
 
@@ -331,7 +331,7 @@ int Index::EIO_AfterAddEntry(eio_req *req) {
  	reqData->indexObj->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't add entry."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -372,7 +372,7 @@ Handle<Value> Index::Write(const Arguments& args) {
 		int result = git_index_write(index->index_);
 		index->repository_->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't write index.", result);
 		}
 
@@ -398,7 +398,7 @@ int Index::EIO_AfterWrite(eio_req *req) {
  	reqData->indexObj->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't write index."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -448,7 +448,7 @@ void *Index::loadInitData() {
 		repository_->unlockRepository();
 	}
 
-	if(initError_ != GIT_SUCCESS) {
+	if(initError_ != GIT_OK) {
 		return NULL;
 	}
 

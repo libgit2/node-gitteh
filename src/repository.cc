@@ -83,7 +83,7 @@
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(&reqData->oid,			\
 				&object);													\
-		if(reqData->error == GIT_SUCCESS) {									\
+		if(reqData->error == GIT_OK) {									\
 			reqData->object = object;										\
 		}																	\
 		return 0;															\
@@ -95,7 +95,7 @@
 		GIT_TYPE *object;													\
 		reqData->error = reqData->repo->get##TYPE(reqData->name->c_str(),	\
 				&object);													\
-		if(reqData->error == GIT_SUCCESS) {									\
+		if(reqData->error == GIT_OK) {									\
 			reqData->object = object;										\
 		}																	\
 		delete reqData->name;												\
@@ -109,7 +109,7 @@
 		ev_unref(EV_DEFAULT_UC);											\
 		reqData->repo->Unref();												\
 		Handle<Value> callbackArgs[2];										\
-		if(reqData->error != GIT_SUCCESS) {									\
+		if(reqData->error != GIT_OK) {									\
 			Handle<Value> error = CreateGitError(String::New(				\
 					"Git error."), reqData->error);							\
 			callbackArgs[0] = error;										\
@@ -143,7 +143,7 @@
 		ev_unref(EV_DEFAULT_UC);											\
 		reqData->repo->Unref();												\
 		Handle<Value> callbackArgs[2];										\
-		if(reqData->error != GIT_SUCCESS) {									\
+		if(reqData->error != GIT_OK) {									\
 			Handle<Value> error = CreateGitError(String::New(				\
 					"Git error."), reqData->error);							\
 			callbackArgs[0] = error;										\
@@ -166,7 +166,7 @@
 		GET_REQUEST_DATA(object_request);									\
 		GIT_TYPE* object;													\
 		reqData->error = reqData->repo->create##TYPE(&object);				\
-		if(reqData->error == GIT_SUCCESS) {									\
+		if(reqData->error == GIT_OK) {									\
 			reqData->object = object;										\
 		}																	\
 		return 0;															\
@@ -195,7 +195,7 @@
 #define SYNC_GET_OID_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
 	GIT_TYPE *object;														\
 	int res = repo->get##TYPE(&oidArg, &object);							\
-	if(res != GIT_SUCCESS) {												\
+	if(res != GIT_OK) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
 	return scope.Close(repo->FACTORY->										\
@@ -204,7 +204,7 @@
 #define SYNC_GET_NAMED_OBJECT(TYPE, GIT_TYPE, FACTORY)						\
 	GIT_TYPE *object;														\
 	int res = repo->get##TYPE(*nameArg, &object);							\
-	if(res != GIT_SUCCESS) {												\
+	if(res != GIT_OK) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
 	return scope.Close(repo->FACTORY->										\
@@ -213,7 +213,7 @@
 #define SYNC_CREATE_OBJECT(TYPE, GIT_TYPE, FACTORY)							\
 	GIT_TYPE *object;														\
 	int res = repo->create##TYPE(&object);									\
-	if(res != GIT_SUCCESS) {												\
+	if(res != GIT_OK) {												\
 		THROW_GIT_ERROR("Git error.", res);									\
 	}																		\
 	return scope.Close(repo->FACTORY->										\
@@ -396,7 +396,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 
 			int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
 					_workTree);
-			if(result != GIT_SUCCESS) {
+			if(result != GIT_OK) {
 				THROW_GIT_ERROR("Couldn't open repository.", result);
 			}
 
@@ -425,7 +425,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 		else {
 			git_repository* repo;
 			int result = git_repository_open(&repo, *pathArg);
-			if(result != GIT_SUCCESS) {
+			if(result != GIT_OK) {
 				THROW_GIT_ERROR("Couldn't open repository.", result);
 			}
 
@@ -569,7 +569,7 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 
 		git_repository* repo;
 		int result = git_repository_init(&repo, *pathArg, bare);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't init repository.", result);
 		}
 
@@ -705,7 +705,7 @@ Handle<Value> Repository::GetCommit(const Arguments& args) {
 	else {
 		git_commit *commit;
 		int result = repo->getCommit(&oidArg, &commit);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get commit.", result);
 		}
 
@@ -719,14 +719,14 @@ int Repository::EIO_GetCommit(eio_req *req) {
 	reqData->error = reqData->repo->getCommit(&reqData->oid,
 			&commit);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = commit;
 
 		Commit *commitObject;
 		reqData->error = reqData->repo->commitCache_->asyncRequest(
 				commit, &commitObject);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = commitObject;
 		}
 	}
@@ -742,7 +742,7 @@ int Repository::EIO_ReturnCommit(eio_req *req) {
 	reqData->repo->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New(
 				"Couldn't get commit."), reqData->error);
 		callbackArgs[0] = error;
@@ -783,7 +783,7 @@ Handle<Value> Repository::GetTree(const Arguments& args) {
 	else {
 		git_tree *tree;
 		int result = repo->getTree(&oidArg, &tree);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get tree.", result);
 		}
 
@@ -797,14 +797,14 @@ int Repository::EIO_GetTree(eio_req *req) {
 	reqData->error = reqData->repo->getTree(&reqData->oid,
 			&tree);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = tree;
 
 		Tree *treeObject;
 		reqData->error = reqData->repo->treeCache_->asyncRequest(
 				tree, &treeObject);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = treeObject;
 		}
 	}
@@ -820,7 +820,7 @@ int Repository::EIO_ReturnTree(eio_req *req) {
 	reqData->repo->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New(
 				"Couldn't get tree."), reqData->error);
 		callbackArgs[0] = error;
@@ -870,7 +870,7 @@ Handle<Value> Repository::GetTag(const Arguments& args) {
 	else {
 		git_tag *tag;
 		int result = repo->getTag(&oidArg, &tag);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get tag.", result);
 		}
 
@@ -884,14 +884,14 @@ int Repository::EIO_GetTag(eio_req *req) {
 	reqData->error = reqData->repo->getTag(&reqData->oid,
 			&tag);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = tag;
 
 		Tag *tagObject;
 		reqData->error = reqData->repo->tagCache_->asyncRequest(
 				tag, &tagObject);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = tagObject;
 		}
 	}
@@ -907,7 +907,7 @@ int Repository::EIO_ReturnTag(eio_req *req) {
 	reqData->repo->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New(
 				"Couldn't get tag."), reqData->error);
 		callbackArgs[0] = error;
@@ -938,7 +938,7 @@ Handle<Value> Repository::CreateWalker(const Arguments& args) {
 	else {
 		git_revwalk *walker;
 		int res = repo->createRevWalker(&walker);
-		if(res != GIT_SUCCESS) {
+		if(res != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't create revision walker", res);
 		}
 
@@ -982,7 +982,7 @@ Handle<Value> Repository::GetIndex(const Arguments& args) {
 			repo->index_->ensureInitDone();
 		}
 
-		if(repo->index_->initError_ != GIT_SUCCESS) {
+		if(repo->index_->initError_ != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get index.", repo->index_->initError_);
 		}
 
@@ -1008,7 +1008,7 @@ int Repository::EIO_ReturnIndex(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
 
-	if(reqData->repo->index_->initError_ != GIT_SUCCESS) {
+	if(reqData->repo->index_->initError_ != GIT_OK) {
 		Handle<Value> e = CreateGitError(String::New("Couldn't get ref list."),
 				reqData->repo->index_->initError_);
 		callbackArgs[0] = e;
@@ -1042,7 +1042,7 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 		git_reference *ref;
 
 		int res = repo->getReference(*nameArg, &ref);
-		if(res != GIT_SUCCESS) {
+		if(res != GIT_OK) {
 			repo->unlockRefs();
 			THROW_GIT_ERROR("Git error.", res);
 		}
@@ -1061,14 +1061,14 @@ int Repository::EIO_GetReference(eio_req *req) {
 	reqData->error = reqData->repo->getReference(reqData->name->c_str(),
 			&ref);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = ref;
 
 		Reference *refObject;
 		reqData->error = reqData->repo->referenceCache_->asyncRequest(
 				ref, &refObject);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = refObject;
 		}
 	}
@@ -1087,7 +1087,7 @@ int Repository::EIO_ReturnReference(eio_req *req) {
 	reqData->repo->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New(
 				"Couldn't get ref."), reqData->error);
 		callbackArgs[0] = error;
@@ -1121,7 +1121,7 @@ Handle<Value> Repository::GetBlob(const Arguments& args) {
 	else {
 		git_blob *blob;
 		int result = repo->getBlob(&oidArg, &blob);
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get blob.", result);
 		}
 
@@ -1135,14 +1135,14 @@ int Repository::EIO_GetBlob(eio_req *req) {
 	reqData->error = reqData->repo->getBlob(&reqData->oid,
 			&blob);
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = blob;
 
 		Blob *blobObject;
 		reqData->error = reqData->repo->blobCache_->asyncRequest(
 				blob, &blobObject);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = blobObject;
 		}
 	}
@@ -1158,7 +1158,7 @@ int Repository::EIO_ReturnBlob(eio_req *req) {
 	reqData->repo->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New(
 				"Couldn't get blob."), reqData->error);
 		callbackArgs[0] = error;
@@ -1208,7 +1208,7 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 		git_reference *ref;
 		int res = git_reference_create_symbolic(&ref, repo->repo_, *nameArg, *targetArg);
 
-		if(res != GIT_SUCCESS) {
+		if(res != GIT_OK) {
 			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
@@ -1230,14 +1230,14 @@ int Repository::EIO_CreateSymbolicRef(eio_req *req) {
 			reqData->name->c_str(), reqData->target->c_str());
 	reqData->repo->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = ref;
 
 		Reference *refObj;
 		reqData->error = reqData->repo->referenceCache_->asyncRequest(ref,
 				&refObj);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = refObj;
 		}
 	}
@@ -1277,7 +1277,7 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 		int res = git_reference_create_oid(&ref, repo->repo_, *nameArg, &oidArg);
 		repo->unlockRepository();
 
-		if(res != GIT_SUCCESS) {
+		if(res != GIT_OK) {
 			repo->unlockRefs();
 			THROW_GIT_ERROR("Couldn't create reference.", res);
 		}
@@ -1303,14 +1303,14 @@ int Repository::EIO_CreateOidRef(eio_req *req) {
 
 	reqData->repo->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->object = ref;
 
 		Reference *refObj;
 		reqData->error = reqData->repo->referenceCache_->asyncRequest(ref,
 				&refObj);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->wrappedObject = refObj;
 		}
 	}
@@ -1346,7 +1346,7 @@ Handle<Value> Repository::ListReferences(const Arguments& args) {
 		int result = git_reference_listall(&references, repo->repo_, flags);
 		repo->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get ref list.", result);
 		}
 
@@ -1381,7 +1381,7 @@ int Repository::EIO_AfterGetRefList(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
 
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New("Couldn't get ref list."), reqData->error);
 		callbackArgs[0] = error;
 		callbackArgs[1] = Null();
@@ -1440,7 +1440,7 @@ int Repository::DoRefPacking() {
 	result = git_reference_packall(repo_);
 	unlockRepository();
 
-	if(result == GIT_SUCCESS) {
+	if(result == GIT_OK) {
 		// Mo'fuckin' success!!!! Now we update all the existing references with
 		// their ... new reference pointer to their ... reference. Awesome.
 		for(int i = 0; i < refCount; i++) {
@@ -1484,7 +1484,7 @@ Handle<Value> Repository::PackReferences(const Arguments& args) {
 	}
 	else {
 		int result = repo->DoRefPacking();
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't pack refs.", result);
 		}
 
@@ -1508,7 +1508,7 @@ int Repository::EIO_AfterPackRefs(eio_req *req) {
 
 	Handle<Value> callbackArgs[2];
 
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New("Couldn't pack refs."), reqData->error);
 		callbackArgs[0] = error;
 		callbackArgs[1] = Null();

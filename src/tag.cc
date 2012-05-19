@@ -147,7 +147,7 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 	git_oid targetOid;
 	git_oid_mkstr(&targetOid, *targetId);
 	result = git_object_lookup(&targetObj, repo->repo_, &targetOid, GIT_OBJ_ANY);
-	if(result != GIT_SUCCESS) {
+	if(result != GIT_OK) {
 		THROW_GIT_ERROR("Couldn't find target object.", result);
 	}
 
@@ -199,7 +199,7 @@ Handle<Value> Tag::SaveObject(Handle<Object> tagObject, Repository *repo,
 
 		git_signature_free(tagger);
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't save tag.", result);
 		}
 
@@ -248,7 +248,7 @@ int Tag::EIO_Save(eio_req *req) {
 			reqData->message->c_str());
 	reqData->repo->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		git_oid_fmt(reqData->id, &newId);
 	}
 
@@ -268,7 +268,7 @@ int Tag::EIO_AfterSave(eio_req *req) {
 	if(reqData->tag != NULL) reqData->tag->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = Exception::Error(String::New("Couldn't save tag."));
 		callbackArgs[0] = error;
 		callbackArgs[1] = Null();
@@ -344,7 +344,7 @@ int Tag::doInit() {
 
 	repository_->unlockRepository();
 
-	return GIT_SUCCESS;
+	return GIT_OK;
 }
 
 void Tag::setOwner(void *owner) {

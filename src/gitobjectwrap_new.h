@@ -58,7 +58,7 @@ public:
 
 		if(shouldInitialize) {
 			initResult_ = doInit();
-			if(initResult_ != GIT_SUCCESS) {
+			if(initResult_ != GIT_OK) {
 				cache_->remove(gitObj);
 			}
 
@@ -80,7 +80,7 @@ public:
 		UNLOCK_MUTEX(gatekeeperLock_);
 
 		if(killInitLock) {
-			if(initResult_ != GIT_SUCCESS) {
+			if(initResult_ != GIT_OK) {
 				// We're the last one out the door on a botched initialization
 				// attempt.
 				delete this;

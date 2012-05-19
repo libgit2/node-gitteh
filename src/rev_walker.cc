@@ -142,7 +142,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 			walker->repo_->lockRepository();
 			int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
 			walker->repo_->unlockRepository();
-			if(result != GIT_SUCCESS)
+			if(result != GIT_OK)
 				THROW_GIT_ERROR("Commit not found.", result);
 		}
 
@@ -150,7 +150,7 @@ Handle<Value> RevWalker::Push(const Arguments& args) {
 		walker->repo_->lockRepository();
 		int res = git_revwalk_push(walker->walker_, git_commit_id(commit));
 		walker->repo_->unlockRepository();
-		if(res != GIT_SUCCESS)
+		if(res != GIT_OK)
 			THROW_GIT_ERROR("Couldn't push commit onto walker.", res);
 
 		return scope.Close(True());
@@ -163,7 +163,7 @@ int RevWalker::EIO_Push(eio_req *req) {
 	git_commit *commit;
 	if(reqData->commit != NULL) {
 		commit = reqData->commit;
-		reqData->error = GIT_SUCCESS;
+		reqData->error = GIT_OK;
 	}
 	else {
 		reqData->walker->repo_->lockRepository();
@@ -176,7 +176,7 @@ int RevWalker::EIO_Push(eio_req *req) {
 
 	}
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->walker->repo_->lockRepository();
 		reqData->error = git_revwalk_push(reqData->walker->walker_,
 				git_commit_id(commit));
@@ -193,7 +193,7 @@ int RevWalker::EIO_AfterPush(eio_req *req) {
 	reqData->walker->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New("Couldn't push commit."), reqData->error);
 		callbackArgs[0] = error;
 		callbackArgs[1] = Null();
@@ -249,14 +249,14 @@ Handle<Value> RevWalker::Hide(const Arguments& args) {
 			REQ_OID_ARG(0, commitOid);
 			int result = git_commit_lookup(&commit, walker->repo_->repo_, &commitOid);
 
-			if(result != GIT_SUCCESS) {
+			if(result != GIT_OK) {
 				return ThrowException(Exception::Error(String::New("Commit not found.")));
 			}
 		}
 
 
 		int res = git_revwalk_hide(walker->walker_, git_commit_id(commit));
-		if(res != GIT_SUCCESS)
+		if(res != GIT_OK)
 			THROW_GIT_ERROR("Couldn't hide commit.", res);
 	
 		return scope.Close(True());
@@ -269,7 +269,7 @@ int RevWalker::EIO_Hide(eio_req *req) {
 	git_commit *commit;
 	if(reqData->commit != NULL) {
 		commit = reqData->commit;
-		reqData->error = GIT_SUCCESS;
+		reqData->error = GIT_OK;
 	}
 	else {
 		reqData->walker->repo_->lockRepository();
@@ -282,7 +282,7 @@ int RevWalker::EIO_Hide(eio_req *req) {
 
 	}
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->walker->repo_->lockRepository();
 		reqData->error = git_revwalk_hide(reqData->walker->walker_,
 				git_commit_id(commit));
@@ -299,7 +299,7 @@ int RevWalker::EIO_AfterHide(eio_req *req) {
 	reqData->walker->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
 		Handle<Value> error = CreateGitError(String::New("Couldn't hide commit."), reqData->error);
 		callbackArgs[0] = error;
 		callbackArgs[1] = Null();
@@ -343,7 +343,7 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 			return Null();
 		}
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get next commit.", result);
 		}
 
@@ -352,7 +352,7 @@ Handle<Value> RevWalker::Next(const Arguments& args) {
 		result = git_commit_lookup(&commit, walker->repo_->repo_, &id);
 		walker->repo_->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't get next commit.", result);
 		}
 
@@ -369,11 +369,11 @@ int RevWalker::EIO_Next(eio_req *req) {
 	reqData->error = git_revwalk_next(&id, reqData->walker->walker_);
 	reqData->walker->repo_->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		reqData->error = git_commit_lookup(&reqData->commit,
 				reqData->walker->repo_->repo_, &id);
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->error = reqData->walker->repo_->commitCache_->asyncRequest(
 					reqData->commit, &reqData->commitObject);
 		}
@@ -396,7 +396,7 @@ int RevWalker::EIO_AfterNext(eio_req *req) {
  		TRIGGER_CALLBACK();
  		reqData->callback.Dispose();
 	}
-	else if(reqData->error != GIT_SUCCESS) {
+	else if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't get next commit."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -452,7 +452,7 @@ int RevWalker::EIO_Sort(eio_req *req) {
 
 	reqData->walker->repo_->lockRepository();
 	git_revwalk_sorting(reqData->walker->walker_, reqData->sorting);
-	reqData->error = GIT_SUCCESS;
+	reqData->error = GIT_OK;
 	reqData->walker->repo_->unlockRepository();
 
 	return 0;
@@ -466,7 +466,7 @@ int RevWalker::EIO_AfterSort(eio_req *req) {
  	reqData->walker->Unref();
 
 	Handle<Value> callbackArgs[2];
-	if(reqData->error != GIT_SUCCESS) {
+	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't set sorting."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();

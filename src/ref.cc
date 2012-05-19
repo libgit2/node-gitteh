@@ -50,7 +50,7 @@ namespace gitteh {
 
 struct ref_data {
 	std::string *name;
-	git_rtype type;
+	git_ref_t type;
 	std::string *target;
 };
 
@@ -164,7 +164,7 @@ Handle<Value> Reference::Rename(const Arguments& args) {
 
 		ref->unlock();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't rename ref.", result);
 		}
 
@@ -196,7 +196,7 @@ int Reference::EIO_AfterRename(eio_req *req) {
  	reqData->ref->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't rename ref"), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -244,7 +244,7 @@ Handle<Value> Reference::Delete(const Arguments &args) {
 		int result = git_reference_delete(ref->ref_);
 		ref->repository_->unlockRepository();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			ref->unlock();
 			THROW_GIT_ERROR("Couldn't delete ref.", result);
 		}
@@ -266,7 +266,7 @@ int Reference::EIO_Delete(eio_req *req) {
 		reqData->error = git_reference_delete(reqData->ref->ref_);
 		reqData->ref->repository_->unlockRepository();
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->ref->repository_->referenceCache_->remove(reqData->ref->ref_);
 			reqData->ref->deleted_ = true;
 		}
@@ -285,7 +285,7 @@ int Reference::EIO_AfterDelete(eio_req *req) {
  	reqData->ref->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't delete ref"), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -333,7 +333,7 @@ Handle<Value> Reference::Resolve(const Arguments &args) {
 
 		ref->unlock();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			ref->repository_->unlockRefs();
 			THROW_GIT_ERROR("Couldn't resolve ref.", result);
 		}
@@ -355,7 +355,7 @@ int Reference::EIO_Resolve(eio_req *req) {
 		reqData->ref->repository_->unlockRepository();
 		reqData->ref->unlock();
 
-		if(reqData->error == GIT_SUCCESS) {
+		if(reqData->error == GIT_OK) {
 			reqData->error = reqData->ref->repository_->referenceCache_->
 					asyncRequest(reqData->resolved, &reqData->resolvedObj);
 		}
@@ -374,7 +374,7 @@ int Reference::EIO_AfterResolve(eio_req *req) {
  	reqData->ref->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		reqData->ref->repository_->unlockRefs();
  		Handle<Value> error = CreateGitError(String::New("Couldn't resolve ref"), reqData->error);
  		callbackArgs[0] = error;
@@ -438,7 +438,7 @@ Handle<Value> Reference::SetTarget(const Arguments &args) {
 
 		ref->unlock();
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't set target.", result);
 		}
 		else {
@@ -459,7 +459,7 @@ int Reference::EIO_SetTarget(eio_req *req) {
 			git_oid id;
 			reqData->error = git_oid_mkstr(&id, reqData->target->c_str());
 
-			if(reqData->error == GIT_SUCCESS) {
+			if(reqData->error == GIT_OK) {
 				reqData->error = git_reference_set_oid(reqData->ref->ref_, &id);
 			}
 		}
@@ -483,7 +483,7 @@ int Reference::EIO_AfterSetTarget(eio_req *req) {
  	reqData->ref->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = CreateGitError(String::New("Couldn't set ref target."), reqData->error);
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -545,7 +545,7 @@ int Reference::doInit() {
 	repository_->unlockRepository();
 	unlock();
 
-	return GIT_SUCCESS;
+	return GIT_OK;
 }
 
 void Reference::setOwner(void *owner) {

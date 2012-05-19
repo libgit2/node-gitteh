@@ -138,7 +138,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 
 	treeId;
 	result = git_oid_mkstr(&treeId, *treeIdStr);
-	if(result != GIT_SUCCESS) {
+	if(result != GIT_OK) {
 		THROW_ERROR("Tree ID is invalid.");
 	}
 
@@ -167,7 +167,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 	parentIds = new git_oid[parentCount];
 	for(i = 0; i < parentCount; i++) {
 		result = git_oid_mkstr(&parentIds[i], *String::Utf8Value(parents->Get(i)));
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			delete [] parentIds;
 			THROW_ERROR("Parent id is invalid.");
 		}
@@ -231,7 +231,7 @@ Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		delete [] parentIdsPtr;
 		delete [] parentIds;
 
-		if(result != GIT_SUCCESS) {
+		if(result != GIT_OK) {
 			THROW_GIT_ERROR("Couldn't save commit.", result);
 		}
 
@@ -283,7 +283,7 @@ int Commit::EIO_Save(eio_req *req) {
 			&reqData->treeId, reqData->parentCount, parentIdsPtr);
 	reqData->repo->unlockRepository();
 
-	if(reqData->error == GIT_SUCCESS) {
+	if(reqData->error == GIT_OK) {
 		git_oid_fmt(reqData->id, &newId);
 	}
 
@@ -305,7 +305,7 @@ int Commit::EIO_AfterSave(eio_req *req) {
  	if(reqData->commit != NULL) reqData->commit->Unref();
 
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_SUCCESS) {
+ 	if(reqData->error != GIT_OK) {
  		Handle<Value> error = Exception::Error(String::New("Couldn't save commit."));
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
@@ -369,7 +369,7 @@ int Commit::doInit() {
 	repository_->unlockRepository();
 
 	//return GIT_EBUSY;
-	return GIT_SUCCESS;
+	return GIT_OK;
 }
 
 void Commit::processInitData() {
