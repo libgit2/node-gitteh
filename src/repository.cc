@@ -43,10 +43,10 @@
 	REQUESTTYPE *baton = static_cast<REQUESTTYPE*>(req->data);
 
 #define REQUEST_CLEANUP()													\
-    reqData->callback.Dispose();											\
- 	ev_unref(EV_DEFAULT_UC);												\
- 	reqData->repo->Unref();													\
- 	delete reqData;															\
+	reqData->callback.Dispose();											\
+	ev_unref(EV_DEFAULT_UC);												\
+	reqData->repo->Unref();													\
+	delete reqData;															\
 	return 0;
 
 #define REQUEST_DETACH(OBJ, FN, AFTERFN)									\
@@ -63,11 +63,11 @@
 
 #define SETUP_CALLBACK_ARGS(TYPE, CLASS)									\
 		Handle<Value> callbackArgs[2];										\
-	 	if(reqData->error) {												\
-	 		Handle<Value> error = CreateGitError(String::New(				\
-	 				"Couldn't get " # CLASS), reqData->error);				\
-	 		callbackArgs[0] = error;										\
-	 		callbackArgs[1] = Null();										\
+		if(reqData->error) {												\
+			Handle<Value> error = CreateGitError(String::New(				\
+					"Couldn't get " # CLASS), reqData->error);				\
+			callbackArgs[0] = error;										\
+			callbackArgs[1] = Null();										\
 		}																	\
 		else {																\
 			CLASS *object = reqData->repo->wrap##CLASS(						\
@@ -239,6 +239,52 @@ struct ExistsBaton {
 	Repository *repo;
 	git_oid oid;
 	bool exists;
+};
+
+/**
+	A Baton class specifically for libgit2 work.
+	Users of this Baton are expected to copy a git_error into this class.
+*/
+class Baton {
+public:
+	uv_work_t req;
+	Persistent<Function> callback;
+	git_error error;
+
+	Baton() {
+		error.klass = 0;
+		req.data = this;
+	}
+
+	~Baton() {
+		if(!callback.IsEmpty()) {
+			std::cout << "Cleaning up callback."<<std::endl;
+			callback.Dispose();
+			callback.Clear();
+		}
+	}
+
+	bool isErrored() {
+		return error.klass != 0;
+	}
+
+	// Creates an Exception for this error state Baton. DON'T CALL OUTSIDE OF
+	// V8 MAIN THREAD! :)
+	Handle<Object> createV8Error() {
+		assert(error.klass != 0);
+		Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
+			String::New(error.message)));
+		errObj->Set(String::New("code"), Integer::New(error.klass));
+		return errObj;
+	}
+};
+
+class NewOpenRepoBaton : public Baton {
+public:
+	std::string path;
+	git_repository *repo;
+
+	NewOpenRepoBaton(std::string path) : Baton(), path(path) {};
 };
 
 /*
@@ -496,10 +542,8 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 		REQ_STR_ARG(0, pathArg);
 
 		if(HAS_CALLBACK_ARG) {
-			OpenRepoBaton *baton = new OpenRepoBaton;
+			NewOpenRepoBaton *baton = new NewOpenRepoBaton(std::string(*pathArg));
 			baton->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-			baton->req.data = baton;
-			baton->path = std::string(*pathArg);
 
 			uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
 				AsyncAfterOpenRepository);
@@ -527,18 +571,18 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 }
 
 void Repository::AsyncOpenRepository(uv_work_t *req) {
-	GET_BATON(OpenRepoBaton)
+	GET_BATON(NewOpenRepoBaton)
 
-	baton->error = git_repository_open(&baton->repo, baton->path.c_str());
+	/*baton->error = */git_repository_open(&baton->repo, baton->path.c_str());
 }
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	HandleScope scope;
-	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
+	NewOpenRepoBaton *baton = GetBaton<NewOpenRepoBaton>(req);
 
- 	if(baton->error) {
- 		Handle<Value> argv[] = { CreateGitError() };
- 		FireCallback(baton->callback, 1, argv);
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
 	}
 	else {
 		// Call the Repository JS constructor to get our JS object.
@@ -550,8 +594,7 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 		FireCallback(baton->callback, 2, argv);
 	}
 
-    baton->callback.Dispose();
- 	delete baton;
+	delete baton;
 }
 /*
 void Repository::EIO_OpenRepository2(eio_req *req) {
@@ -590,10 +633,10 @@ int Repository::EIO_AfterOpenRepository2(eio_req *req) {
 		GET_REQUEST_DATA(open_repo2_request);
 
 		Handle<Value> callbackArgs[2];
-	 	if(reqData->error) {
-	 		Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
-	 		callbackArgs[0] = error;
-	 		callbackArgs[1] = Null();
+		if(reqData->error) {
+			Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
+			callbackArgs[0] = error;
+			callbackArgs[1] = Null();
 		}
 		else {
 			Handle<Value> constructorArgs[2] = {
@@ -607,11 +650,11 @@ int Repository::EIO_AfterOpenRepository2(eio_req *req) {
 			delete reqData->gitDir;
 		}
 
-	 	TRIGGER_CALLBACK();
+		TRIGGER_CALLBACK();
 
-	    reqData->callback.Dispose();
-	 	delete reqData;
-	 	ev_unref(EV_DEFAULT_UC);
+		reqData->callback.Dispose();
+		delete reqData;
+		ev_unref(EV_DEFAULT_UC);
 		return 0;
 }
 
@@ -1552,25 +1595,24 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 		REQUEST_DETACH(repo, AsyncExists, AsyncAfterExists);
 	}
 	else {
-		return Boolean::New(git_odb_exists(repo->odb_, &oidArg));
+		return scope.Close(Boolean::New(git_odb_exists(repo->odb_, &oidArg)));
 	}
 }
 
 void Repository::AsyncExists(uv_work_t *req) {
-	GET_BATON(ExistsBaton)
+	ExistsBaton *baton = GetBaton<ExistsBaton>(req);
 
 	baton->exists = git_odb_exists(baton->repo->odb_, &baton->oid);
 }
 
 void Repository::AsyncAfterExists(uv_work_t *req) {
 	HandleScope scope;
-	GET_BATON(ExistsBaton)
+	ExistsBaton *baton = GetBaton<ExistsBaton>(req);
 
 	baton->repo->Unref();
-	Handle<Value> callbackArgs[2];
-	callbackArgs[0] = Null();
-	callbackArgs[1] = Boolean::New(baton->exists);
-	TRIGGER_CALLBACK();
+	Handle<Value> argv[] = { Null(), Boolean::New(baton->exists) };
+	FireCallback(baton->callback, 2, argv);
+
 	baton->callback.Dispose();
 	delete baton;
 }
