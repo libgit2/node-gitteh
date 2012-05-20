@@ -534,9 +534,8 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	HandleScope scope;
-	GET_BATON(OpenRepoBaton);
+	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
-	std::cout << "LOLzzz"<<std::endl;
 	Handle<Value> callbackArgs[2];
  	if(baton->error) {
  		Handle<Value> error = CreateGitError();
@@ -1570,7 +1569,6 @@ void Repository::AsyncAfterExists(uv_work_t *req) {
 	HandleScope scope;
 	GET_BATON(ExistsBaton)
 
-	ev_unref(EV_DEFAULT_UC);
 	baton->repo->Unref();
 	Handle<Value> callbackArgs[2];
 	callbackArgs[0] = Null();

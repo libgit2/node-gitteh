@@ -128,20 +128,22 @@ namespace gitteh {
 	return scope.Close(errorObj);
 }*/
 
-static inline Handle<Value> CreateGitError() {
-  const git_error *err = giterr_last();
-  Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
-    String::New(err->message)));
-  errObj->Set(String::New("code"), Integer::New(err->klass));
-
-  return errObj;
+static inline Handle<Value> CreateGitError() {  
+    const git_error *err = giterr_last();
+    Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
+        String::New(err->message)));
+    errObj->Set(String::New("code"), Integer::New(err->klass));
+    return errObj;
 }
 
 static inline Handle<Value> ThrowGitError() {
-  return ThrowException(CreateGitError());
+    return ThrowException(CreateGitError());
 }
 
-
+template<typename T>
+static inline T* GetBaton(uv_work_t *req) {
+    return static_cast<T*>(req->data);
+}
 
 } // namespace gitteh
 #endif // GITTEH_H
