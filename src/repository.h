@@ -90,11 +90,12 @@ private:
 
 	int createRevWalker(git_revwalk**);*/
 
-	static void EIO_OpenRepository(eio_req*);
-	static int EIO_AfterOpenRepository(eio_req*);
+	static bool DoOpenRepository();
+	static void AsyncOpenRepository(uv_work_t*);
+	static void AsyncAfterOpenRepository(uv_work_t*);
 
-	static void EIO_Exists(eio_req*);
-	static int EIO_AfterExists(eio_req*);
+	static void AsyncExists(uv_work_t*);
+	static void AsyncAfterExists(uv_work_t*);
 
 /*	static void EIO_OpenRepository2(eio_req*);
 	static int EIO_AfterOpenRepository2(eio_req*);

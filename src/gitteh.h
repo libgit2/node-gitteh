@@ -28,8 +28,8 @@ using namespace node;
 	(CALLBACK).Clear();
 
 #define TRIGGER_CALLBACK()													\
-	TryCatch tryCatch;														\
-	reqData->callback->Call(Context::GetCurrent()->Global(),				\
+	TryCatch tryCatch;													    \
+	baton->callback->Call(Context::GetCurrent()->Global(),				     \
 			2, callbackArgs);												\
  	if(tryCatch.HasCaught()) {												\
        FatalException(tryCatch);											\

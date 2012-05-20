@@ -39,9 +39,8 @@
 // 6 trillion times. Instead, I write a bunch of ugly motherfucking macros that
 // I have no hope of maintaining in future. Fuck I'm rad.
 
-#define GET_REQUEST_DATA(REQUESTTYPE)										\
-	REQUESTTYPE *reqData =													\
-		static_cast<REQUESTTYPE*>(req->data);
+#define GET_BATON(REQUESTTYPE)												\
+	REQUESTTYPE *baton = static_cast<REQUESTTYPE*>(req->data);
 
 #define REQUEST_CLEANUP()													\
     reqData->callback.Dispose();											\
@@ -52,14 +51,15 @@
 
 #define REQUEST_DETACH(OBJ, FN, AFTERFN)									\
 	OBJ->Ref();																\
-	eio_custom(FN, EIO_PRI_DEFAULT, AFTERFN, request);						\
+	uv_queue_work(uv_default_loop(), &baton->req, FN, AFTERFN);				\
 	ev_ref(EV_DEFAULT_UC);													\
 	return scope.Close(Undefined());
 
-#define CREATE_ASYNC_REQUEST(REQUESTCLASS)									\
-	REQUESTCLASS *request = new REQUESTCLASS();								\
-	request->callback = Persistent<Function>::New(callbackArg);				\
-	request->repo = repo;
+#define CREATE_ASYNC_REQUEST(BATONCLASS)									\
+	BATONCLASS *baton = new BATONCLASS();									\
+	baton->callback = Persistent<Function>::New(callbackArg);				\
+	baton->req.data = baton;												\
+	baton->repo = repo;
 
 #define SETUP_CALLBACK_ARGS(TYPE, CLASS)									\
 		Handle<Value> callbackArgs[2];										\
@@ -225,14 +225,16 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_tree_symbol;
 
-struct open_repo_request {
+struct OpenRepoBaton {
+	uv_work_t req;
 	Persistent<Function> callback;
 	int error;
-	String::Utf8Value *path;
+	std::string path;
 	git_repository *repo;
 };
 
-struct exists_request {
+struct ExistsBaton {
+	uv_work_t req;
 	Persistent<Function> callback;
 	Repository *repo;
 	git_oid oid;
@@ -358,7 +360,9 @@ void Repository::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
-	*/NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);/*
+	*/
+	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
+	/*
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 */
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
@@ -379,7 +383,6 @@ Handle<Value> Repository::New(const Arguments& args) {
 	if(git_repository_odb(&odb, repo) != GIT_OK) {
 		return scope.Close(ThrowGitError());
 	}
-
 
 	Repository *repoObj = new Repository();
 	repoObj->Wrap(args.This());
@@ -493,12 +496,13 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 		REQ_STR_ARG(0, pathArg);
 
 		if(HAS_CALLBACK_ARG) {
-			open_repo_request *request = new open_repo_request;
-			request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-			request->path = new String::Utf8Value(args[0]);
+			OpenRepoBaton *baton = new OpenRepoBaton;
+			baton->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+			baton->req.data = baton;
+			baton->path = std::string(*pathArg);
 
-			eio_custom(EIO_OpenRepository, EIO_PRI_DEFAULT, EIO_AfterOpenRepository, request);
-			ev_ref(EV_DEFAULT_UC);
+			uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
+				AsyncAfterOpenRepository);
 
 			return Undefined();
 		}
@@ -522,25 +526,26 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	THROW_ERROR("Invalid argument.");
 }
 
-void Repository::EIO_OpenRepository(eio_req *req) {
-	GET_REQUEST_DATA(open_repo_request);
+void Repository::AsyncOpenRepository(uv_work_t *req) {
+	GET_BATON(OpenRepoBaton)
 
-	reqData->error = git_repository_open(&reqData->repo, **reqData->path);
+	baton->error = git_repository_open(&baton->repo, baton->path.c_str());
 }
 
-int Repository::EIO_AfterOpenRepository(eio_req *req) {
+void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	HandleScope scope;
-	GET_REQUEST_DATA(open_repo_request);
+	GET_BATON(OpenRepoBaton);
 
+	std::cout << "LOLzzz"<<std::endl;
 	Handle<Value> callbackArgs[2];
- 	if(reqData->error) {
+ 	if(baton->error) {
  		Handle<Value> error = CreateGitError();
  		callbackArgs[0] = error;
  		callbackArgs[1] = Null();
 	}
 	else {
 		Handle<Value> constructorArgs[1] = {
-			External::New(reqData->repo)
+			External::New(baton->repo)
 		};
 		callbackArgs[0] = Null();
 		callbackArgs[1] = Repository::constructor_template->GetFunction()
@@ -549,11 +554,8 @@ int Repository::EIO_AfterOpenRepository(eio_req *req) {
 
  	TRIGGER_CALLBACK();
 
-    reqData->callback.Dispose();
- 	delete reqData->path;
- 	delete reqData;
- 	ev_unref(EV_DEFAULT_UC);
-	return 0;
+    baton->callback.Dispose();
+ 	delete baton;
 }
 /*
 void Repository::EIO_OpenRepository2(eio_req *req) {
@@ -1549,35 +1551,33 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		CREATE_ASYNC_REQUEST(exists_request);
-		memcpy(&request->oid, &oidArg, sizeof(git_oid));
-		REQUEST_DETACH(repo, EIO_Exists, EIO_AfterExists);
+		CREATE_ASYNC_REQUEST(ExistsBaton);
+		memcpy(&baton->oid, &oidArg, sizeof(git_oid));
+		REQUEST_DETACH(repo, AsyncExists, AsyncAfterExists);
 	}
 	else {
 		return Boolean::New(git_odb_exists(repo->odb_, &oidArg));
 	}
 }
 
-void Repository::EIO_Exists(eio_req *req) {
-	GET_REQUEST_DATA(exists_request);
+void Repository::AsyncExists(uv_work_t *req) {
+	GET_BATON(ExistsBaton)
 
-	// reqData->repo->lockRepository();
-	reqData->exists = git_odb_exists(reqData->repo->odb_, &reqData->oid);
-	// reqData->repo->unlockRepository();
+	baton->exists = git_odb_exists(baton->repo->odb_, &baton->oid);
 }
 
-int Repository::EIO_AfterExists(eio_req *req) {
+void Repository::AsyncAfterExists(uv_work_t *req) {
 	HandleScope scope;
-	GET_REQUEST_DATA(exists_request);
+	GET_BATON(ExistsBaton)
+
 	ev_unref(EV_DEFAULT_UC);
-	reqData->repo->Unref();
+	baton->repo->Unref();
 	Handle<Value> callbackArgs[2];
 	callbackArgs[0] = Null();
-	callbackArgs[1] = Boolean::New(reqData->exists);
+	callbackArgs[1] = Boolean::New(baton->exists);
 	TRIGGER_CALLBACK();
-	reqData->callback.Dispose();
-	delete reqData;
-	return 0;
+	baton->callback.Dispose();
+	delete baton;
 }
 
 /*
