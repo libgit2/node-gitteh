@@ -158,5 +158,17 @@ static inline void FireCallback(Handle<Function> callback, int argc,
     }
 }
 
+/**
+  Examines return of a libgit2 call. If it's in error state, grab error object
+  and hand it off to ref provided.
+*/
+static inline int LibCall(int result, const git_error **err) {
+  if(result != GIT_OK) {
+    *err = giterr_last();
+    return 0;
+  }
+  return 1;
+}
+
 } // namespace gitteh
 #endif // GITTEH_H

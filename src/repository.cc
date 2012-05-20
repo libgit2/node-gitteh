@@ -573,7 +573,11 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 void Repository::AsyncOpenRepository(uv_work_t *req) {
 	GET_BATON(NewOpenRepoBaton)
 
-	/*baton->error = */git_repository_open(&baton->repo, baton->path.c_str());
+	/*baton->error = */
+	const git_error *err;
+	if(!LibCall(git_repository_open(&baton->repo, baton->path.c_str()), &err)) {
+		memcpy(&baton->error, err, sizeof(git_error));
+	}
 }
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
