@@ -56,7 +56,7 @@ vows.describe("Repository").addBatch({
 		}*/
 	},
 	
-	/*"Opening an existing bare repository *asynchronously*": {
+	"Opening an existing bare repository *asynchronously*": {
 		topic: function() {
 			gitteh.openRepository(fixtureValues.REPO_PATH, this.callback);
 		},
@@ -91,7 +91,7 @@ vows.describe("Repository").addBatch({
 		"Exists() *synchronously*": function(repo) {
 			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
 		}
-	},*/
+	},
 	
 	/*
 	"Opening a repository with custom options *asynchronously*": {

@@ -19,11 +19,9 @@ Repository = (nativeRepo) ->
 Gitteh = 
 	openRepository: (path, cb) ->
 		if cb? then wrappedCb = (err, repo) ->
-			return err if err
-			return new Repository repo
+			return cb err if err
+			return cb null, new Repository repo
 		res = bindings.openRepository path, wrappedCb
-		console.log res
-		console.log res instanceof NativeRepository
 		return new Repository res if res instanceof NativeRepository
 
 module.exports = Gitteh
