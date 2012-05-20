@@ -17,6 +17,10 @@
 				'src/blob.cc'
 			],
 
+			'include_dirs': [
+				'deps/v8-convert'
+			],
+
 			'conditions': [
 				[ 'OS=="windows"', {
 
