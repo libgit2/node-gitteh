@@ -691,38 +691,7 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 	delete baton;
 }
 
-/*Handle<Value> Repository::CreateCommit(const Arguments& args) {
-	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-
-	REQ_ARGS(1);
-	REQ_OBJ_ARG(0, commitObjArg);
-
-	Handle<Value> callback = Null();
-	if(HAS_CALLBACK_ARG) {
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		callback = callbackArg;
-	}
-
-	return scope.Close(Commit::SaveObject(commitObjArg, repo, callback, true));
-}
-
-Handle<Value> Repository::CreateBlob(const Arguments& args) {
-	HandleScope scope;
-	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
-
-	REQ_ARGS(1);
-	REQ_OBJ_ARG(0, blobObjArg);
-
-	Handle<Value> callback = Null();
-	if(HAS_CALLBACK_ARG) {
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		callback = callbackArg;
-	}
-
-	return scope.Close(Blob::SaveObject(blobObjArg, repo, callback, true));
-}
-
+/*
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
@@ -790,6 +759,38 @@ int Repository::EIO_ReturnCommit(eio_req *req) {
 
 	delete reqData;
 	return 0;
+}*/
+
+/*Handle<Value> Repository::CreateCommit(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, commitObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(Commit::SaveObject(commitObjArg, repo, callback, true));
+}
+
+Handle<Value> Repository::CreateBlob(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	REQ_ARGS(1);
+	REQ_OBJ_ARG(0, blobObjArg);
+
+	Handle<Value> callback = Null();
+	if(HAS_CALLBACK_ARG) {
+		REQ_FUN_ARG(args.Length() - 1, callbackArg);
+		callback = callbackArg;
+	}
+
+	return scope.Close(Blob::SaveObject(blobObjArg, repo, callback, true));
 }
 
 Handle<Value> Repository::CreateTree(const Arguments& args) {
