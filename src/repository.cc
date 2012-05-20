@@ -225,14 +225,6 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_tree_symbol;
 
-struct ExistsBaton {
-	uv_work_t req;
-	Persistent<Function> callback;
-	Repository *repo;
-	git_oid oid;
-	bool exists;
-};
-
 /**
 	A Baton class specifically for libgit2 work.
 	Users of this Baton are expected to copy a git_error into this class.
@@ -256,6 +248,10 @@ public:
 		}
 	}
 
+	void setCallback(Handle<Value> val) {
+		callback = Persistent<Function>::New(Handle<Function>::Cast(val));
+	}
+
 	bool isErrored() {
 		return error.klass != 0;
 	}
@@ -277,6 +273,29 @@ public:
 	git_repository *repo;
 
 	OpenRepoBaton(std::string path) : Baton(), path(path) {};
+};
+
+class RepositoryBaton : public Baton {
+public:
+	Repository *repo;
+
+	RepositoryBaton(Repository *repo) : Baton(), repo(repo) {
+		repo->Ref();
+	};
+
+	~RepositoryBaton() {
+		repo->Unref();
+	}
+};
+
+class ExistsBaton : public RepositoryBaton {
+public:
+	git_oid oid;
+	bool exists;
+
+	ExistsBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {
+
+	}
 };
 
 /*
@@ -535,11 +554,10 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 
 		if(HAS_CALLBACK_ARG) {
 			OpenRepoBaton *baton = new OpenRepoBaton(std::string(*pathArg));
-			baton->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
+			baton->setCallback(args[args.Length()-1]);
 
 			uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
 				AsyncAfterOpenRepository);
-
 			return Undefined();
 		}
 		else {
@@ -1585,9 +1603,13 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-		CREATE_ASYNC_REQUEST(ExistsBaton);
-		memcpy(&baton->oid, &oidArg, sizeof(git_oid));
-		REQUEST_DETACH(repo, AsyncExists, AsyncAfterExists);
+
+		ExistsBaton *baton = new ExistsBaton(repo, oidArg);
+		baton->setCallback(args[args.Length()-1]);
+
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
+			AsyncAfterExists);
+		return Undefined();
 	}
 	else {
 		return scope.Close(Boolean::New(git_odb_exists(repo->odb_, &oidArg)));
@@ -1596,7 +1618,6 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 
 void Repository::AsyncExists(uv_work_t *req) {
 	ExistsBaton *baton = GetBaton<ExistsBaton>(req);
-
 	baton->exists = git_odb_exists(baton->repo->odb_, &baton->oid);
 }
 

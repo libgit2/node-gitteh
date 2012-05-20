@@ -17,10 +17,13 @@ class Blob;*/
 
 // template <class, class, class> class ObjectFactory;
 
+class RepositoryBaton;
+
 class Repository : public ObjectWrap {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 
+	friend class RepositoryBaton;
 	// template<class, class,class> friend class ObjectFactory;
 
 	Repository();
