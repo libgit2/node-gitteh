@@ -56,7 +56,7 @@ vows.describe("Repository").addBatch({
 		}*/
 	},
 	
-	"Opening an existing bare repository *asynchronously*": {
+	/*"Opening an existing bare repository *asynchronously*": {
 		topic: function() {
 			gitteh.openRepository(fixtureValues.REPO_PATH, this.callback);
 		},
@@ -74,9 +74,9 @@ vows.describe("Repository").addBatch({
 			assert.equal(repo.path, fixtureValues.REPO_PATH);
 		},
 		
-		/*"Commits are not redundant": function(repo) {
-			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
-		},*/
+		// "Commits are not redundant": function(repo) {
+		// 	assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
+		// },
 
 		"Exists() *asynchronously*": {
 			topic: function(repo) {
@@ -91,7 +91,7 @@ vows.describe("Repository").addBatch({
 		"Exists() *synchronously*": function(repo) {
 			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
 		}
-	},
+	},*/
 	
 	/*
 	"Opening a repository with custom options *asynchronously*": {
@@ -120,7 +120,7 @@ vows.describe("Repository").addBatch({
 		"with correct path": function(repo) {
 			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
 		}
-	}*/
+	}
 
 	// TODO: probably nice to clean these up afterwards even though they're temp
 	"Initializing a new bare repository *asynchronously*": {
@@ -133,8 +133,8 @@ vows.describe("Repository").addBatch({
 			assert.isTrue(repo instanceof gitteh.Repository);
 		},
 
-		/*"is bare": function(repo) {
-			assert.isTrue(repo.bare);
-		}*/
-	}
+		// "is bare": function(repo) {
+		// 	assert.isTrue(repo.bare);
+		// }
+	}*/
 }).export(module);
