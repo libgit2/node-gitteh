@@ -536,22 +536,19 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	HandleScope scope;
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
-	Handle<Value> callbackArgs[2];
  	if(baton->error) {
- 		Handle<Value> error = CreateGitError();
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
+ 		Handle<Value> argv[] = { CreateGitError() };
+ 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		Handle<Value> constructorArgs[1] = {
-			External::New(baton->repo)
-		};
-		callbackArgs[0] = Null();
-		callbackArgs[1] = Repository::constructor_template->GetFunction()
+		// Call the Repository JS constructor to get our JS object.
+		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Local<Object> obj = Repository::constructor_template->GetFunction()
 						->NewInstance(1, constructorArgs);
-	}
 
- 	TRIGGER_CALLBACK();
+		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
+	}
 
     baton->callback.Dispose();
  	delete baton;

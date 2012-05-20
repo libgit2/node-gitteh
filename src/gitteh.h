@@ -145,5 +145,18 @@ static inline T* GetBaton(uv_work_t *req) {
     return static_cast<T*>(req->data);
 }
 
+/**
+    Invokes provided callback with given parameters, handles catching user-land
+    exceptions and propagating them to top of Node's event loop
+    */
+static inline void FireCallback(Handle<Function> callback, int argc, 
+    Handle<Value> argv[]) {
+    TryCatch tryCatch;
+    callback->Call(Context::GetCurrent()->Global(), argc, argv);
+    if(tryCatch.HasCaught()) {
+       FatalException(tryCatch);
+    }
+}
+
 } // namespace gitteh
 #endif // GITTEH_H
