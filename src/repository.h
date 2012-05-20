@@ -61,11 +61,11 @@ protected:
 	static Handle<Value> GetReference(const Arguments&);
 	static Handle<Value> GetBlob(const Arguments&);
 
-	static Handle<Value> GetIndex(const Arguments&);
+	static Handle<Value> GetIndex(const Arguments&);*/
 
 	static Handle<Value> Exists(const Arguments&);
 
-	static Handle<Value> CreateRawObject(const Arguments&);
+	/*static Handle<Value> CreateRawObject(const Arguments&);
 	static Handle<Value> CreateTag(const Arguments&);
 	static Handle<Value> CreateTree(const Arguments&);
 	static Handle<Value> CreateCommit(const Arguments&);
@@ -93,10 +93,10 @@ private:
 	static void EIO_OpenRepository(eio_req*);
 	static int EIO_AfterOpenRepository(eio_req*);
 
-/*	static void EIO_Exists(eio_req*);
+	static void EIO_Exists(eio_req*);
 	static int EIO_AfterExists(eio_req*);
 
-	static void EIO_OpenRepository2(eio_req*);
+/*	static void EIO_OpenRepository2(eio_req*);
 	static int EIO_AfterOpenRepository2(eio_req*);
 
 	static void EIO_InitRepository(eio_req*);

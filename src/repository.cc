@@ -232,6 +232,13 @@ struct open_repo_request {
 	git_repository *repo;
 };
 
+struct exists_request {
+	Persistent<Function> callback;
+	Repository *repo;
+	git_oid oid;
+	bool exists;
+};
+
 /*
 struct object_request {
 	Persistent<Function> callback;
@@ -243,13 +250,6 @@ struct object_request {
 	void *object;
 	void *wrappedObject;
 	bool create;
-};
-
-struct exists_request {
-	Persistent<Function> callback;
-	Repository *repo;
-	git_oid oid;
-	bool exists;
 };
 
 struct open_repo2_request {
@@ -302,9 +302,22 @@ Repository::Repository() {
 	blobCache_ = new WrappedGitObjectCache<Blob, git_blob>(this);
 
 	index_ = NULL;*/
+
+	odb_ = NULL;
+	repo_ = NULL;
 }
 
 Repository::~Repository() {
+	if(odb_) {
+		git_odb_free(odb_);
+		odb_ = NULL;
+	}
+
+	if(repo_) {
+		git_repository_free(repo_);
+		repo_ = NULL;
+	}
+
 	/*delete commitCache_;
 	delete referenceCache_;
 	delete treeCache_;
@@ -345,7 +358,7 @@ void Repository::Init(Handle<Object> target) {
 
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
-	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
+	*/NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);/*
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 */
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
@@ -362,13 +375,18 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
 	const char *repoPath = git_repository_path(repo);
+	git_odb *odb;
+	if(git_repository_odb(&odb, repo) != GIT_OK) {
+		return scope.Close(ThrowGitError());
+	}
+
 
 	Repository *repoObj = new Repository();
 	repoObj->Wrap(args.This());
 
 	repoObj->repo_ = repo;
 	repoObj->path_ = repoPath;
-	// repoObj->odb_ = git_repository_odb(repoObj->repo_);
+	repoObj->odb_ = odb;
 
 	args.This()->Set(path_symbol, String::New(repoObj->path_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
@@ -1520,7 +1538,7 @@ int Repository::EIO_AfterPackRefs(eio_req *req) {
 	delete reqData;
 
 	return 0;
-}
+}*/
 
 Handle<Value> Repository::Exists(const Arguments& args) {
 	HandleScope scope;
@@ -1543,9 +1561,9 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 void Repository::EIO_Exists(eio_req *req) {
 	GET_REQUEST_DATA(exists_request);
 
-	reqData->repo->lockRepository();
+	// reqData->repo->lockRepository();
 	reqData->exists = git_odb_exists(reqData->repo->odb_, &reqData->oid);
-	reqData->repo->unlockRepository();
+	// reqData->repo->unlockRepository();
 }
 
 int Repository::EIO_AfterExists(eio_req *req) {
@@ -1562,6 +1580,7 @@ int Repository::EIO_AfterExists(eio_req *req) {
 	return 0;
 }
 
+/*
 // ===========
 // REVWALK EIO
 // ===========
@@ -1569,10 +1588,7 @@ FN_ASYNC_CREATE_OBJECT(RevWalker, git_revwalk)
 FN_ASYNC_RETURN_OBJECT_VIA_WRAP(RevWalker, git_revwalk)
 
 void Repository::close() {
-	if(repo_) {
-		git_repository_free(repo_);
-		repo_ = NULL;
-	}
+	
 }
 
 int Repository::getCommit(git_oid *id, git_commit **commit) {

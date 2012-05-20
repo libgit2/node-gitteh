@@ -2,6 +2,7 @@
 #define GITTEH_H
 
 #include <v8.h>
+#include "cvv8/convert.hpp"
 #include <node.h>
 #include <git2.h>
 #include <node_object_wrap.h>
@@ -88,9 +89,8 @@ using namespace node;
 	return ThrowException(Exception::TypeError(							\
 				  String::New("Argument " #I " invalid")));				\
   git_oid VAR;															\
-  if(git_oid_fromstr(& VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
-  	return ThrowException(Exception::TypeError(							\
-  				  String::New("Argument " #I " is not an oid")));
+  if(git_oid_fromstr(& VAR, *(String::Utf8Value(args[I]->ToString()))) != GIT_OK) \
+  	return ThrowGitError();
 
 #define CREATE_PERSON_OBJ(NAME, SRC)									\
   Local<Object> NAME = Object::New();									\
@@ -113,9 +113,8 @@ using namespace node;
   if (args.Length() <= (I) || !args[I]->IsString()) 						\
 	return ThrowException(Exception::TypeError(								\
 				  String::New("Argument " #I " invalid")));					\
-  if(git_oid_fromstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) == GIT_ENOTOID) \
-  	return ThrowException(Exception::TypeError(								\
-  				  String::New("Argument " #I " is not an oid")));
+  if(git_oid_fromstr(&VAR, *(String::Utf8Value(args[I]->ToString()))) != GIT_OK) \
+  	return scope.Close(ThrowGitError());
 
 namespace gitteh {
 
@@ -141,6 +140,8 @@ static inline Handle<Value> CreateGitError() {
 static inline Handle<Value> ThrowGitError() {
   return ThrowException(CreateGitError());
 }
+
+
 
 } // namespace gitteh
 #endif // GITTEH_H
