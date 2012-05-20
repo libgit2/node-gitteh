@@ -1,4 +1,4 @@
-module.exports.REPO_PATH = require("path").join(__dirname, "reference_bare_repo");
+module.exports.REPO_PATH = require("path").join(__dirname, "reference_bare_repo") + "/";
 
 module.exports.WORKING_DIR = {
 	gitDirectory: require("path").join(__dirname, "reference_working_repo", "dotgit"),

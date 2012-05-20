@@ -18,13 +18,24 @@
 			],
 
 			'conditions': [
-				[ 'OS=="linux"', {
+				[ 'OS=="windows"', {
+
+				}, {
 					'libraries': [
 						'<!@(pkg-config --libs libgit2)'
-					],
-					'cflags': [
+					]
+				}],
+				['OS=="mac"', {
+					# cflags on OS X are stupid and have to be defined like this
+					'xcode_settings': {
+					'OTHER_CFLAGS': [
 						'<!@(pkg-config --cflags libgit2)'
 					]
+				  }
+				}, {
+					'cflags': [
+						'<!@(pkg-config --cflags libgit2)'
+					],
 				}]
 			]
 		}

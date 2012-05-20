@@ -43,9 +43,9 @@ init(Handle<Object> target) {
 	HandleScope scope;
 
 	// Initialize libgit2's thread system.
-	// git_threads_init();
+	git_threads_init();
 
-	// Repository::Init(target);
+	Repository::Init(target);
 
 	/*Commit::Init(target);
 	Tree::Init(target);

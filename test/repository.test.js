@@ -50,9 +50,9 @@ vows.describe("Repository").addBatch({
 			assert.equal(repo.path, fixtureValues.REPO_PATH);
 		},
 		
-		"Commits are not redundant": function(repo) {
+		/*"Commits are not redundant": function(repo) {
 			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
-		}
+		}*/
 	},
 	
 	"Opening an existing bare repository *asynchronously*": {
@@ -73,7 +73,7 @@ vows.describe("Repository").addBatch({
 			assert.equal(repo.path, fixtureValues.REPO_PATH);
 		},
 		
-		"Commits are not redundant": function(repo) {
+		/*"Commits are not redundant": function(repo) {
 			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
 		},
 
@@ -89,9 +89,10 @@ vows.describe("Repository").addBatch({
 		
 		"Exists() *synchronously*": function(repo) {
 			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
-		}
+		}*/
 	},
 	
+	/*
 	"Opening a repository with custom options *asynchronously*": {
 		topic: function() {
 			gitteh.openRepository(fixtureValues.WORKING_DIR, this.callback);
@@ -118,5 +119,5 @@ vows.describe("Repository").addBatch({
 		"with correct path": function(repo) {
 			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
 		}
-	}
+	}*/
 }).export(module);

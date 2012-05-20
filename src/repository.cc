@@ -324,10 +324,10 @@ void Repository::Init(Handle<Object> target) {
 	index_file_symbol = NODE_PSYMBOL("indexFile");
 	work_tree_symbol = NODE_PSYMBOL("workTree");
 
-	/*Local<FunctionTemplate> t = FunctionTemplate::New(New);
+	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(repo_class_symbol);
-	t->InstanceTemplate()->SetInternalFieldCount(1);*/
+	t->InstanceTemplate()->SetInternalFieldCount(1);
 /*
 	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
@@ -348,7 +348,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
 */
-	// NODE_SET_METHOD(target, "openRepository", OpenRepository);
+	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	// NODE_SET_METHOD(target, "initRepository", InitRepository);
 
 	// target->Set(repo_class_symbol, constructor_template->GetFunction());
@@ -361,7 +361,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	REQ_EXT_ARG(0, repoArg);
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
-	const char *repoPath = git_repository_path(repo);/*
+	const char *repoPath = git_repository_path(repo);
 
 	Repository *repoObj = new Repository();
 	repoObj->Wrap(args.This());
@@ -393,10 +393,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
 	// THIS SUCKER.
 	repoObj->Ref();
-	return args.This();*/
+	return args.This();
 }
 
-/*
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 	REQ_ARGS(1);
@@ -472,7 +471,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 					->NewInstance(2, constructorArgs));
 		}
 	}
-	else if(args[0]->IsString()) {*//*
+	else if(args[0]->IsString()) {*/
 		REQ_STR_ARG(0, pathArg);
 
 		if(HAS_CALLBACK_ARG) {
