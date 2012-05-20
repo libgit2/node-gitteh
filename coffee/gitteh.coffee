@@ -14,6 +14,11 @@ Repository = (nativeRepo) ->
 		writable: false
 		enumerable: true
 
+	Object.defineProperty @, "bare",
+		value: nativeRepo.bare
+		writable: false
+		enumerable: true
+
 	return @
 
 Gitteh = 

@@ -219,6 +219,7 @@
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
+static Persistent<String> bare_symbol;
 
 static Persistent<String> git_dir_symbol;
 static Persistent<String> object_dir_symbol;
@@ -348,6 +349,7 @@ void Repository::Init(Handle<Object> target) {
 
 	repo_class_symbol = NODE_PSYMBOL("Repository");
 	path_symbol = NODE_PSYMBOL("path");
+	bare_symbol = NODE_PSYMBOL("bare");
 	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
 	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
 	index_file_symbol = NODE_PSYMBOL("indexFile");
@@ -407,6 +409,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	args.This()->Set(path_symbol, String::New(repoObj->path_),
 			(PropertyAttribute)(ReadOnly | DontDelete));
+	args.This()->Set(bare_symbol, Boolean::New(git_repository_is_bare(repo)),
+		(PropertyAttribute)(ReadOnly | DontDelete));
 
 	// HUGE FUCKING TODO:
 	// IN MOTHER FUCKING CAPITALS.
