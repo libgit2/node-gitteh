@@ -24,6 +24,7 @@
  
  var vows = require("vows"),
 	assert = require("assert"),
+	temp = require("temp"),
 	gitteh = require("../lib/gitteh"),
 	path = require("path"),
 	fixtureValues = require("./fixtures/values");
@@ -120,4 +121,20 @@ vows.describe("Repository").addBatch({
 			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
 		}
 	}*/
+
+	// TODO: probably nice to clean these up afterwards even though they're temp
+	"Initializing a new bare repository *asynchronously*": {
+		topic: function() {
+			var path = temp.path();
+			gitteh.initRepository(path, true, this.callback);
+		},
+
+		"gives us a Repository": function(repo) {
+			assert.isTrue(!!repo);
+		},
+
+		/*"is bare": function(repo) {
+			assert.isTrue(repo.bare);
+		}*/
+	}
 }).export(module);

@@ -5,6 +5,7 @@
 			'sources': [
 				'src/gitteh.cc',
 				'src/repository.cc',
+				'src/baton.cc'
 			],
 			'todosources': [
 				'src/commit.cc',

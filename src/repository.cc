@@ -225,48 +225,6 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_tree_symbol;
 
-/**
-	A Baton class specifically for libgit2 work.
-	Users of this Baton are expected to copy a git_error into this class.
-*/
-class Baton {
-public:
-	uv_work_t req;
-	Persistent<Function> callback;
-	git_error error;
-
-	Baton() {
-		error.klass = 0;
-		req.data = this;
-	}
-
-	~Baton() {
-		if(!callback.IsEmpty()) {
-			std::cout << "Cleaning up callback."<<std::endl;
-			callback.Dispose();
-			callback.Clear();
-		}
-	}
-
-	void setCallback(Handle<Value> val) {
-		callback = Persistent<Function>::New(Handle<Function>::Cast(val));
-	}
-
-	bool isErrored() {
-		return error.klass != 0;
-	}
-
-	// Creates an Exception for this error state Baton. DON'T CALL OUTSIDE OF
-	// V8 MAIN THREAD! :)
-	Handle<Object> createV8Error() {
-		assert(error.klass != 0);
-		Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
-			String::New(error.message)));
-		errObj->Set(String::New("code"), Integer::New(error.klass));
-		return errObj;
-	}
-};
-
 class OpenRepoBaton : public Baton {
 public:
 	std::string path;
@@ -298,6 +256,13 @@ public:
 	}
 };
 
+class InitRepoBaton : public Baton {
+public:
+	std::string path;
+	bool bare;
+	git_repository *repo;
+};
+
 /*
 struct object_request {
 	Persistent<Function> callback;
@@ -318,14 +283,6 @@ struct open_repo2_request {
 	std::string *objectDir;
 	std::string *indexFile;
 	std::string *workTree;
-	git_repository *repo;
-};
-
-struct init_repo_request {
-	Persistent<Function> callback;
-	int error;
-	String::Utf8Value *path;
-	bool bare;
 	git_repository *repo;
 };
 
@@ -419,13 +376,13 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
 	*/
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
-	/*
-	NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
-*/
-	NODE_SET_METHOD(target, "openRepository", OpenRepository);
-	// NODE_SET_METHOD(target, "initRepository", InitRepository);
 
-	// target->Set(repo_class_symbol, constructor_template->GetFunction());
+	// NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
+
+	NODE_SET_METHOD(target, "openRepository", OpenRepository);
+	NODE_SET_METHOD(target, "initRepository", InitRepository);
+
+	target->Set(repo_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Repository::New(const Arguments& args) {
@@ -669,7 +626,7 @@ int Repository::EIO_AfterOpenRepository2(eio_req *req) {
 		delete reqData;
 		ev_unref(EV_DEFAULT_UC);
 		return 0;
-}
+}*/
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
 	HandleScope scope;
@@ -677,16 +634,16 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 	REQ_STR_ARG(0, pathArg);
 
 	if(HAS_CALLBACK_ARG) {
-		init_repo_request *request = new init_repo_request;
-		request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-		request->path = new String::Utf8Value(args[0]);
-
+		InitRepoBaton *baton = new InitRepoBaton;
+		baton->setCallback(args[args.Length()-1]);
+		baton->path = std::string(*pathArg);
+		baton->bare = false;
 		if(args.Length() > 2) {
-			request->bare = args[1]->BooleanValue();
+			baton->bare = args[1]->BooleanValue();
 		}
 
-		eio_custom(EIO_InitRepository, EIO_PRI_DEFAULT, EIO_AfterInitRepository, request);
-		ev_ref(EV_DEFAULT_UC);
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
+			AsyncAfterInitRepository);
 
 		return Undefined();
 	}
@@ -699,56 +656,43 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 		git_repository* repo;
 		int result = git_repository_init(&repo, *pathArg, bare);
 		if(result != GIT_OK) {
-			// THROW_GIT_ERROR("Couldn't init repository.", result);
 			return scope.Close(ThrowGitError());
 		}
 
-		Handle<Value> constructorArgs[2] = {
-			External::New(repo),
-			args[0]
-		};
-
+		Handle<Value> constructorArgs[] = { External::New(repo) };
 		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(2, constructorArgs));
+				->NewInstance(1, constructorArgs));
 	}
 }
 
-void Repository::EIO_InitRepository(eio_req *req) {
-	GET_REQUEST_DATA(init_repo_request);
+void Repository::AsyncInitRepository(uv_work_t *req) {
+	InitRepoBaton *baton = GetBaton<InitRepoBaton>(req);
 
-	reqData->error = git_repository_init(&reqData->repo, **reqData->path, reqData->bare);
+	AsyncLibCall(git_repository_init(&baton->repo, baton->path.c_str(), 
+		baton->bare), baton);
 }
 
-int Repository::EIO_AfterInitRepository(eio_req *req) {
+void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 	HandleScope scope;
-	GET_REQUEST_DATA(init_repo_request);
+	InitRepoBaton *baton = GetBaton<InitRepoBaton>(req);
 
-	Handle<Value> callbackArgs[2];
-	if(reqData->error) {
-		Handle<Value> error = CreateGitError(String::New("Couldn't initialize new Repository."), reqData->error);
-		callbackArgs[0] = error;
-		callbackArgs[1] = Null();
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		Handle<Value> constructorArgs[2] = {
-			External::New(reqData->repo),
-			String::New(**reqData->path)
-		};
-		callbackArgs[0] = Null();
-		callbackArgs[1] = Repository::constructor_template->GetFunction()
-						->NewInstance(2, constructorArgs);
+		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Handle<Object> obj = Repository::constructor_template->GetFunction()
+						->NewInstance(1, constructorArgs);
+
+		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
 	}
 
-	TRIGGER_CALLBACK();
-
-	reqData->callback.Dispose();
-	delete reqData->path;
-	delete reqData;
-	ev_unref(EV_DEFAULT_UC);
-	return 0;
+	delete baton;
 }
 
-Handle<Value> Repository::CreateCommit(const Arguments& args) {
+/*Handle<Value> Repository::CreateCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 

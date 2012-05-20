@@ -12,6 +12,7 @@
 #include <cstdlib>
 
 #include "thread.h"
+#include "baton.h"
 
 using namespace v8;
 using namespace node;
@@ -168,6 +169,13 @@ static inline int LibCall(int result, const git_error **err) {
     return 0;
   }
   return 1;
+}
+
+static inline void AsyncLibCall(int result, Baton *baton) {
+  const git_error *err;
+  if(!LibCall(result, &err)) {
+      memcpy(&baton->error, err, sizeof(git_error));
+  }
 }
 
 } // namespace gitteh
