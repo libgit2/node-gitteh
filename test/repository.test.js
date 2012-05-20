@@ -120,12 +120,12 @@ vows.describe("Repository").addBatch({
 		"with correct path": function(repo) {
 			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
 		}
-	}
+	}*/
 
 	// TODO: probably nice to clean these up afterwards even though they're temp
 	"Initializing a new bare repository *asynchronously*": {
 		topic: function() {
-			var path = temp.path();
+			var path = this.context.path = temp.path() + "/";
 			gitteh.initRepository(path, true, this.callback);
 		},
 
@@ -133,8 +133,12 @@ vows.describe("Repository").addBatch({
 			assert.isTrue(repo instanceof gitteh.Repository);
 		},
 
+		"has the correct path": function(repo) {
+			assert.equal(repo.path, this.context.path);
+		}
+
 		// "is bare": function(repo) {
 		// 	assert.isTrue(repo.bare);
 		// }
-	}*/
+	}
 }).export(module);

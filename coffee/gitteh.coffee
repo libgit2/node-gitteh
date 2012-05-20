@@ -23,6 +23,12 @@ Gitteh =
 			return cb null, new Repository repo
 		res = bindings.openRepository path, wrappedCb
 		return new Repository res if res instanceof NativeRepository
+	initRepository: (path, bare, cb) ->
+		if cb? then wrappedCb = (err, repo) ->
+			return cb err if err
+			return cb null, new Repository repo
+		res = bindings.initRepository path, bare, wrappedCb
+		return new Repository res if res instanceof NativeRepository
 
 module.exports = Gitteh
 module.exports.Repository = Repository
