@@ -437,111 +437,35 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
-	REQ_ARGS(1);
-/*
-	if(args[0]->IsObject()) {
-		Handle<Object> pathsObj = Handle<Object>::Cast(args[0]);
-		if(pathsObj->Get(git_dir_symbol)->Equals(Null())) {
-			THROW_ERROR("Git directory is required.");
-		}
 
-		String::Utf8Value gitDir(pathsObj->Get(git_dir_symbol));
-		String::Utf8Value objDir(pathsObj->Get(object_dir_symbol));
-		String::Utf8Value indexFile(pathsObj->Get(index_file_symbol));
-		String::Utf8Value workTree(pathsObj->Get(work_tree_symbol));
+	String::Utf8Value pathArg(args[0]);
 
-		if(HAS_CALLBACK_ARG) {
-			open_repo2_request *request = new open_repo2_request;
-			request->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
-			request->gitDir = new std::string(*gitDir);
-			if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
-				request->objectDir = new std::string(*objDir);
-			}
-			else {
-				request->objectDir = NULL;
-			}
-			if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
-				request->indexFile = new std::string(*indexFile);
-			}
-			else {
-				request->indexFile = NULL;
-			}
-			if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
-				request->workTree = new std::string(*workTree);
-			}
-			else {
-				request->workTree = NULL;
-			}
+	if(HAS_CALLBACK_ARG) {
+		OpenRepoBaton *baton = new OpenRepoBaton(std::string(*pathArg));
+		baton->setCallback(args[args.Length()-1]);
 
-			eio_custom(EIO_OpenRepository2, EIO_PRI_DEFAULT, EIO_AfterOpenRepository2, request);
-			ev_ref(EV_DEFAULT_UC);
-
-			return Undefined();
-		}
-		else {
-			git_repository* repo;
-
-			const char *_gitDir = *gitDir;
-			const char *_objDir = NULL;
-			if(!pathsObj->Get(object_dir_symbol)->IsUndefined()) {
-				_objDir = *objDir;
-			}
-			const char *_indexFile = NULL;
-			if(!pathsObj->Get(index_file_symbol)->IsUndefined()) {
-				_indexFile = *indexFile;
-			}
-			const char *_workTree = NULL;
-			if(!pathsObj->Get(work_tree_symbol)->IsUndefined()) {
-				_workTree = *workTree;
-			}
-
-			int result = git_repository_open2(&repo, _gitDir, _objDir, _indexFile,
-					_workTree);
-			if(result != GIT_OK) {
-				THROW_GIT_ERROR("Couldn't open repository.", result);
-			}
-
-			Handle<Value> constructorArgs[2] = {
-				External::New(repo),
-				pathsObj->Get(git_dir_symbol)
-			};
-
-			return scope.Close(Repository::constructor_template->GetFunction()
-					->NewInstance(2, constructorArgs));
-		}
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
+			AsyncAfterOpenRepository);
+		return Undefined();
 	}
-	else if(args[0]->IsString()) {*/
-		REQ_STR_ARG(0, pathArg);
-
-		if(HAS_CALLBACK_ARG) {
-			OpenRepoBaton *baton = new OpenRepoBaton(std::string(*pathArg));
-			baton->setCallback(args[args.Length()-1]);
-
-			uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
-				AsyncAfterOpenRepository);
-			return Undefined();
+	else {
+		git_repository* repo;
+		int result = git_repository_open(&repo, *pathArg);
+		if(result != GIT_OK) {
+			return scope.Close(ThrowGitError());
 		}
-		else {
-			git_repository* repo;
-			int result = git_repository_open(&repo, *pathArg);
-			if(result != GIT_OK) {
-				return scope.Close(ThrowGitError());
-			}
 
-			Handle<Value> constructorArgs[1] = {
-				External::New(repo)
-			};
+		Handle<Value> constructorArgs[1] = {
+			External::New(repo)
+		};
 
-			return scope.Close(Repository::constructor_template->GetFunction()
-					->NewInstance(1, constructorArgs));
-		}
-	// }
-
-	THROW_ERROR("Invalid argument.");
+		return scope.Close(Repository::constructor_template->GetFunction()
+				->NewInstance(1, constructorArgs));
+	}
 }
 
 void Repository::AsyncOpenRepository(uv_work_t *req) {
-	GET_BATON(OpenRepoBaton)
+	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
 	const git_error *err;
 	if(!LibCall(git_repository_open(&baton->repo, baton->path.c_str()), &err)) {
