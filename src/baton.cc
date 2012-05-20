@@ -1,9 +1,10 @@
 #include "baton.h"
+#include <iostream>
 
 namespace gitteh {
 
 Baton::Baton() {
-	error.klass = 0;
+	errorCode = 0;
 	req.data = this;
 }
 
@@ -19,14 +20,19 @@ void Baton::setCallback(Handle<Value> val) {
 }
 
 bool Baton::isErrored() {
-	return error.klass != 0;
+	return errorCode != 0;
+}
+
+void Baton::setError(const git_error *err) {
+	errorCode = err->klass;
+	errorString = std::string(err->message);
 }
 
 Handle<Object> Baton::createV8Error() {
-	assert(error.klass != 0);
+	assert(errorCode != 0);
 	Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
-		String::New(error.message)));
-	errObj->Set(String::New("code"), Integer::New(error.klass));
+		String::New(errorString.c_str())));
+	errObj->Set(String::New("code"), Integer::New(errorCode));
 	return errObj;
 }
 

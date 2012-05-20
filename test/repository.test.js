@@ -84,7 +84,9 @@ vows.describe("Repository").addBatch({
 
 	"Opening a non-existent repository *asynchronously*": {
 		topic: function() {
-			gitteh.openRepository("/no/git/repo/here/", this.callback);
+			gitteh.openRepository("/no/git/repo/here/", function(err) {
+				this(null, err);
+			}.bind(this.callback));
 		},
 
 		"fails with an Exception": function(err) {

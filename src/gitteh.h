@@ -174,7 +174,7 @@ static inline int LibCall(int result, const git_error **err) {
 static inline void AsyncLibCall(int result, Baton *baton) {
   const git_error *err;
   if(!LibCall(result, &err)) {
-      memcpy(&baton->error, err, sizeof(git_error));
+    baton->setError(err);
   }
 }
 

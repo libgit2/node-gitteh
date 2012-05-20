@@ -4,6 +4,7 @@
 #include <v8.h>
 #include <node.h>
 #include <git2.h>
+#include <string>
 
 using namespace v8;
 
@@ -16,12 +17,14 @@ class Baton {
 public:
 	uv_work_t req;
 	Persistent<Function> callback;
-	git_error error;
+	int errorCode;
+	std::string errorString;
 
 	Baton();
 	~Baton();
 	void setCallback(Handle<Value> val);
 	bool isErrored();
+	void setError(const git_error *err);
 	// Creates an Exception for this error state Baton. DON'T CALL OUTSIDE OF
 	// V8 MAIN THREAD! :)
 	Handle<Object> createV8Error();
