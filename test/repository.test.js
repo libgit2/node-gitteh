@@ -39,7 +39,7 @@ vows.describe("Repository").addBatch({
 		},
 		
 		"opens correctly": function(repo) {
-			assert.isTrue(!!repo);
+			assert.isTrue(repo instanceof gitteh.Repository);
 		},
 		
 		"repo has correct path": function(repo) {
@@ -62,7 +62,7 @@ vows.describe("Repository").addBatch({
 		},
 		
 		"opens correctly": function(repo) {
-			assert.isTrue(!!repo);
+			assert.isTrue(repo instanceof gitteh.Repository);
 		},
 		
 		"repo has correct path": function(repo) {
@@ -130,7 +130,7 @@ vows.describe("Repository").addBatch({
 		},
 
 		"gives us a Repository": function(repo) {
-			assert.isTrue(!!repo);
+			assert.isTrue(repo instanceof gitteh.Repository);
 		},
 
 		/*"is bare": function(repo) {

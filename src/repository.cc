@@ -522,7 +522,6 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 			int result = git_repository_open(&repo, *pathArg);
 			if(result != GIT_OK) {
 				return scope.Close(ThrowGitError());
-				// THROW_GIT_ERROR("Couldn't open repository.", result);
 			}
 
 			Handle<Value> constructorArgs[1] = {
