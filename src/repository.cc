@@ -225,14 +225,6 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_tree_symbol;
 
-struct OpenRepoBaton {
-	uv_work_t req;
-	Persistent<Function> callback;
-	int error;
-	std::string path;
-	git_repository *repo;
-};
-
 struct ExistsBaton {
 	uv_work_t req;
 	Persistent<Function> callback;
@@ -279,12 +271,12 @@ public:
 	}
 };
 
-class NewOpenRepoBaton : public Baton {
+class OpenRepoBaton : public Baton {
 public:
 	std::string path;
 	git_repository *repo;
 
-	NewOpenRepoBaton(std::string path) : Baton(), path(path) {};
+	OpenRepoBaton(std::string path) : Baton(), path(path) {};
 };
 
 /*
@@ -542,7 +534,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 		REQ_STR_ARG(0, pathArg);
 
 		if(HAS_CALLBACK_ARG) {
-			NewOpenRepoBaton *baton = new NewOpenRepoBaton(std::string(*pathArg));
+			OpenRepoBaton *baton = new OpenRepoBaton(std::string(*pathArg));
 			baton->callback = Persistent<Function>::New(Handle<Function>::Cast(args[args.Length()-1]));
 
 			uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
@@ -571,9 +563,8 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 }
 
 void Repository::AsyncOpenRepository(uv_work_t *req) {
-	GET_BATON(NewOpenRepoBaton)
+	GET_BATON(OpenRepoBaton)
 
-	/*baton->error = */
 	const git_error *err;
 	if(!LibCall(git_repository_open(&baton->repo, baton->path.c_str()), &err)) {
 		memcpy(&baton->error, err, sizeof(git_error));
@@ -582,7 +573,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	HandleScope scope;
-	NewOpenRepoBaton *baton = GetBaton<NewOpenRepoBaton>(req);
+	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
 	if(baton->isErrored()) {
 		Handle<Value> argv[] = { baton->createV8Error() };
