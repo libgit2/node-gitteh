@@ -90,7 +90,6 @@ vows.describe("Repository").addBatch({
 		},
 
 		"fails with an Exception": function(err) {
-			console.log(arguments);
 			assert.instanceOf(err, Error);
 		}
 	},
@@ -142,9 +141,5 @@ vows.describe("Repository").addBatch({
 		"has the correct path": function(repo) {
 			assert.equal(repo.path, this.context.path);
 		}
-
-		// "is bare": function(repo) {
-		// 	assert.isTrue(repo.bare);
-		// }
 	}
 }).export(module);

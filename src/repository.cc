@@ -1471,8 +1471,6 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	REQ_OID_ARG(0, oidArg);
 
 	if(HAS_CALLBACK_ARG) {
-		REQ_FUN_ARG(args.Length() - 1, callbackArg);
-
 		ExistsBaton *baton = new ExistsBaton(repo, oidArg);
 		baton->setCallback(args[args.Length()-1]);
 

@@ -22,6 +22,10 @@
 				'deps/v8-convert'
 			],
 
+			'cflags': [
+				'-Wall'
+			],
+
 			'conditions': [
 				[ 'OS=="windows"', {
 
@@ -34,6 +38,7 @@
 					# cflags on OS X are stupid and have to be defined like this
 					'xcode_settings': {
 					'OTHER_CFLAGS': [
+						'-Wall',
 						'<!@(pkg-config --cflags libgit2)'
 					]
 				  }
