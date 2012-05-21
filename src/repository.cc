@@ -179,7 +179,7 @@
 #define ASYNC_PREPARE_GET_NAMED_OBJECT(TYPE, GIT_TYPE)						\
 	REQ_FUN_ARG(args.Length() - 1, callbackArg);							\
 	CREATE_ASYNC_REQUEST(object_request);									\
-	request->name = new std::string(*nameArg);								\
+	request->name = new string(*nameArg);									\
 	request->create = false;												\
 	REQUEST_DETACH(repo, EIO_Get##TYPE, EIO_Return##TYPE);
 
@@ -228,10 +228,17 @@ static Persistent<String> work_tree_symbol;
 
 class OpenRepoBaton : public Baton {
 public:
-	std::string path;
+	string path	;
 	git_repository *repo;
 
-	OpenRepoBaton(std::string path) : Baton(), path(path) {};
+	OpenRepoBaton(string path) : Baton(), path(path) {}	;
+};
+
+class InitRepoBaton : public Baton {
+public:
+	string path	;
+	bool bare;
+	git_repository *repo;
 };
 
 class RepositoryBaton : public Baton {
@@ -257,11 +264,10 @@ public:
 	}
 };
 
-class InitRepoBaton : public Baton {
+class GetObjectBaton : public RepositoryBaton {
 public:
-	std::string path;
-	bool bare;
-	git_repository *repo;
+	git_oid oid;
+	void *object;
 };
 
 /*
@@ -270,8 +276,8 @@ struct object_request {
 	Repository *repo;
 	int error;
 	git_oid oid;
-	std::string *name;
-	std::string *target;
+	string *name	;
+	string *target	;
 	void *object;
 	void *wrappedObject;
 	bool create;
@@ -280,10 +286,10 @@ struct object_request {
 struct open_repo2_request {
 	Persistent<Function> callback;
 	int error;
-	std::string *gitDir;
-	std::string *objectDir;
-	std::string *indexFile;
-	std::string *workTree;
+	string *gitDir	;
+	string *objectDir	;
+	string *indexFile	;
+	string *workTree	;
 	git_repository *repo;
 };
 
@@ -390,7 +396,6 @@ void Repository::Init(Handle<Object> target) {
 Handle<Value> Repository::New(const Arguments& args) {
 	HandleScope scope;
 
-	REQ_ARGS(1);
 	REQ_EXT_ARG(0, repoArg);
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
@@ -438,10 +443,10 @@ Handle<Value> Repository::New(const Arguments& args) {
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 
-	String::Utf8Value pathArg(args[0]);
+	string path = CastFromJS<string>(args[0])	;
 
 	if(HAS_CALLBACK_ARG) {
-		OpenRepoBaton *baton = new OpenRepoBaton(std::string(*pathArg));
+		OpenRepoBaton *baton = new OpenRepoBaton(path);
 		baton->setCallback(args[args.Length()-1]);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
@@ -450,7 +455,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	}
 	else {
 		git_repository* repo;
-		int result = git_repository_open(&repo, *pathArg);
+		int result = git_repository_open(&repo, path.c_str());
 		if(result != GIT_OK) {
 			return scope.Close(ThrowGitError());
 		}
@@ -554,16 +559,15 @@ int Repository::EIO_AfterOpenRepository2(eio_req *req) {
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
 	HandleScope scope;
-	REQ_ARGS(1);
-	REQ_STR_ARG(0, pathArg);
+
+	string path = CastFromJS<string>(args[0]);
 
 	if(HAS_CALLBACK_ARG) {
 		InitRepoBaton *baton = new InitRepoBaton;
 		baton->setCallback(args[args.Length()-1]);
-		baton->path = std::string(*pathArg);
-		baton->bare = false;
+		baton->path = path;
 		if(args.Length() > 2) {
-			baton->bare = args[1]->BooleanValue();
+			baton->bare = CastFromJS<bool>(args[1]);
 		}
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
@@ -574,11 +578,11 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 	else {
 		bool bare = false;
 		if(args.Length() > 1) {
-			bare = args[1]->BooleanValue();
+			bare = CastFromJS<bool>(args[1]);
 		}
 
 		git_repository* repo;
-		int result = git_repository_init(&repo, *pathArg, bare);
+		int result = git_repository_init(&repo, path.c_str(), bare);
 		if(result != GIT_OK) {
 			return scope.Close(ThrowGitError());
 		}
@@ -615,11 +619,11 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 
 	delete baton;
 }
-
 /*
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
 
 	REQ_ARGS(1);
 	REQ_OID_ARG(0, oidArg);
@@ -1144,8 +1148,8 @@ Handle<Value> Repository::CreateSymbolicRef(const Arguments& args) {
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
 		CREATE_ASYNC_REQUEST(object_request);
-		request->name = new std::string(*nameArg);
-		request->target = new std::string(*targetArg);
+		request->name = new string(*nameArg)	;
+		request->target = new string(*targetArg)	;
 		REQUEST_DETACH(repo, EIO_CreateSymbolicRef, EIO_ReturnReference);
 	}
 	else {
@@ -1207,10 +1211,10 @@ Handle<Value> Repository::CreateOidRef(const Arguments& args) {
 	if(HAS_CALLBACK_ARG) {
 		REQ_FUN_ARG(args.Length() - 1, callbackArg);
 		CREATE_ASYNC_REQUEST(object_request);
-		request->name = new std::string(*nameArg);
+		request->name = new string(*nameArg)	;
 		char oidStr[40];
 		git_oid_fmt(oidStr, &oidArg);
-		request->target = new std::string(oidStr, 40);
+		request->target = new string(oidStr, 40)	;
 		REQUEST_DETACH(repo, EIO_CreateOidRef, EIO_ReturnReference);
 	}
 	else {
@@ -1362,7 +1366,7 @@ int Repository::DoRefPacking() {
 
 	// Now we go through them all, lock them, and save what their current name is.
 	// We'll need the names for lata.
-	std::string **refNames = new std::string*[refCount];
+	string **refNames = new string*[refCount]	;
 	for(int i = 0; i < refCount; i++) {
 		refList[i]->lock();
 
@@ -1372,7 +1376,7 @@ int Repository::DoRefPacking() {
 			continue;
 		}
 
-		refNames[i] = new std::string(git_reference_name(refList[i]->ref_));
+		refNames[i] = new string(git_reference_name(refList[i]->ref_))	;
 	}
 
 	// Okay. Time to make shit happen.
@@ -1467,11 +1471,10 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	REQ_ARGS(1);
-	REQ_OID_ARG(0, oidArg);
+	git_oid oid = CastFromJS<git_oid>(args[0]);
 
 	if(HAS_CALLBACK_ARG) {
-		ExistsBaton *baton = new ExistsBaton(repo, oidArg);
+		ExistsBaton *baton = new ExistsBaton(repo, oid);
 		baton->setCallback(args[args.Length()-1]);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
@@ -1479,7 +1482,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 		return Undefined();
 	}
 	else {
-		return scope.Close(Boolean::New(git_odb_exists(repo->odb_, &oidArg)));
+		return scope.Close(Boolean::New(git_odb_exists(repo->odb_, &oid)));
 	}
 }
 

@@ -111,7 +111,7 @@ var createSyncCommitTests = function(commitFixture) {
 
 vows.describe("Commit").addBatch({
 	"First commit (async)": createAsyncCommitTests(fixtureValues.FIRST_COMMIT),
-	"Second commit (async)": createAsyncCommitTests(fixtureValues.SECOND_COMMIT),
+	/*"Second commit (async)": createAsyncCommitTests(fixtureValues.SECOND_COMMIT),
 	"Third commit (async)": createAsyncCommitTests(fixtureValues.THIRD_COMMIT),
 	"Fourth commit (async)": createAsyncCommitTests(fixtureValues.FOURTH_COMMIT),
 	"Fifth commit (async)": createAsyncCommitTests(fixtureValues.FIFTH_COMMIT),
@@ -241,5 +241,5 @@ vows.describe("Commit").addBatch({
 		"commit is identical to that retrieved from repository": function() {
 			assert.isTrue(this.context.commit === tempRepo.getCommit(this.context.commit.id));
 		}
-	}
+	}*/
 }).export(module);

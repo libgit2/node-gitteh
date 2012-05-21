@@ -1,6 +1,11 @@
 bindings = require "../build/Release/gitteh"
 
 NativeRepository = bindings.Repository
+NativeCommit = bindings.Commit
+
+Commit = (nativeCommit) ->
+	if not nativeCommit instanceof NativeCommit
+		throw new Error("Use repository.getCommit/createCommit")
 
 Repository = (nativeRepo) ->
 	if not nativeRepo instanceof NativeRepository
@@ -8,6 +13,15 @@ Repository = (nativeRepo) ->
 
 	@exists = (oid, cb) ->
 		return nativeRepo.exists oid, cb
+
+	@getCommit = (oid, cb) ->
+		oid = oid.toString()
+		throw new TypeError "Invalid object id." if not oid 
+		if cb? then wrappedCb = (err, commit) ->
+			return cb err if err?
+			return cb null, new Commit commit
+		res = nativeRepo.getCommit oid, wrappedCb
+		return new Commit res if res instanceof NativeCommit
 
 	Object.defineProperty @, "path",
 		value: nativeRepo.path

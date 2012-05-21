@@ -7,6 +7,7 @@
 #include <string>
 
 using namespace v8;
+using std::string;
 
 namespace gitteh {
 /**
@@ -18,7 +19,7 @@ public:
 	uv_work_t req;
 	Persistent<Function> callback;
 	int errorCode;
-	std::string errorString;
+	string errorString;
 
 	Baton();
 	~Baton();

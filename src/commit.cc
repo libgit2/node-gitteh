@@ -41,7 +41,7 @@ namespace gitteh {
 
 struct commit_data {
 	char id[40];
-	std::string *message;
+	string *message;
 	git_signature *author;
 	git_signature *committer;
 	int parentCount;
@@ -57,7 +57,7 @@ struct save_commit_request {
 	int error;
 	bool isNew;
 	char id[40];
-	std::string *message;
+	string *message;
 	git_signature *author;
 	git_signature *committer;
 	int parentCount;
@@ -83,7 +83,7 @@ void Commit::Init(Handle<Object> target) {
 	constructor_template->SetClassName(commit_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
+	// NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 
 	target->Set(commit_class_symbol, constructor_template->GetFunction());
 }
@@ -97,10 +97,12 @@ Handle<Value> Commit::New(const Arguments& args) {
 	Commit *commit = static_cast<Commit*>(commitArg->Value());
 	commit->Wrap(args.This());
 
-	commit->processInitData();
+	// commit->processInitData();
 
 	return args.This();
 }
+
+/*
 
 Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		Handle<Value> callback, bool isNew) {
@@ -427,26 +429,26 @@ void Commit::processInitData() {
 
 void Commit::setOwner(Repository *owner) {
 	repository_ = owner;
-}
+}*/
 
 Commit::Commit(git_commit *commit) {
 	commit_ = commit;
 }
 
 Commit::~Commit() {
-	repository_->lockRepository();
-	git_commit_close(commit_);
-	repository_->unlockRepository();
+	// repository_->lockRepository();
+	// git_commit_close(commit_);
+	// repository_->unlockRepository();
 }
-
+/*
 void Commit::updateCachedRef(const git_oid *newId) {
-	repository_->lockRepository();
+	// repository_->lockRepository();
 	git_commit *newCommit;
 	git_commit_lookup(&newCommit, repository_->repo_, newId);
-	repository_->commitCache_->updateCacheRef(commit_, newCommit);
-	git_commit_close(commit_);
+	// repository_->commitCache_->updateCacheRef(commit_, newCommit);
+	// git_commit_close(commit_);
 	commit_ = newCommit;
-	repository_->unlockRepository();
-}
+	// repository_->unlockRepository();
+}*/
 
 } // namespace gitteh

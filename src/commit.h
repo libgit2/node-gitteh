@@ -18,14 +18,14 @@ public:
 
 	static Handle<Value> SaveObject(Handle<Object>, Repository*, Handle<Value>, bool);
 
-	void setOwner(Repository*);
+	// void setOwner(Repository*);
 
 	Repository *repository_;
 	git_commit *commit_;
 
 protected:
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> GetTree(const Arguments&);
+	/*static Handle<Value> GetTree(const Arguments&);
 	static Handle<Value> SetTree(const Arguments&);
 	static Handle<Value> AddParent(const Arguments&);
 	static Handle<Value> GetParent(const Arguments&);
@@ -34,15 +34,15 @@ protected:
 	void processInitData();
 	int doInit();
 
-	int parentCount_;
+	int parentCount_;*/
 
 private:
-	static void EIO_Save(eio_req*);
+	/*static void EIO_Save(eio_req*);
 	static int EIO_AfterSave(eio_req*);
 
 	void updateCachedRef(const git_oid*);
 
-	commit_data *initData_;
+	commit_data *initData_;*/
 };
 
 } // namespace gitteh

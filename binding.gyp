@@ -5,10 +5,10 @@
 			'sources': [
 				'src/gitteh.cc',
 				'src/repository.cc',
-				'src/baton.cc'
+				'src/baton.cc',
+				'src/commit.cc',
 			],
 			'todosources': [
-				'src/commit.cc',
 				'src/tree.cc',
 				'src/index.cc',
 				'src/index_entry.cc',

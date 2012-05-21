@@ -25,7 +25,7 @@ bool Baton::isErrored() {
 
 void Baton::setError(const git_error *err) {
 	errorCode = err->klass;
-	errorString = std::string(err->message);
+	errorString = string(err->message);
 }
 
 Handle<Object> Baton::createV8Error() {

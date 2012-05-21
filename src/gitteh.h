@@ -16,6 +16,8 @@
 
 using namespace v8;
 using namespace node;
+using namespace cvv8;
+using std::string;
 
 #define SIG_TIME_PROPERTY String::NewSymbol("time")
 #define SIG_OFFSET_PROPERTY String::NewSymbol("timeOffset")
@@ -179,4 +181,20 @@ static inline void AsyncLibCall(int result, Baton *baton) {
 }
 
 } // namespace gitteh
+
+namespace cvv8 {
+  template<>
+  struct JSToNative<git_oid> {
+    typedef git_oid ResultType;
+    ResultType operator() (Handle<Value> const &h) const {
+      git_oid id;
+      memset(&id, 0, sizeof(git_oid));
+
+      string idStr = CastFromJS<string>(h);
+      git_oid_fromstr(&id, idStr.c_str());
+      return id;
+    }
+  };
+}
+
 #endif // GITTEH_H
