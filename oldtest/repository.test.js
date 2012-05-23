@@ -32,19 +32,6 @@
 var existingBareRepoVows = function(topic) {
 	return {
 		topic: topic,
-		"opens correctly": function(repo) {
-			assert.instanceOf(repo, gitteh.Repository);
-		},
-		"is definitely bare": function(repo) {
-			assert.isTrue(repo.bare);
-		},
-		"repo has correct path": function(repo) {
-			assert.equal(repo.path, fixtureValues.REPO_PATH);
-		},
-		"repo path is immutable": function(repo) {
-			repo.path = "foo";
-			assert.equal(repo.path, fixtureValues.REPO_PATH);
-		},
 		/*"Commits are not redundant": function(repo) {
 			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
 		},*/
@@ -63,37 +50,6 @@ var existingBareRepoVows = function(topic) {
 	}
 }
 
-vows.describe("Repository").addBatch({
-	"Opening an existing bare repository *synchronously*": existingBareRepoVows(function() {	
-		var repo = gitteh.openRepository(fixtureValues.REPO_PATH);	
-		return repo;
-	}),
-	"Opening an existing bare repository *asynchronously*": existingBareRepoVows(function() {
-		gitteh.openRepository(fixtureValues.REPO_PATH, this.callback);
-	}),
-
-	"Opening a non-existent repository *synchronously*": {
-		topic: function() {
-			return gitteh.openRepository("/no/git/repo/here/");
-		},
-
-		"fails with an Exception": function(err) {
-			assert.instanceOf(err, Error);
-		}
-	},
-
-	"Opening a non-existent repository *asynchronously*": {
-		topic: function() {
-			gitteh.openRepository("/no/git/repo/here/", function(err) {
-				this(null, err);
-			}.bind(this.callback));
-		},
-
-		"fails with an Exception": function(err) {
-			assert.instanceOf(err, Error);
-		}
-	},
-	
 	/*
 	"Opening a repository with custom options *asynchronously*": {
 		topic: function() {
