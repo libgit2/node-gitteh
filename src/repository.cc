@@ -443,7 +443,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 
-	string path = CastFromJS<string>(args[0])	;
+	string path = CastFromJS<string>(args[0]);
 
 	if(HAS_CALLBACK_ARG) {
 		OpenRepoBaton *baton = new OpenRepoBaton(path);
