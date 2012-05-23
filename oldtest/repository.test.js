@@ -35,18 +35,6 @@ var existingBareRepoVows = function(topic) {
 		/*"Commits are not redundant": function(repo) {
 			assert.isTrue(repo.getCommit(fixtureValues.FIRST_COMMIT.id) === repo.getCommit(fixtureValues.FIRST_COMMIT.id));
 		},*/
-		"Exists() *asynchronously*": {
-			topic: function(repo) {
-				repo.exists(fixtureValues.FIRST_COMMIT.id, this.callback);
-			},
-			
-			"works correctly": function(result) {
-				assert.isTrue(result);
-			}
-		},
-		"Exists() *synchronously*": function(repo) {
-			assert.isTrue(repo.exists(fixtureValues.FIRST_COMMIT.id));
-		}
 	}
 }
 
@@ -78,24 +66,4 @@ var existingBareRepoVows = function(topic) {
 			assert.equal(repo.path, fixtureValues.WORKING_DIR.gitDirectory);
 		}
 	}*/
-
-	// TODO: probably nice to clean these up afterwards even though they're temp
-	"Initializing a new bare repository *asynchronously*": {
-		topic: function() {
-			var path = this.context.path = temp.path() + "/";
-			gitteh.initRepository(path, true, this.callback);
-		},
-
-		"gives us a Repository": function(repo) {
-			assert.instanceOf(repo, gitteh.Repository);
-		},
-
-		"is bare": function(repo) {
-			assert.isTrue(repo.bare);
-		},
-
-		"has the correct path": function(repo) {
-			assert.equal(repo.path, this.context.path);
-		}
-	}
 }).export(module);
