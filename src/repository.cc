@@ -444,29 +444,11 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	HandleScope scope;
 
 	string path = CastFromJS<string>(args[0]);
-
-	if(HAS_CALLBACK_ARG) {
-		OpenRepoBaton *baton = new OpenRepoBaton(path);
-		baton->setCallback(args[args.Length()-1]);
-
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
-			AsyncAfterOpenRepository);
-		return Undefined();
-	}
-	else {
-		git_repository* repo;
-		int result = git_repository_open(&repo, path.c_str());
-		if(result != GIT_OK) {
-			return scope.Close(ThrowGitError());
-		}
-
-		Handle<Value> constructorArgs[1] = {
-			External::New(repo)
-		};
-
-		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(1, constructorArgs));
-	}
+	OpenRepoBaton *baton = new OpenRepoBaton(path);
+	baton->setCallback(args[1]);
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
+		AsyncAfterOpenRepository);
+	return Undefined();
 }
 
 void Repository::AsyncOpenRepository(uv_work_t *req) {
@@ -495,102 +477,17 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 
 	delete baton;
 }
-/*
-void Repository::EIO_OpenRepository2(eio_req *req) {
-	GET_REQUEST_DATA(open_repo2_request);
-
-	const char *_gitDir = reqData->gitDir->c_str();
-	const char *_objDir = NULL;
-	if(reqData->objectDir) {
-		_objDir = reqData->objectDir->c_str();
-	}
-	const char *_indexFile = NULL;
-	if(reqData->indexFile) {
-		_indexFile = reqData->indexFile->c_str();
-	}
-	const char *_workTree = NULL;
-	if(reqData->workTree) {
-		_workTree = reqData->workTree->c_str();
-	}
-
-	reqData->error = git_repository_open2(&reqData->repo, _gitDir, _objDir,
-			_indexFile, _workTree);
-
-	if(reqData->objectDir) {
-		delete reqData->objectDir;
-	}
-	if(reqData->indexFile) {
-		delete reqData->indexFile;
-	}
-	if(reqData->workTree) {
-		delete reqData->workTree;
-	}
-}
-
-int Repository::EIO_AfterOpenRepository2(eio_req *req) {
-	HandleScope scope;
-		GET_REQUEST_DATA(open_repo2_request);
-
-		Handle<Value> callbackArgs[2];
-		if(reqData->error) {
-			Handle<Value> error = CreateGitError(String::New("Couldn't open Repository."), reqData->error);
-			callbackArgs[0] = error;
-			callbackArgs[1] = Null();
-		}
-		else {
-			Handle<Value> constructorArgs[2] = {
-				External::New(reqData->repo),
-				String::New(reqData->gitDir->c_str())
-			};
-			callbackArgs[0] = Null();
-			callbackArgs[1] = Repository::constructor_template->GetFunction()
-							->NewInstance(2, constructorArgs);
-
-			delete reqData->gitDir;
-		}
-
-		TRIGGER_CALLBACK();
-
-		reqData->callback.Dispose();
-		delete reqData;
-		ev_unref(EV_DEFAULT_UC);
-		return 0;
-}*/
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
 	HandleScope scope;
-
 	string path = CastFromJS<string>(args[0]);
-
-	if(HAS_CALLBACK_ARG) {
-		InitRepoBaton *baton = new InitRepoBaton;
-		baton->setCallback(args[args.Length()-1]);
-		baton->path = path;
-		if(args.Length() > 2) {
-			baton->bare = CastFromJS<bool>(args[1]);
-		}
-
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
-			AsyncAfterInitRepository);
-
-		return Undefined();
-	}
-	else {
-		bool bare = false;
-		if(args.Length() > 1) {
-			bare = CastFromJS<bool>(args[1]);
-		}
-
-		git_repository* repo;
-		int result = git_repository_init(&repo, path.c_str(), bare);
-		if(result != GIT_OK) {
-			return scope.Close(ThrowGitError());
-		}
-
-		Handle<Value> constructorArgs[] = { External::New(repo) };
-		return scope.Close(Repository::constructor_template->GetFunction()
-				->NewInstance(1, constructorArgs));
-	}
+	bool bare = CastFromJS<bool>(args[1]);
+	InitRepoBaton *baton = new InitRepoBaton;
+	baton->setCallback(args[2]);
+	baton->path = path;
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
+		AsyncAfterInitRepository);
+	return Undefined();
 }
 
 void Repository::AsyncInitRepository(uv_work_t *req) {
@@ -619,6 +516,7 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 
 	delete baton;
 }
+
 /*
 Handle<Value> Repository::GetCommit(const Arguments& args) {
 	HandleScope scope;
