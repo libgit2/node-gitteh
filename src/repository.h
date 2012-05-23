@@ -55,7 +55,7 @@ protected:
 	static Handle<Value> InitRepository(const Arguments&);
 
 	static Handle<Value> New(const Arguments&);
-	static Handle<Value> GetCommit(const Arguments&);
+	static Handle<Value> GetObject(const Arguments&);
 
 	/*static Handle<Value> GetODB(const Arguments&);
 	static Handle<Value> GetCommit(const Arguments&);
@@ -104,8 +104,8 @@ private:
 	static void AsyncInitRepository(uv_work_t*);
 	static void AsyncAfterInitRepository(uv_work_t*);
 
-	static void AsyncGetCommit(uv_work_t*);
-	static void AsyncReturnCommit(uv_work_t*);
+	static void AsyncGetObject(uv_work_t*);
+	static void AsyncAfterGetObject(uv_work_t*);
 
 /*	static void EIO_OpenRepository2(eio_req*);
 	static int EIO_AfterOpenRepository2(eio_req*);

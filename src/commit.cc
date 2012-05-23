@@ -90,8 +90,6 @@ void Commit::Init(Handle<Object> target) {
 
 Handle<Value> Commit::New(const Arguments& args) {
 	HandleScope scope;
-
-	REQ_ARGS(1);
 	REQ_EXT_ARG(0, commitArg);
 
 	Commit *commit = static_cast<Commit*>(commitArg->Value());
@@ -103,7 +101,6 @@ Handle<Value> Commit::New(const Arguments& args) {
 }
 
 /*
-
 Handle<Value> Commit::SaveObject(Handle<Object> commitObject, Repository *repo,
 		Handle<Value> callback, bool isNew) {
 	int result, parentCount, i;

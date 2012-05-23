@@ -259,13 +259,14 @@ public:
 	git_oid oid;
 	bool exists;
 
-	ExistsBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) { }
+	ExistsBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
 };
 
 class GetObjectBaton : public RepositoryBaton {
 public:
 	git_oid oid;
-	void *object;
+	git_object *object;
+	GetObjectBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
 };
 
 /*
@@ -403,9 +404,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 		return scope.Close(ThrowGitError());
 	}
 
+	// Initialize our wrapped Repository class, which will then be wrapped in JS
 	Repository *repoObj = new Repository();
 	repoObj->Wrap(me);
-
 	repoObj->repo_ = repo;
 	repoObj->odb_ = odb;
 
@@ -435,7 +436,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
 	// THIS SUCKER.
 	repoObj->Ref();
-	return args.This();
+	return scope.Close(args.This());
 }
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
@@ -478,11 +479,10 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 
 Handle<Value> Repository::InitRepository(const Arguments& args) {
 	HandleScope scope;
-	string path = CastFromJS<string>(args[0]);
-	bool bare = CastFromJS<bool>(args[1]);
 	InitRepoBaton *baton = new InitRepoBaton;
+	baton->path = CastFromJS<string>(args[0]);
+	baton->bare = CastFromJS<bool>(args[1]);
 	baton->setCallback(args[2]);
-	baton->path = path;
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
 		AsyncAfterInitRepository);
 	return Undefined();
@@ -513,6 +513,40 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 	}
 
 	delete baton;
+}
+
+Handle<Value> Repository::GetObject(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+	GetObjectBaton *baton = new GetObjectBaton(repo, CastFromJS<git_oid>(args[0]));
+	baton->setCallback(args[1]);
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject, 
+		AsyncAfterGetObject);
+	return Undefined();
+}
+
+void Repository::AsyncGetObject(uv_work_t *req) {
+	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
+	AsyncLibCall(git_object_lookup(&baton->object, baton->repo->repo_, 
+		&baton->oid, GIT_OBJ_ANY), baton);
+}
+
+void Repository::AsyncAfterGetObject(uv_work_t *req) {
+	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		switch(git_object_type(baton->object)) {
+			case GIT_OBJ_COMMIT: {
+				
+				break;
+			}
+			default: {}
+		}
+	}
 }
 
 /*
