@@ -49,7 +49,6 @@ public:
 
 	git_repository *repo_;
 	git_odb *odb_;
-	const char *path_;
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);

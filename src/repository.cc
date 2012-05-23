@@ -224,7 +224,7 @@ static Persistent<String> bare_symbol;
 static Persistent<String> git_dir_symbol;
 static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
-static Persistent<String> work_tree_symbol;
+static Persistent<String> work_dir_symbol;
 
 class OpenRepoBaton : public Baton {
 public:
@@ -259,9 +259,7 @@ public:
 	git_oid oid;
 	bool exists;
 
-	ExistsBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {
-
-	}
+	ExistsBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) { }
 };
 
 class GetObjectBaton : public RepositoryBaton {
@@ -359,7 +357,7 @@ void Repository::Init(Handle<Object> target) {
 	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
 	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
 	index_file_symbol = NODE_PSYMBOL("indexFile");
-	work_tree_symbol = NODE_PSYMBOL("workTree");
+	work_dir_symbol = NODE_PSYMBOL("workDir");
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -397,25 +395,25 @@ Handle<Value> Repository::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_EXT_ARG(0, repoArg);
+	Handle<Object> me = args.This();
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
-	const char *repoPath = git_repository_path(repo);
 	git_odb *odb;
 	if(git_repository_odb(&odb, repo) != GIT_OK) {
 		return scope.Close(ThrowGitError());
 	}
 
 	Repository *repoObj = new Repository();
-	repoObj->Wrap(args.This());
+	repoObj->Wrap(me);
 
 	repoObj->repo_ = repo;
-	repoObj->path_ = repoPath;
 	repoObj->odb_ = odb;
 
-	args.This()->Set(path_symbol, String::New(repoObj->path_),
-			(PropertyAttribute)(ReadOnly | DontDelete));
-	args.This()->Set(bare_symbol, Boolean::New(git_repository_is_bare(repo)),
-		(PropertyAttribute)(ReadOnly | DontDelete));
+	bool bare = git_repository_is_bare(repo);
+	ImmutableSet(me, path_symbol, CastToJS(git_repository_path(repo)));
+	ImmutableSet(me, bare_symbol, CastToJS((bool)bare));
+	const char *workDir = git_repository_workdir(repo);
+	if(workDir) ImmutableSet(me, work_dir_symbol, CastToJS(workDir));
 
 	// HUGE FUCKING TODO:
 	// IN MOTHER FUCKING CAPITALS.

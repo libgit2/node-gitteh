@@ -20,6 +20,7 @@ describe "Gitteh", ->
 					repo = _repo
 					repo.should.be.an.instanceof gitteh.Repository
 					done()
+					
 	describe "#initRepository()", ->
 		describe "on an invalid path", ->
 			it "should fail with an Exception", (done) ->

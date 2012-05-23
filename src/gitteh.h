@@ -180,6 +180,10 @@ static inline void AsyncLibCall(int result, Baton *baton) {
   }
 }
 
+static inline void ImmutableSet(Handle<Object> o, Handle<Value> k, Handle<Value> v) {
+  o->Set(k, v, (PropertyAttribute)(ReadOnly | DontDelete));
+}
+
 } // namespace gitteh
 
 namespace cvv8 {
