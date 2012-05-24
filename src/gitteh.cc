@@ -24,9 +24,8 @@
 
 #include "gitteh.h"
 #include "repository.h"
-/*
 #include "commit.h"
-#include "tree.h"
+/*#include "tree.h"
 #include "index.h"
 #include "index_entry.h"
 #include "tag.h"
@@ -47,8 +46,8 @@ init(Handle<Object> target) {
 
 	Repository::Init(target);
 
-	/*Commit::Init(target);
-	Tree::Init(target);
+	Commit::Init(target);
+	/*Tree::Init(target);
 	Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);

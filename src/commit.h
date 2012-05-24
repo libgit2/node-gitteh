@@ -2,14 +2,14 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
-#include "gitobjectwrap_new.h"
+#include "git_object.h"
 
 namespace gitteh {
 
 struct commit_data;
 class Repository;
 
-class Commit : public WrappedGitObject<Commit, git_commit> {
+class Commit : public GitObject {
 public:
 	static Persistent<FunctionTemplate> constructor_template;
 	static void Init(Handle<Object>);

@@ -5,6 +5,7 @@
 			'sources': [
 				'src/gitteh.cc',
 				'src/repository.cc',
+				'src/object_cache.cc',
 				'src/baton.cc',
 				'src/commit.cc',
 			],

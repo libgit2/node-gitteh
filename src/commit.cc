@@ -24,7 +24,6 @@
 
 #include "commit.h"
 #include "repository.h"
-#include "tree.h"
 #include <time.h>
 #include <stdlib.h>
 #include "signature.h"
@@ -35,6 +34,7 @@ static Persistent<String> message_symbol;
 static Persistent<String> author_symbol;
 static Persistent<String> committer_symbol;
 static Persistent<String> tree_symbol;
+static Persistent<String> tree_id_symbol;
 static Persistent<String> parents_symbol;
 
 namespace gitteh {
@@ -76,6 +76,7 @@ void Commit::Init(Handle<Object> target) {
 	author_symbol = NODE_PSYMBOL("author");
 	committer_symbol = NODE_PSYMBOL("committer");
 	tree_symbol = NODE_PSYMBOL("tree");
+	tree_id_symbol = NODE_PSYMBOL("treeId");
 	parents_symbol = NODE_PSYMBOL("parents");
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
@@ -92,8 +93,20 @@ Handle<Value> Commit::New(const Arguments& args) {
 	HandleScope scope;
 	REQ_EXT_ARG(0, commitArg);
 
-	Commit *commit = static_cast<Commit*>(commitArg->Value());
-	commit->Wrap(args.This());
+	Commit *commitObj = static_cast<Commit*>(commitArg->Value());
+	commitObj->Wrap(args.This());
+
+	Handle<Object> me = args.This();
+
+	git_commit *commit = commitObj->commit_;
+	char oidStr[40];
+	const git_oid *oid = git_commit_id(commit);
+	const git_oid *treeOid = git_commit_tree_oid(commit);
+
+	git_oid_fmt(oidStr, oid);
+	ImmutableSet(me, id_symbol, CastToJS(oidStr));
+	git_oid_fmt(oidStr, treeOid);
+	ImmutableSet(me, tree_id_symbol, CastToJS(oidStr));
 
 	// commit->processInitData();
 
@@ -428,7 +441,7 @@ void Commit::setOwner(Repository *owner) {
 	repository_ = owner;
 }*/
 
-Commit::Commit(git_commit *commit) {
+Commit::Commit(git_commit *commit) : GitObject((git_object*)commit) {
 	commit_ = commit;
 }
 

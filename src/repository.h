@@ -47,6 +47,9 @@ public:
 
 	// void notifyIndexDead();
 
+	void adopt(GitObject*);
+	void disown(GitObject*);
+
 	git_repository *repo_;
 	git_odb *odb_;
 
@@ -84,6 +87,7 @@ protected:
 	// void close();
 
 private:
+	GitObjectCache cache_;
 	/*int getTree(git_oid*, git_tree**);
 	int getTag(git_oid*, git_tag**);
 	int getCommit(git_oid*, git_commit**);
@@ -93,6 +97,8 @@ private:
 	RevWalker *wrapRevWalker(git_revwalk*);
 
 	int createRevWalker(git_revwalk**);*/
+
+	Handle<Value> wrapObject(git_object*);
 
 	static bool DoOpenRepository();
 	static void AsyncOpenRepository(uv_work_t*);

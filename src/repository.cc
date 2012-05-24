@@ -23,6 +23,7 @@
  */
 
 #include "repository.h"
+#include "git_object.h"
 /*#include "commit.h"
 #include "tree.h"
 #include "index.h"
@@ -313,7 +314,7 @@ struct index_request {
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
-Repository::Repository() {
+Repository::Repository() : cache_(this) {
 	/*CREATE_MUTEX(gitLock_);
 	CREATE_MUTEX(refLock_);
 
@@ -349,6 +350,15 @@ Repository::~Repository() {
 	close();*/
 }
 
+void Repository::adopt(GitObject *obj) {
+	Ref();
+}
+
+void Repository::disown(GitObject *obj) {
+	Unref();
+	cache_.evict(obj);
+}
+
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
 
@@ -365,7 +375,6 @@ void Repository::Init(Handle<Object> target) {
 	constructor_template->SetClassName(repo_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 /*
-	NODE_SET_PROTOTYPE_METHOD(t, "getCommit", GetCommit);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
 	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
@@ -382,6 +391,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
 	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
 	*/
+
+	NODE_SET_PROTOTYPE_METHOD(t, "object", GetObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 
 	// NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
@@ -532,6 +543,7 @@ void Repository::AsyncGetObject(uv_work_t *req) {
 }
 
 void Repository::AsyncAfterGetObject(uv_work_t *req) {
+	HandleScope scope;
 	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
 
 	if(baton->isErrored()) {
@@ -539,14 +551,29 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		switch(git_object_type(baton->object)) {
+		GitObject *obj = baton->repo->cache_.wrap(baton->object);
+
+		Handle<Value> argv[] = { Null(), Local<Object>::New(obj->handle_) };
+		FireCallback(baton->callback, 2, argv);
+
+		/*switch(git_object_type(baton->object)) {
 			case GIT_OBJ_COMMIT: {
 				
+				Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+				Handle<Object> obj = Repository::constructor_template->GetFunction()
+								->NewInstance(1, constructorArgs);
+
+				Handle<Value> argv[] = { Null(), obj };
+				FireCallback(baton->callback, 2, argv);
 				break;
 			}
 			default: {}
-		}
+		}*/
 	}
+}
+
+Handle<Value> Repository::wrapObject(git_object *obj) {
+
 }
 
 /*
