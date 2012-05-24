@@ -31,6 +31,7 @@
 static Persistent<String> commit_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> message_symbol;
+static Persistent<String> message_encoding_symbol;
 static Persistent<String> author_symbol;
 static Persistent<String> committer_symbol;
 static Persistent<String> tree_symbol;
@@ -73,6 +74,7 @@ void Commit::Init(Handle<Object> target) {
 	commit_class_symbol = NODE_PSYMBOL("Commit");
 	id_symbol = NODE_PSYMBOL("id");
 	message_symbol = NODE_PSYMBOL("message");
+	message_encoding_symbol = NODE_PSYMBOL("messageEncoding");
 	author_symbol = NODE_PSYMBOL("author");
 	committer_symbol = NODE_PSYMBOL("committer");
 	tree_symbol = NODE_PSYMBOL("tree");
@@ -107,6 +109,9 @@ Handle<Value> Commit::New(const Arguments& args) {
 	ImmutableSet(me, id_symbol, CastToJS(oidStr));
 	git_oid_fmt(oidStr, treeOid);
 	ImmutableSet(me, tree_id_symbol, CastToJS(oidStr));
+	ImmutableSet(me, message_symbol, CastToJS(git_commit_message(commit)));
+	const char *encoding = git_commit_message_encoding(commit);
+	if(encoding) ImmutableSet(me, message_encoding_symbol, CastToJS(encoding));
 
 	// commit->processInitData();
 
