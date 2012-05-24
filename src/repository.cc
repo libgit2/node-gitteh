@@ -1428,19 +1428,12 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	git_oid oid = CastFromJS<git_oid>(args[0]);
+	ExistsBaton *baton = new ExistsBaton(repo, CastFromJS<git_oid>(args[0]));
+	baton->setCallback(args[1]);
 
-	if(HAS_CALLBACK_ARG) {
-		ExistsBaton *baton = new ExistsBaton(repo, oid);
-		baton->setCallback(args[args.Length()-1]);
-
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
-			AsyncAfterExists);
-		return Undefined();
-	}
-	else {
-		return scope.Close(Boolean::New(git_odb_exists(repo->odb_, &oid)));
-	}
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
+		AsyncAfterExists);
+	return Undefined();
 }
 
 void Repository::AsyncExists(uv_work_t *req) {
