@@ -37,9 +37,12 @@
 
 namespace gitteh {
 
+Persistent<Object> module;
+
 extern "C" void
 init(Handle<Object> target) {
 	HandleScope scope;
+	module = Persistent<Object>::New(target);
 
 	// Initialize libgit2's thread system.
 	git_threads_init();
@@ -57,6 +60,10 @@ init(Handle<Object> target) {
 
 	ErrorInit(target);*/
 
+}
+
+Handle<Object> GetModule() {
+	return module;
 }
 
 } // namespace gitteh

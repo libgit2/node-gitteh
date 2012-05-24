@@ -38,6 +38,8 @@ using std::string;
   (NAME)->Set(String::New("timeOffset"), Integer::New((SRC)->when.offset));
 
 namespace gitteh {
+  Handle<Object> GetModule();
+
   static inline Handle<Value> CreateGitError() {  
       const git_error *err = giterr_last();
       Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
