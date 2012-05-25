@@ -25,13 +25,6 @@ using std::string;
                   String::New("Argument " #I " invalid")));             \
   Local<External> VAR = Local<External>::Cast(args[I]);
 
-#define CREATE_PERSON_OBJ(NAME, SRC)									\
-  Local<Object> NAME = Object::New();									\
-  (NAME)->Set(String::New("name"), String::New((SRC)->name));			\
-  (NAME)->Set(String::New("email"), String::New((SRC)->email));			\
-  (NAME)->Set(String::New("time"), NODE_UNIXTIME_V8((SRC)->when.time));	\
-  (NAME)->Set(String::New("timeOffset"), Integer::New((SRC)->when.offset));
-
 namespace gitteh {
   Handle<Object> GetModule();
 

@@ -7,10 +7,10 @@ static Persistent<String> sig_offset_symbol;
 
 namespace gitteh {
 void SignatureInit() {
-		sig_name_symbol = NODE_PSYMBOL("name");
-		sig_email_symbol = NODE_PSYMBOL("email");
-		sig_time_symbol = NODE_PSYMBOL("time");
-		sig_offset_symbol = NODE_PSYMBOL("offset");
+		sig_name_symbol 	= NODE_PSYMBOL("name");
+		sig_email_symbol 	= NODE_PSYMBOL("email");
+		sig_time_symbol 	= NODE_PSYMBOL("time");
+		sig_offset_symbol 	= NODE_PSYMBOL("offset");
 	}
 
 	Handle<Object> CreateSignature(const git_signature *sig) {
