@@ -25,3 +25,6 @@ wrap Repository, "exists", true, (shadowed, oid, cb) ->
 
 wrap Repository, "getCommit", true, (shadowed, oid, cb) ->
 	shadowed oid, wrappedCb
+
+Repository.prototype.commit = (oid, cb) ->
+	@object oid, cb
