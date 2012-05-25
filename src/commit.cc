@@ -75,17 +75,9 @@ Handle<Value> Commit::New(const Arguments& args) {
 	Handle<Object> me = args.This();
 
 	git_commit *commit = commitObj->commit_;
-	char oidStr[40];
-	const git_oid *oid;
 
-	oid = git_commit_id(commit);
-	git_oid_fmt(oidStr, oid);
-	ImmutableSet(me, id_symbol, CastToJS(oidStr));
-
-	oid = git_commit_tree_oid(commit);
-	git_oid_fmt(oidStr, oid);
-	ImmutableSet(me, tree_id_symbol, CastToJS(oidStr));
-
+	ImmutableSet(me, id_symbol, CastToJS(git_commit_id(commit)));
+	ImmutableSet(me, tree_id_symbol, CastToJS(git_commit_tree_oid(commit)));
 	ImmutableSet(me, message_symbol, CastToJS(git_commit_message(commit)));
 	const char *encoding = git_commit_message_encoding(commit);
 	if(encoding) ImmutableSet(me, message_encoding_symbol, CastToJS(encoding));
@@ -94,9 +86,7 @@ Handle<Value> Commit::New(const Arguments& args) {
 	Handle<Array> parents = Array::New();
 	int parentCount = git_commit_parentcount(commit);
 	for(int i = 0; i < parentCount; i++) {
-		oid = git_commit_parent_oid(commit, i);
-		git_oid_fmt(oidStr, oid);
-		parents->Set(i, CastToJS(oidStr));
+		parents->Set(i, CastToJS(git_commit_parent_oid(commit, i)));
 	}
 	me->Set(parents_symbol, parents);
 
