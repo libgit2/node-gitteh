@@ -7,10 +7,10 @@
 namespace gitteh {
 	class Commit : public GitObject {
 	public:
-		static Persistent<FunctionTemplate> constructor_template;
-		static void Init(Handle<Object>);
 		Commit(git_commit*);
 		~Commit();
+		static Persistent<FunctionTemplate> constructor_template;
+		static void Init(Handle<Object>);
 	protected:
 		static Handle<Value> New(const Arguments&);
 	private:
