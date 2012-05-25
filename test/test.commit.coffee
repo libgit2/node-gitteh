@@ -2,14 +2,9 @@ path = require "path"
 should = require "should"
 gitteh = require "../lib/gitteh"
 utils = require "./utils"
+fixtures = require "./fixtures"
 
-selfRepo = path.join __dirname, "../"
-selfRepoGitPath = path.join selfRepo, ".git/"
-
-commitId = "8a916d5fbce49f5780668a1ee780e0ef2e89360f"
-treeId = "aa41780f2129bf03cce1a3eeadc78db47f83d9ad"
-parentId = "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14"
-commitMsg = "Stuff."
+secondCommit = fixtures.projectRepo.secondCommit
 
 describe "Commit", ->
 	repo = null
@@ -17,9 +12,9 @@ describe "Commit", ->
 
 	describe "Using the project repo...", ->
 		it "can find second commit (8a916d5fbce49f5780668a1ee780e0ef2e89360f)", (done) ->
-			gitteh.openRepository selfRepo, (err, _repo) ->
+			gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
 				repo = _repo
-				repo.commit commitId, (err, _commit) ->
+				repo.commit secondCommit.id, (err, _commit) ->
 					commit = _commit
 					should.not.exist err
 					commit.should.be.an.instanceof gitteh.Commit
@@ -27,11 +22,11 @@ describe "Commit", ->
 	describe "The first project commit...", ->
 		describe "#id", ->
 			it "is correct", ->
-				commit.id.should.be.equal commitId
+				commit.id.should.be.equal secondCommit.id
 			it "is immutable", -> utils.checkImmutable commit, "id"
 		describe "#treeId", ->
 			it "is correct", ->
-				commit.treeId.should.be.equal treeId
+				commit.treeId.should.be.equal secondCommit.tree
 			it "is immutable", -> utils.checkImmutable commit, "treeId"
 		describe "#message", ->
 			it "is correct", ->
@@ -40,7 +35,7 @@ describe "Commit", ->
 		describe "#parents", ->
 			it "is correct", ->
 				commit.parents.should.have.length 1
-				commit.parents.should.include parentId
+				commit.parents.should.include secondCommit.parent
 		describe "#author", ->
 			it "is valid", ->
 				author = commit.author

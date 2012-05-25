@@ -2,9 +2,7 @@ path = require "path"
 wrench = require "wrench"
 temp = require "temp"
 gitteh = require "../lib/gitteh"
-
-selfRepo = path.join __dirname, ".."
-selfRepoGitPath = path.join selfRepo, ".git/"
+fixtures = require "./fixtures"
 
 describe "Gitteh", ->
 	describe "#openRepository()", ->
@@ -16,7 +14,7 @@ describe "Gitteh", ->
 		describe "on project repo", ->
 			repo = null
 			it "should open correctly", (done) ->
-				gitteh.openRepository selfRepo, (err, _repo) ->
+				gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
 					repo = _repo
 					repo.should.be.an.instanceof gitteh.Repository
 					done()
