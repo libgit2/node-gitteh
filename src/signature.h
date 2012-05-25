@@ -5,7 +5,10 @@
 
 namespace gitteh {
 
-static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
+void SignatureInit();
+Handle<Object> CreateSignature(const git_signature *sig);
+
+/*static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 		Handle<String> propertyName) {
 	Handle<Value> property = object->Get(propertyName);
 	if(!property->IsObject())
@@ -35,7 +38,7 @@ static inline git_signature *GetSignatureFromProperty(Handle<Object> object,
 	git_signature_new(&sig, *sigName, *sigEmail, sigTime, offset);
 
 	return sig;
-}
+}*/
 
 } // namespace gitteh
 

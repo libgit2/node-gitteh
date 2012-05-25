@@ -25,6 +25,7 @@
 #include "gitteh.h"
 #include "repository.h"
 #include "commit.h"
+#include "signature.h"
 /*#include "tree.h"
 #include "index.h"
 #include "index_entry.h"
@@ -59,7 +60,7 @@ init(Handle<Object> target) {
 	Blob::Init(target);
 
 	ErrorInit(target);*/
-
+	SignatureInit();
 }
 
 Handle<Object> GetModule() {

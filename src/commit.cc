@@ -122,9 +122,12 @@ Handle<Value> Commit::New(const Arguments& args) {
 	for(int i = 0; i < parentCount; i++) {
 		oid = git_commit_parent_oid(commit, i);
 		git_oid_fmt(oidStr, oid);
-		parents->Set(i, String::New(oidStr));
+		parents->Set(i, CastToJS(oidStr));
 	}
 	me->Set(parents_symbol, parents);
+
+	ImmutableSet(me, author_symbol, CreateSignature(git_commit_author(commit)));
+	ImmutableSet(me, committer_symbol, CreateSignature(git_commit_committer(commit)));
 
 	// commit->processInitData();
 

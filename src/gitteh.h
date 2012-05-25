@@ -19,11 +19,6 @@ using namespace node;
 using namespace cvv8;
 using std::string;
 
-#define SIG_TIME_PROPERTY String::NewSymbol("time")
-#define SIG_OFFSET_PROPERTY String::NewSymbol("timeOffset")
-#define SIG_EMAIL_PROPERTY String::NewSymbol("email")
-#define SIG_NAME_PROPERTY String::NewSymbol("name")
-
 #define REQ_EXT_ARG(I, VAR)                                             \
   if (args.Length() <= (I) || !args[I]->IsExternal())                   \
     return ThrowException(Exception::TypeError(                         \
