@@ -1,6 +1,7 @@
 #include "object_cache.h"
 #include "git_object.h"
 #include "commit.h"
+#include "tree.h"
 
 // Implement < operator for git_oid so we can use it as key in STL map.
 bool operator <(const git_oid l, const git_oid r) {
@@ -23,6 +24,11 @@ namespace gitteh {
 			case GIT_OBJ_COMMIT: {
 				wrappedObj = new Commit((git_commit*)obj);
 				constructor = Commit::constructor_template->GetFunction();
+				break;
+			}
+			case GIT_OBJ_TREE: {
+				wrappedObj = new Tree((git_tree*)obj);
+				constructor = Tree::constructor_template->GetFunction();
 				break;
 			}
 			default: {}

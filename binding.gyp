@@ -10,9 +10,9 @@
 				'src/object_cache.cc',
 				'src/baton.cc',
 				'src/commit.cc',
+				'src/tree.cc',
 			],
 			'todosources': [
-				'src/tree.cc',
 				'src/index.cc',
 				'src/index_entry.cc',
 				'src/tag.cc',

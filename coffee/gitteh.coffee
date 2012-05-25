@@ -28,3 +28,6 @@ wrap Repository, "getCommit", true, (shadowed, oid, cb) ->
 
 Repository.prototype.commit = (oid, cb) ->
 	@object oid, cb
+
+Repository.prototype.tree = (oid, cb) ->
+	@object oid, cb

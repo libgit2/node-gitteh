@@ -80,6 +80,27 @@ namespace gitteh {
 	static inline void ImmutableSet(Handle<Object> o, Handle<Value> k, Handle<Value> v) {
 		o->Set(k, v, (PropertyAttribute)(ReadOnly | DontDelete));
 	}
+
+	static inline string GitObjectTypeToString(git_otype type) {
+		switch(type) {
+			case GIT_OBJ_COMMIT: {
+				return string("commit");
+			}
+			case GIT_OBJ_TREE: {
+				return string("tree");
+			}
+			case GIT_OBJ_BLOB: {
+				return string("blob");
+			}
+			case GIT_OBJ_TAG: {
+				return string("tag");
+			}
+			default: {
+				assert(0);
+			}
+		}
+	}
+
 } // namespace gitteh
 
 namespace cvv8 {

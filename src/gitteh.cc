@@ -26,8 +26,8 @@
 #include "repository.h"
 #include "commit.h"
 #include "signature.h"
-/*#include "tree.h"
-#include "index.h"
+#include "tree.h"
+/*#include "index.h"
 #include "index_entry.h"
 #include "tag.h"
 #include "rev_walker.h"
@@ -48,11 +48,12 @@ init(Handle<Object> target) {
 	// Initialize libgit2's thread system.
 	git_threads_init();
 
+	SignatureInit();
 	Repository::Init(target);
-
 	Commit::Init(target);
-	/*Tree::Init(target);
-	Index::Init(target);
+	Tree::Init(target);
+	
+	/*Index::Init(target);
 	IndexEntry::Init(target);
 	Tag::Init(target);
 	RevWalker::Init(target);
@@ -60,7 +61,6 @@ init(Handle<Object> target) {
 	Blob::Init(target);
 
 	ErrorInit(target);*/
-	SignatureInit();
 }
 
 Handle<Object> GetModule() {

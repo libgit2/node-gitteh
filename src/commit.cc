@@ -60,8 +60,6 @@ void Commit::Init(Handle<Object> target) {
 	constructor_template->SetClassName(commit_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
-	// NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
-
 	target->Set(commit_class_symbol, constructor_template->GetFunction());
 }
 
@@ -76,7 +74,7 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	git_commit *commit = commitObj->commit_;
 
-	ImmutableSet(me, id_symbol, CastToJS(git_commit_id(commit)));
+	ImmutableSet(me, id_symbol, CastToJS(&commitObj->oid_));
 	ImmutableSet(me, tree_id_symbol, CastToJS(git_commit_tree_oid(commit)));
 	ImmutableSet(me, message_symbol, CastToJS(git_commit_message(commit)));
 	const char *encoding = git_commit_message_encoding(commit);
@@ -101,6 +99,10 @@ Commit::Commit(git_commit *commit) : GitObject((git_object*)commit) {
 }
 
 Commit::~Commit() {
+	if(commit_) {
+		git_commit_free(commit_);
+		commit_ = NULL;
+	}
 }
 
 }; // namespace gitteh

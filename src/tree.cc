@@ -25,135 +25,83 @@
 #include "repository.h"
 #include "tree.h"
 
-namespace gitteh {
-
 static Persistent<String> tree_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> entries_symbol;
-
 static Persistent<String> entry_id_symbol;
 static Persistent<String> entry_name_symbol;
+static Persistent<String> entry_type_symbol;
 static Persistent<String> entry_attributes_symbol;
 
-struct tree_entry_data {
-	std::string *name;
-	char id[40];
-	int attributes;
-};
-
-struct tree_data {
-	char id[40];
-	int entryCount;
-	tree_entry_data **entries;
-};
-
-struct save_request {
-	Persistent<Function> callback;
-	Tree *tree;
-	int error;
-	char id[40];
-};
+namespace gitteh {
 
 Persistent<FunctionTemplate> Tree::constructor_template;
+
+static Handle<Object> CreateEntryObject(const git_tree_entry *entry) {
+	Handle<Object> obj = Object::New();
+
+	ImmutableSet(obj, entry_id_symbol, CastToJS(git_tree_entry_id(entry)));
+	ImmutableSet(obj, entry_name_symbol, CastToJS(git_tree_entry_name(entry)));
+	ImmutableSet(obj, entry_attributes_symbol, CastToJS(
+		git_tree_entry_attributes(entry)));
+	ImmutableSet(obj, entry_type_symbol, CastToJS(GitObjectTypeToString(
+		git_tree_entry_type(entry))));
+	return obj;
+}
 
 void Tree::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	tree_class_symbol = NODE_PSYMBOL("Tree");
-	id_symbol = NODE_PSYMBOL("id");
-	entries_symbol = NODE_PSYMBOL("entries");
-
-	entry_id_symbol = NODE_PSYMBOL("id");
-	entry_name_symbol = NODE_PSYMBOL("name");
+	tree_class_symbol 		= NODE_PSYMBOL("Tree");
+	id_symbol 				= NODE_PSYMBOL("id");
+	entries_symbol 			= NODE_PSYMBOL("entries");
+	entry_id_symbol 		= NODE_PSYMBOL("id");
+	entry_name_symbol 		= NODE_PSYMBOL("name");
+	entry_type_symbol 		= NODE_PSYMBOL("type");
 	entry_attributes_symbol = NODE_PSYMBOL("attributes");
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(String::New("Tree"));
+	constructor_template->SetClassName(tree_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
-
-	NODE_SET_PROTOTYPE_METHOD(t, "save", Save);
 
 	target->Set(tree_class_symbol, constructor_template->GetFunction());
 }
 
 Handle<Value> Tree::New(const Arguments& args) {
 	HandleScope scope;
-
-	REQ_ARGS(1);
 	REQ_EXT_ARG(0, treeArg);
 
-	Tree *tree = static_cast<Tree*>(treeArg->Value());
-	tree->Wrap(args.This());
+	Tree *treeObj = static_cast<Tree*>(treeArg->Value());
+	treeObj->Wrap(args.This());
 
-	tree->processInitData();
+	Handle<Object> me = args.This();
+
+	git_tree *tree = treeObj->tree_;
+
+	ImmutableSet(me, id_symbol, CastToJS(&treeObj->oid_));
+
+	Handle<Array> entries = Array::New();
+	int entryCount = git_tree_entrycount(tree);
+	for(int i = 0; i < entryCount; i++) {
+		entries->Set(i, CreateEntryObject(git_tree_entry_byindex(tree, i)));
+	}
+	ImmutableSet(me, entries_symbol, entries);
 
 	return args.This();
 }
 
-Handle<Value> Tree::Save(const Arguments& args) {
-	HandleScope scope;
-
-	THROW_ERROR("Not yet implemented.");
-}
-
-#ifdef FIXME
-int Tree::EIO_Save(eio_req *req) {
-	save_request *reqData = static_cast<save_request*>(req->data);
-
-	reqData->tree->repository_->lockRepository();
-	reqData->error = git_object_write((git_object *)reqData->tree->tree_);
-
-	if(reqData->error == GIT_OK) {
-		const git_oid *treeOid = git_tree_id(reqData->tree->tree_);
-		git_oid_fmt(reqData->id, treeOid);
-	}
-
-	reqData->tree->repository_->unlockRepository();
-
-	return 0;
-}
-
-int Tree::EIO_AfterSave(eio_req *req) {
-	HandleScope scope;
-
-	save_request *reqData = static_cast<save_request*>(req->data);
-
-	ev_unref(EV_DEFAULT_UC);
- 	reqData->tree->Unref();
-
-	Handle<Value> callbackArgs[2];
- 	if(reqData->error != GIT_OK) {
- 		Handle<Value> error = Exception::Error(String::New("Couldn't save tree."));
- 		callbackArgs[0] = error;
- 		callbackArgs[1] = Null();
-	}
-	else {
-		reqData->tree->handle_->ForceSet(String::New("id"),String::New(reqData->id, 40),
-				(PropertyAttribute)(ReadOnly | DontDelete));
-
- 		callbackArgs[0] = Null();
- 		callbackArgs[1] = True();
-	}
-
-
-	TRIGGER_CALLBACK();
-	reqData->callback.Dispose();
-	delete reqData;
-	return 0;
-}
-#endif
-
-Tree::Tree(git_tree *tree) {
+Tree::Tree(git_tree *tree) : GitObject((git_object*)tree) {
 	tree_ = tree;
 }
 
 Tree::~Tree() {
-	repository_->lockRepository();
-	git_tree_close(tree_);
-	repository_->unlockRepository();
+	if(tree_) {
+		git_tree_free(tree_);
+		tree_ = NULL;
+	}
 }
-
+/*
 void Tree::processInitData() {
 	HandleScope scope;
 	Handle<Object> jsObject = handle_;
@@ -206,6 +154,6 @@ int Tree::doInit() {
 
 void Tree::setOwner(void *owner) {
 	repository_ = static_cast<Repository*>(owner);
-}
+}*/
 
 } // namespace gitteh
