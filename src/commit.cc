@@ -102,16 +102,29 @@ Handle<Value> Commit::New(const Arguments& args) {
 
 	git_commit *commit = commitObj->commit_;
 	char oidStr[40];
-	const git_oid *oid = git_commit_id(commit);
-	const git_oid *treeOid = git_commit_tree_oid(commit);
+	const git_oid *oid;
 
+	oid = git_commit_id(commit);
 	git_oid_fmt(oidStr, oid);
 	ImmutableSet(me, id_symbol, CastToJS(oidStr));
-	git_oid_fmt(oidStr, treeOid);
+
+	oid = git_commit_tree_oid(commit);
+	git_oid_fmt(oidStr, oid);
 	ImmutableSet(me, tree_id_symbol, CastToJS(oidStr));
+
 	ImmutableSet(me, message_symbol, CastToJS(git_commit_message(commit)));
 	const char *encoding = git_commit_message_encoding(commit);
 	if(encoding) ImmutableSet(me, message_encoding_symbol, CastToJS(encoding));
+
+	// TODO: immutable me bro.
+	Handle<Array> parents = Array::New();
+	int parentCount = git_commit_parentcount(commit);
+	for(int i = 0; i < parentCount; i++) {
+		oid = git_commit_parent_oid(commit, i);
+		git_oid_fmt(oidStr, oid);
+		parents->Set(i, String::New(oidStr));
+	}
+	me->Set(parents_symbol, parents);
 
 	// commit->processInitData();
 
