@@ -110,7 +110,8 @@ namespace cvv8 {
 	template<>
 	struct NativeToJS<git_oid> {
 		Handle<Value> operator() (git_oid const *oid) const {
-			char oidStr[40];
+			char oidStr[41];
+			oidStr[40] = 0;
 			git_oid_fmt(oidStr, oid);
 			return CastToJS(oidStr);
 		}
