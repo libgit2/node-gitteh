@@ -1,6 +1,6 @@
 Gitteh = require "../build/Release/gitteh"
 
-{Repository, Commit} = Gitteh
+{Repository, Commit, Tree} = Gitteh
 
 wrap = (clazz, fn, prototype, newFn) ->
 	orig = if prototype then clazz.prototype[fn] else clazz[fn]
@@ -23,11 +23,13 @@ wrap Gitteh, "initRepository", false, (shadowed, path, bare, cb) ->
 wrap Repository, "exists", true, (shadowed, oid, cb) ->
 	shadowed oid, cb
 
-wrap Repository, "getCommit", true, (shadowed, oid, cb) ->
-	shadowed oid, wrappedCb
-
 Repository.prototype.commit = (oid, cb) ->
-	@object oid, cb
-
+	@object oid, (err, commit) ->
+		return cb err if err
+		return cb new TypeError "#{oid} is not a Commit!" if commit not instanceof Commit
+		cb err, commit
 Repository.prototype.tree = (oid, cb) ->
-	@object oid, cb
+	@object oid, (err, tree) ->
+		return cb err if err
+		return cb new TypeError "#{oid} is not a Tree!" if tree not instanceof Tree
+		cb err, tree

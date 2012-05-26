@@ -447,7 +447,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	// KNOW MORE ABOUT NOT BEING A SHITHEAD AT CODING SHIT THEN I'LL REVISIT
 	// THIS SUCKER.
 	repoObj->Ref();
-	return scope.Close(args.This());
+	return args.This();
 }
 
 Handle<Value> Repository::OpenRepository(const Arguments& args) {
@@ -552,24 +552,15 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 	}
 	else {
 		GitObject *obj = baton->repo->cache_.wrap(baton->object);
+		if(obj == NULL) {
+			return;
+		}
 
-		Handle<Value> argv[] = { Null(), Local<Object>::New(obj->handle_) };
+		Handle<Value> argv[] = { Null(), obj->handle_ };
 		FireCallback(baton->callback, 2, argv);
-
-		/*switch(git_object_type(baton->object)) {
-			case GIT_OBJ_COMMIT: {
-				
-				Handle<Value> constructorArgs[] = { External::New(baton->repo) };
-				Handle<Object> obj = Repository::constructor_template->GetFunction()
-								->NewInstance(1, constructorArgs);
-
-				Handle<Value> argv[] = { Null(), obj };
-				FireCallback(baton->callback, 2, argv);
-				break;
-			}
-			default: {}
-		}*/
 	}
+
+	delete baton;
 }
 
 Handle<Value> Repository::wrapObject(git_object *obj) {

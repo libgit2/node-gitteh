@@ -10,6 +10,8 @@ bool operator <(const git_oid l, const git_oid r) {
 
 namespace gitteh {
 	GitObject *GitObjectCache::wrap(git_object *obj) {
+		HandleScope scope;
+
 		const git_oid *oid = git_object_id(obj);
 		GitObject *wrappedObj;
 
