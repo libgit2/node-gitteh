@@ -3,6 +3,7 @@ should = require "should"
 gitteh = require "../lib/gitteh"
 fixtures = require "./fixtures"
 
+###
 describe "Repository", ->
 	describe "Using the project repo...", ->
 		repo = null
@@ -40,3 +41,4 @@ describe "Repository", ->
 				repo.exists "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14", (err, exists) ->
 					exists.should.be.true
 					done()
+###

@@ -54,8 +54,8 @@ namespace gitteh {
 		TryCatch tryCatch;
 		callback->Call(Context::GetCurrent()->Global(), argc, argv);
 		if(tryCatch.HasCaught()) {
-			 FatalException(tryCatch);
-			 return false;
+			FatalException(tryCatch);
+			return false;
 		}
 
 		return true;

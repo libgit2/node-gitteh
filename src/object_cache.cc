@@ -33,7 +33,9 @@ namespace gitteh {
 				constructor = Tree::constructor_template->GetFunction();
 				break;
 			}
-			default: {}
+			default: {
+				assert(0);
+			}
 		}
 
 		wrappedObj->Init(repo_);
@@ -54,6 +56,7 @@ namespace gitteh {
 	}
 
 	void GitObjectCache::evict(GitObject *obj) {
+		std::cout << "erase" << std::endl;
 		cache_.erase(obj->oid_);
 	}
 

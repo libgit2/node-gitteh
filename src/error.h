@@ -7,9 +7,9 @@ namespace gitteh {
 	static inline void ErrorInit(Handle<Object> target) {
 		HandleScope scope;
 
-		Handle<Object> errorsObj = Object::New();
-		target->Set(String::New("error"), errorsObj);
-/*
+		/*Handle<Object> errorsObj = Object::New();
+		target->Set(String::NewSymbol("error"), errorsObj);
+
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_OK);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_ERROR);
 		NODE_DEFINE_CONSTANT(errorsObj, GIT_ENOTOID);

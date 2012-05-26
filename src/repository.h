@@ -33,8 +33,8 @@ public:
 	// Big ugly hacks, I hope to remove these someday. Pretty much any operation
 	// on a libgit2 repository needs to be locked to one thread at a time, as
 	// libgit2 is not thread safe in the slightest.
-	// void lockRepository();
-	// void unlockRepository();
+	void lockRepository();
+	void unlockRepository();
 
 	// void lockRefs();
 	// void unlockRefs();
@@ -158,7 +158,7 @@ private:
 	// example. However for now I want this thing to *just work*, I'll worry 
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
-	// gitteh_lock gitLock_;
+	gitteh_lock gitLock_;
 
 	// This lock is used during ref packing. The problem is ref packing will
 	// invalidate our previously cached pointers. Ugh. So what we do is update

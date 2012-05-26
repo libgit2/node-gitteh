@@ -1,4 +1,4 @@
-Gitteh = require "../build/Release/gitteh"
+Gitteh = require "../build/Debug/gitteh"
 
 {Repository, Commit, Tree} = Gitteh
 

@@ -38,6 +38,8 @@ namespace gitteh {
 Persistent<FunctionTemplate> Tree::constructor_template;
 
 static Handle<Object> CreateEntryObject(const git_tree_entry *entry) {
+	HandleScope scope;
+
 	Handle<Object> obj = Object::New();
 
 	ImmutableSet(obj, entry_id_symbol, CastToJS(git_tree_entry_id(entry)));
@@ -46,7 +48,7 @@ static Handle<Object> CreateEntryObject(const git_tree_entry *entry) {
 		git_tree_entry_attributes(entry)));
 	ImmutableSet(obj, entry_type_symbol, CastToJS(GitObjectTypeToString(
 		git_tree_entry_type(entry))));
-	return obj;
+	return scope.Close(obj);
 }
 
 void Tree::Init(Handle<Object> target) {
@@ -101,59 +103,5 @@ Tree::~Tree() {
 		tree_ = NULL;
 	}
 }
-/*
-void Tree::processInitData() {
-	HandleScope scope;
-	Handle<Object> jsObject = handle_;
-
-	tree_data *treeData = initData_;
-
-	jsObject->Set(id_symbol, String::New(treeData->id, 40),
-			(PropertyAttribute)(ReadOnly | DontDelete));
-
-	Handle<Array> entriesArray = Array::New(treeData->entryCount);
-	for(int i = 0; i < treeData->entryCount; i++) {
-		tree_entry_data *entryData = treeData->entries[i];
-		Handle<Object> entryObject = Object::New();
-		entryObject->Set(entry_id_symbol, String::New(entryData->id, 40));
-		entryObject->Set(entry_name_symbol, String::New(entryData->name->c_str()));
-		entryObject->Set(entry_attributes_symbol, Integer::New(entryData->attributes));
-
-		entriesArray->Set(i, entryObject);
-		delete entryData->name;
-		delete entryData;
-	}
-
-	jsObject->Set(entries_symbol, entriesArray);
-
-	delete treeData->entries;
-	delete treeData;
-}
-
-int Tree::doInit() {
-	tree_data *data = initData_ = new tree_data;
-
-	repository_->lockRepository();
-	data->entryCount = git_tree_entrycount(tree_);
-	const git_oid *treeOid = git_tree_id(tree_);
-	git_oid_fmt(data->id, treeOid);
-
-	data->entries = new tree_entry_data*[data->entryCount];
-	for(int i = 0; i < data->entryCount; i++) {
-		git_tree_entry *gitEntry = git_tree_entry_byindex(tree_, i);
-		tree_entry_data *entryData = new tree_entry_data;
-		git_oid_fmt(entryData->id, git_tree_entry_id(gitEntry));
-		entryData->name = new std::string(git_tree_entry_name(gitEntry));
-		entryData->attributes = git_tree_entry_attributes(gitEntry);
-		data->entries[i] = entryData;
-	}
-	repository_->unlockRepository();
-
-	return GIT_OK;
-}
-
-void Tree::setOwner(void *owner) {
-	repository_ = static_cast<Repository*>(owner);
-}*/
 
 } // namespace gitteh

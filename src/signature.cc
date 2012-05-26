@@ -14,11 +14,13 @@ void SignatureInit() {
 	}
 
 	Handle<Object> CreateSignature(const git_signature *sig) {
+		HandleScope scope;
+
 		Handle<Object> sigObj = Object::New();
 		ImmutableSet(sigObj, sig_name_symbol, CastToJS(sig->name));
 		ImmutableSet(sigObj, sig_email_symbol, CastToJS(sig->email));
 		ImmutableSet(sigObj, sig_time_symbol, Date::New(sig->when.time * 1000));
 		ImmutableSet(sigObj, sig_offset_symbol, CastToJS(sig->when.offset));
-		return sigObj;
+		return scope.Close(sigObj);
 	}
 };
