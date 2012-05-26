@@ -92,7 +92,7 @@ Repository::Repository() : cache_(this) {
 }
 
 Repository::~Repository() {
-	// std::cout << "~Repository" << std::endl;
+	std::cout << "~Repository" << std::endl;
 	if(odb_) {
 		git_odb_free(odb_);
 		odb_ = NULL;
@@ -299,45 +299,22 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		/*Handle<Value> ref = baton->repo->cache_.wrap(baton->object, &obj);
+		GitObject *obj;
+		Handle<Value> ref = baton->repo->cache_.wrap(baton->object, &obj);
 		if(obj == NULL) {
 			return;
-		}*/
-
-		git_object *obj = baton->object;
-		git_otype type = git_object_type(obj);
-		Handle<Function> constructor;
-		GitObject *wrappedObj;
-		switch(type) {
-			case GIT_OBJ_COMMIT: {
-				wrappedObj = new Commit((git_commit*)obj);
-				constructor = Commit::constructor_template->GetFunction();
-				break;
-			}
-			case GIT_OBJ_TREE: {
-				wrappedObj = new Tree((git_tree*)obj);
-				constructor = Tree::constructor_template->GetFunction();
-				break;
-			}
-			default: {
-				assert(0);
-			}
 		}
 
-		wrappedObj->Init(baton->repo);
-		Handle<Value> constructorArgs[] = { External::New(wrappedObj) };
-		Handle<Value> ref = constructor->NewInstance(1, constructorArgs);
-		Persistent<Value> fuckyoucunt = Persistent<Value>::New(ref);
-		// Handle<Value> argv[] = { Null(), fuckyoucunt }; //Local<Object>::New(obj->handle_) };
-		// Handle<Value> argv[] = { Null(), fuckyoucunt };
-		Handle<Value> argv[] = { Null(), Local<Object>::New(wrappedObj->handle_) };
-		// Handle<Value> argv[] = { Null(), String::New("Fuck off cunt.") }; 
-
-		// FireCallback(baton->callback, 2, argv);
-		baton->callback->Call(Context::GetCurrent()->Global(), 2, argv);
-
-		fuckyoucunt.Dispose();
-		fuckyoucunt.Clear();
+		// For some reason, wrapping a Local around Node ObjectWrap's weakly 
+		// held handle_ doesn't play too nicely with V8, I was getting some
+		// really weird segfaults in V8 internals during the regular unit tests.
+		// Temporarily allocating a Persistent ref during the lifetime of the 
+		// callback seems to be working for now.
+		Persistent<Value> strongRef = Persistent<Value>::New(ref);
+		Handle<Value> argv[] = { Null(), Local<Value>::New(obj->handle_) };
+		FireCallback(baton->callback, 2, argv);
+		strongRef.Dispose();
+		strongRef.Clear();
 	}
 
 	delete baton;

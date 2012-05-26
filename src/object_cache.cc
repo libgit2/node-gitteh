@@ -46,12 +46,10 @@ namespace gitteh {
 		TryCatch tryCatch;
 		Handle<Value> constructorArgs[] = { External::New(wrappedObj) };
 		constructor->NewInstance(1, constructorArgs);
-		wrappedObj->Ref();
 
 		if(tryCatch.HasCaught()) {
 			FatalException(tryCatch);
 			return Undefined();
-			// return NULL;
 		}
 
 		git_oid oidKey;
