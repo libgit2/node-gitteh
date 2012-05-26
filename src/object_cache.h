@@ -3,6 +3,7 @@
 
 #include <git2.h>
 #include <map>
+#include <node.h>
 
 bool operator <(const git_oid l, const git_oid r);
 
@@ -15,7 +16,7 @@ namespace gitteh {
 		GitObjectCache(Repository *repo) {
 			repo_ = repo;
 		}
-		GitObject *wrap(git_object*);
+		v8::Handle<v8::Value> wrap(git_object*, GitObject**);
 		/**
 		 * Rather than setting up our own weakref to the GitObjects we wrap, we
 		 * instead wait for the Repository to inform us of GitObject deaths.

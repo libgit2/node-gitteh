@@ -6,7 +6,6 @@ fixtures = require "./fixtures"
 
 secondCommit = fixtures.projectRepo.secondCommit
 
-###
 describe "Tree", ->
 	repo = null
 	tree = null
@@ -18,7 +17,7 @@ describe "Tree", ->
 
 				# Epic WTF : console.log here prevents an obscure failure in C++
 				# land. Look into this ASAP!
-				console.log " "
+				# console.log " "
 
 				repo.tree secondCommit.tree, (err, _tree) ->
 					tree = _tree
@@ -26,6 +25,10 @@ describe "Tree", ->
 					tree.should.be.an.instanceof gitteh.Tree
 					done()
 	describe "The second project commit tree...", ->
-		it "has correct id", ->
-			tree.id.should.equal secondCommit.tree
-###
+		describe "#id", ->
+			it "is correct", ->
+				tree.id.should.equal secondCommit.tree
+			it "is immutable", -> utils.checkImmutable tree, "id"
+		describe "#entries", ->
+			it "are correct", ->
+				

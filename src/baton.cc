@@ -37,7 +37,7 @@ Handle<Object> Baton::createV8Error() {
 	Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
 		String::New(errorString.c_str())));
 	errObj->Set(String::New("code"), Integer::New(errorCode));
-	return errObj;
+	return scope.Close(errObj);
 }
 
 }; // namespace gitteh

@@ -99,6 +99,7 @@ Commit::Commit(git_commit *commit) : GitObject((git_object*)commit) {
 }
 
 Commit::~Commit() {
+	std::cout << "commit dying."<<std::endl;
 	if(commit_) {
 		git_commit_free(commit_);
 		commit_ = NULL;

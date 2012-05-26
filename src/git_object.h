@@ -7,8 +7,11 @@
 #include <git2.h>
 
 namespace gitteh {
+	class GitObjectCache;
+
 	class GitObject : public ObjectWrap {
 	public:
+		friend class GitObjectCache;
 		git_otype type_;
 		git_oid oid_;
 

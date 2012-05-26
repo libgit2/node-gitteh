@@ -6,7 +6,6 @@ fixtures = require "./fixtures"
 
 secondCommit = fixtures.projectRepo.secondCommit
 
-###
 describe "Commit", ->
 	repo = null
 	commit = null
@@ -87,4 +86,3 @@ describe "Commit", ->
 				it "is valid", ->
 					commit.committer.offset.should.equal 600
 				it "is immutable", -> utils.checkImmutable commit.committer, "offset"
-###

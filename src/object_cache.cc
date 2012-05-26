@@ -9,14 +9,17 @@ bool operator <(const git_oid l, const git_oid r) {
 }
 
 namespace gitteh {
-	GitObject *GitObjectCache::wrap(git_object *obj) {
+	Handle<Value> GitObjectCache::wrap(git_object *obj, GitObject **out) {
 		HandleScope scope;
 
 		const git_oid *oid = git_object_id(obj);
 		GitObject *wrappedObj;
 
 		if(cache_.count(*oid)) {
-			return cache_[*oid];
+			// return cache_[*oid];
+			std::cout << "Cached VICTORY!" << std::endl;
+			*out = cache_[*oid];
+			return scope.Close(Local<Object>::New((*out)->handle_));
 		}
 
 		git_otype type = git_object_type(obj);
@@ -43,16 +46,20 @@ namespace gitteh {
 		TryCatch tryCatch;
 		Handle<Value> constructorArgs[] = { External::New(wrappedObj) };
 		constructor->NewInstance(1, constructorArgs);
+		wrappedObj->Ref();
 
 		if(tryCatch.HasCaught()) {
 			FatalException(tryCatch);
-			return NULL;
+			return Undefined();
+			// return NULL;
 		}
 
 		git_oid oidKey;
 		git_oid_cpy(&oidKey, oid);
 		cache_.insert(std::pair<git_oid, GitObject*>(oidKey, wrappedObj));
-		return wrappedObj;
+
+		*out = wrappedObj;
+		return scope.Close(Local<Object>::New(wrappedObj->handle_));
 	}
 
 	void GitObjectCache::evict(GitObject *obj) {
