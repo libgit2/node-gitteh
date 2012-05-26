@@ -23,6 +23,9 @@ wrap Gitteh, "initRepository", false, (shadowed, path, bare, cb) ->
 wrap Repository, "exists", true, (shadowed, oid, cb) ->
 	shadowed oid, cb
 
+wrap Repository, "object", true, (shadowed, oid, cb) ->
+	shadowed oid, cb
+
 Repository.prototype.commit = (oid, cb) ->
 	@object oid, (err, commit) ->
 		return cb err if err

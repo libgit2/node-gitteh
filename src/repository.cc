@@ -92,6 +92,7 @@ Repository::Repository() : cache_(this) {
 }
 
 Repository::~Repository() {
+	// std::cout << "~Repository" << std::endl;
 	if(odb_) {
 		git_odb_free(odb_);
 		odb_ = NULL;
@@ -118,6 +119,7 @@ void Repository::adopt(GitObject *obj) {
 }
 
 void Repository::disown(GitObject *obj) {
+	// std::cout << "disown()" << std::endl;
 	Unref();
 	cache_.evict(obj);
 }

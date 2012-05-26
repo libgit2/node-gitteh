@@ -22,8 +22,7 @@ openCommitAndTreeSeparately = (i, cb) ->
 	async.parallel
 		commit: (cb) ->
 			gitteh.openRepository projectRepo.path, (err, repo) ->
-				if not repo
-					console.log err
+				return cb err if err?
 				assert repo
 				repo.commit projectRepo.secondCommit.id, cb
 		###
@@ -57,19 +56,20 @@ module.exports = (cb) ->
 	async.series
 		openCommitAndTree: (cb) ->
 			console.time "openCommitAndTree"
-			async.forEach [1..1000], openCommitAndTree, () ->
+			async.forEach [1..1000], openCommitAndTree, (err) ->
+				return cb err if err?
 				console.timeEnd "openCommitAndTree"
 				cb()
 		openCommitAndTreeSeparately: (cb) ->
 			console.time "openCommitAndTreeSeparately"
-			async.forEach [1..1000], openCommitAndTreeSeparately, () ->
+			async.forEach [1..1000], openCommitAndTreeSeparately, (err) ->
+				return cb err if err?
 				console.timeEnd "openCommitAndTreeSeparately"
 				cb()
-		
 		sameCommit: (cb) ->
 			console.time "sameCommit"
-			async.forEach [1..1000], sameCommit, () ->
+			async.forEach [1..1000], sameCommit, (err) ->
+				return cb err if err?
 				console.timeEnd "sameCommit"
 				cb()
-		
 	, cb
