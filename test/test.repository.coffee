@@ -71,3 +71,23 @@ describe "Repository", ->
 				repo.commit fixtures.projectRepo.secondCommit.wscriptBlob, (err, obj) ->
 					should.exist err
 					done()
+		describe "#tree()", ->
+			it "works", (done) ->
+				repo.tree fixtures.projectRepo.secondCommit.tree, (err, obj) ->
+					should.not.exist err
+					obj.should.be.an.instanceof gitteh.Tree
+					done()
+			it "fails for objects that aren't a tree", (done) ->
+				repo.tree fixtures.projectRepo.secondCommit.id, (err, obj) ->
+					should.exist err
+					done()
+		describe "#blob()", ->
+			it "works", (done) ->
+				repo.blob fixtures.projectRepo.secondCommit.wscriptBlob, (err, obj) ->
+					should.not.exist err
+					obj.should.be.an.instanceof gitteh.Blob
+					done()
+			it "fails for objects that aren't a blob", (done) ->
+				repo.blob fixtures.projectRepo.secondCommit.id, (err, obj) ->
+					should.exist err
+					done()
