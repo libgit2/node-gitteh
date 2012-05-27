@@ -1,14 +1,21 @@
-Gitteh = require "../build/Debug/gitteh"
+module.exports = Gitteh = require "../build/Debug/gitteh"
 
-{Repository, Commit, Tree} = Gitteh
+{Repository, Commit, Tree, Blob} = Gitteh
+
+oidRegex = /^[a-zA-Z0-9]{0,40}$/
+checkOid = (str, allowLookup = true) ->
+	throw new TypeError "OID should be a string" if typeof str isnt "string"
+	throw new TypeError "Invalid OID" if not oidRegex.test str
+	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
+	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
 
 wrap = (clazz, fn, prototype, newFn) ->
-	orig = if prototype then clazz.prototype[fn] else clazz[fn]
-	clazz[fn] = ->
+	override = if prototype then clazz.prototype else clazz
+	orig = override[fn]
+
+	override[fn] = ->
 		shadowed = if prototype then orig.bind @ else orig
 		newFn.apply @, [shadowed].concat Array.prototype.slice.call arguments
-
-module.exports = Gitteh
 
 wrap Gitteh, "openRepository", false, (shadowed, path, cb) ->
 	shadowed path, cb
@@ -21,20 +28,27 @@ wrap Gitteh, "initRepository", false, (shadowed, path, bare, cb) ->
 	shadowed path, bare, cb
 
 wrap Repository, "exists", true, (shadowed, oid, cb) ->
+	checkOid oid, false
 	shadowed oid, cb
 
 wrap Repository, "object", true, (shadowed, oid, cb) ->
+	# TODO: change this to true when we support object_lookup_prefix
+	checkOid oid, false
 	shadowed oid, cb
 
+# OBJECT LOOKUP METHODS
+# We do a little bit of extra due dilligence here, ensuring that a call to 
+# commit() for a tree OID fails gracefully-ish.
+
+wrapObjectCallback = (cb, oid, expectedType) ->
+	(err, obj) ->
+		return cb err if err?
+		if obj not instanceof expectedType
+			return cb new TypeError "#{oid} is not a #{expectedType.prototype.constructor.name}"
+		cb err, obj
 Repository.prototype.commit = (oid, cb) ->
-	@object oid, (err, commit) ->
-		return cb err if err
-		return cb new TypeError "#{oid} is not a Commit!" if commit not instanceof Commit
-		cb err, commit
+	@object oid, wrapObjectCallback cb, oid, Commit
 Repository.prototype.tree = (oid, cb) ->
-	@object oid, (err, tree) ->
-		return cb err if err
-		return cb new TypeError "#{oid} is not a Tree!" if tree not instanceof Tree
-		cb err, tree
+	@object oid, wrapObjectCallback cb, oid, Tree
 Repository.prototype.blob = (oid, cb) ->
-	@object oid, cb
+	@object oid, wrapObjectCallback cb, oid, Blob

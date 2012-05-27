@@ -40,3 +40,13 @@ describe "Repository", ->
 				repo.exists "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14", (err, exists) ->
 					exists.should.be.true
 					done()
+			it "should reject invalid oids", ->
+				# Completely invalid oid.
+				(->
+					repo.exists "!!!"
+				).should.throw()
+
+				# Valid oid, but full 40 char oids are required for exists()
+				(->
+					repo.exists "abcd123"
+				).should.throw()
