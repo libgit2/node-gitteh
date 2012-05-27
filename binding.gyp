@@ -11,6 +11,7 @@
 				'src/baton.cc',
 				'src/commit.cc',
 				'src/tree.cc',
+				'src/blob.cc',
 			],
 			'todosources': [
 				'src/index.cc',
@@ -18,7 +19,6 @@
 				'src/tag.cc',
 				'src/rev_walker.cc',
 				'src/ref.cc',
-				'src/blob.cc'
 			],
 
 			'include_dirs': [

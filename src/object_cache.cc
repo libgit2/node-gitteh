@@ -2,6 +2,7 @@
 #include "git_object.h"
 #include "commit.h"
 #include "tree.h"
+#include "blob.h"
 
 // Implement < operator for git_oid so we can use it as key in STL map.
 bool operator <(const git_oid l, const git_oid r) {
@@ -35,6 +36,10 @@ namespace gitteh {
 				wrappedObj = new Tree((git_tree*)obj);
 				constructor = Tree::constructor_template->GetFunction();
 				break;
+			}
+			case GIT_OBJ_BLOB: {
+				wrappedObj = new Blob((git_blob*)obj);
+				constructor = Blob::constructor_template->GetFunction();
 			}
 			default: {
 				assert(0);

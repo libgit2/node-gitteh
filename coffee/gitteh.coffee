@@ -36,3 +36,5 @@ Repository.prototype.tree = (oid, cb) ->
 		return cb err if err
 		return cb new TypeError "#{oid} is not a Tree!" if tree not instanceof Tree
 		cb err, tree
+Repository.prototype.blob = (oid, cb) ->
+	@object oid, cb

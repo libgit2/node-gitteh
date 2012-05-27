@@ -6,6 +6,7 @@
 #include <node.h>
 #include <git2.h>
 #include <node_object_wrap.h>
+#include <node_buffer.h>
 #include <iostream>
 #include <string>
 #include <cstring>
@@ -102,6 +103,21 @@ namespace gitteh {
 				assert(0);
 			}
 		}
+	}
+
+	static inline Handle<Value> MakeFastBuffer(Buffer *slowBuffer, int size) {
+		HandleScope scope;
+
+		Handle<Object> global = Context::GetCurrent()->Global();
+		Handle<Function> bufferConstructor = Local<Function>::Cast(
+			global->Get(String::New("Buffer")));
+
+		Handle<Value> argv[] = {
+			slowBuffer->handle_, Integer::New(size), Integer::New(0)
+		};
+		Handle<Value> fastBuffer = bufferConstructor->NewInstance(3, argv);
+
+		return scope.Close(fastBuffer);
 	}
 
 } // namespace gitteh
