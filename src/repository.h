@@ -84,7 +84,7 @@ protected:
 	static Handle<Value> ListReferences(const Arguments&);
 	static Handle<Value> PackReferences(const Arguments&);*/
 
-	// void close();
+	void close();
 
 private:
 	GitObjectCache cache_;
