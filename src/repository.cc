@@ -29,15 +29,17 @@
 #include "commit.h"
 #include "tree.h"
 
+using std::vector;
+
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
 static Persistent<String> bare_symbol;
-
 static Persistent<String> git_dir_symbol;
 static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
+static Persistent<String> remotes_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
@@ -48,6 +50,7 @@ class OpenRepoBaton : public Baton {
 public:
 	string path	;
 	git_repository *repo;
+	vector<string> remotes;
 
 	OpenRepoBaton(string path) : Baton(), path(path) {}	;
 };
@@ -147,6 +150,7 @@ void Repository::Init(Handle<Object> target) {
 	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
 	index_file_symbol = NODE_PSYMBOL("indexFile");
 	work_dir_symbol = NODE_PSYMBOL("workDir");
+	remotes_symbol = NODE_PSYMBOL("remotes");
 
 	// Reference symbols
 	ref_name_symbol = NODE_PSYMBOL("name");
@@ -173,6 +177,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_EXT_ARG(0, repoArg);
+	REQ_EXT_ARG(1, remotesArg);
 	Handle<Object> me = args.This();
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
@@ -193,6 +198,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 	const char *workDir = git_repository_workdir(repo);
 	if(workDir) ImmutableSet(me, work_dir_symbol, CastToJS(workDir));
 
+	vector<string> *remotes = static_cast<vector<string>*>(remotesArg->Value());
+	ImmutableSet(me, remotes_symbol, CastToJS(*remotes));
+
 	return args.This();
 }
 
@@ -210,7 +218,16 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 void Repository::AsyncOpenRepository(uv_work_t *req) {
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
-	AsyncLibCall(git_repository_open(&baton->repo, baton->path.c_str()), baton);
+	if(AsyncLibCall(git_repository_open(&baton->repo, baton->path.c_str()),
+			baton)) {
+		git_strarray remotes;
+		if(AsyncLibCall(git_remote_list(&remotes, baton->repo), baton)) {
+			for(int i = 0; i < remotes.count; i++) {
+				baton->remotes.push_back(string(remotes.strings[i]));
+			}
+			git_strarray_free(&remotes);
+		}
+	}
 }
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
@@ -223,9 +240,12 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	}
 	else {
 		// Call the Repository JS constructor to get our JS object.
-		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Handle<Value> constructorArgs[] = {
+			External::New(baton->repo),
+			External::New(&baton->remotes)
+		};
 		Local<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(1, constructorArgs);
+						->NewInstance(2, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
