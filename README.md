@@ -1,5 +1,7 @@
 # Gitteh
 
+**NOTE: Gitteh is currently undergoing heavy refactoring/rewriting to both not suck and be compatible with v0.17.0. Watch this space!**
+
 ## What?
 
 Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. The bindings cover *most* of the libgit2 API, however I took some liberties. For example...
