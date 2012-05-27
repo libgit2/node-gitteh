@@ -15,10 +15,6 @@ describe "Tree", ->
 			gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
 				repo = _repo
 
-				# Epic WTF : console.log here prevents an obscure failure in C++
-				# land. Look into this ASAP!
-				# console.log " "
-
 				repo.tree secondCommit.tree, (err, _tree) ->
 					tree = _tree
 					should.not.exist err

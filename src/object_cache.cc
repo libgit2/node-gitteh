@@ -40,6 +40,7 @@ namespace gitteh {
 			case GIT_OBJ_BLOB: {
 				wrappedObj = new Blob((git_blob*)obj);
 				constructor = Blob::constructor_template->GetFunction();
+				break;
 			}
 			default: {
 				assert(0);
