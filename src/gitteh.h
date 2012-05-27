@@ -74,11 +74,14 @@ namespace gitteh {
 		return 1;
 	}
 
-	static inline void AsyncLibCall(int result, Baton *baton) {
+	static inline int AsyncLibCall(int result, Baton *baton) {
 		const git_error *err;
 		if(!LibCall(result, &err)) {
 			baton->setError(err);
+			return 0;
 		}
+
+		return 1;
 	}
 
 	static inline void ImmutableSet(Handle<Object> o, Handle<Value> k, Handle<Value> v) {

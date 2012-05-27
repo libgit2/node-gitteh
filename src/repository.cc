@@ -39,6 +39,11 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
 
+static Persistent<String> ref_name_symbol;
+static Persistent<String> ref_direct_symbol;
+static Persistent<String> ref_packed_symbol;
+static Persistent<String> ref_target_symbol;
+
 class OpenRepoBaton : public Baton {
 public:
 	string path	;
@@ -81,6 +86,15 @@ public:
 	char oidLength;
 	git_object *object;
 	GetObjectBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
+};
+
+class GetReferenceBaton : public RepositoryBaton {
+public:
+	string name;
+	git_reference *ref;
+	bool resolve;
+
+	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
 Persistent<FunctionTemplate> Repository::constructor_template;
@@ -134,32 +148,20 @@ void Repository::Init(Handle<Object> target) {
 	index_file_symbol = NODE_PSYMBOL("indexFile");
 	work_dir_symbol = NODE_PSYMBOL("workDir");
 
+	// Reference symbols
+	ref_name_symbol = NODE_PSYMBOL("name");
+	ref_direct_symbol = NODE_PSYMBOL("direct");
+	ref_packed_symbol = NODE_PSYMBOL("packed");
+	ref_target_symbol = NODE_PSYMBOL("target");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(repo_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
-/*
-	NODE_SET_PROTOTYPE_METHOD(t, "getTree", GetTree);
-	NODE_SET_PROTOTYPE_METHOD(t, "getTag", GetTag);
-	NODE_SET_PROTOTYPE_METHOD(t, "getReference", GetReference);
-	NODE_SET_PROTOTYPE_METHOD(t, "getBlob", GetBlob);
-
-	NODE_SET_PROTOTYPE_METHOD(t, "createWalker", CreateWalker);
-	NODE_SET_PROTOTYPE_METHOD(t, "createTag", CreateTag);
-	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
-	NODE_SET_PROTOTYPE_METHOD(t, "createBlob", CreateBlob);
-	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
-	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidRef);
-	NODE_SET_PROTOTYPE_METHOD(t, "createSymbolicReference", CreateSymbolicRef);
-
-	NODE_SET_PROTOTYPE_METHOD(t, "listReferences", ListReferences);
-	NODE_SET_PROTOTYPE_METHOD(t, "packReferences", PackReferences);
-	*/
 
 	NODE_SET_PROTOTYPE_METHOD(t, "object", GetObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
-
-	// NODE_SET_PROTOTYPE_METHOD(t, "getIndex", GetIndex);
+	NODE_SET_PROTOTYPE_METHOD(t, "reference", GetReference);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -311,6 +313,73 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 	}
 
 	delete baton;
+}
+
+Handle<Value> Repository::GetReference(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	GetReferenceBaton *baton = new GetReferenceBaton(repo, 
+		CastFromJS<string>(args[0]));
+	baton->resolve = CastFromJS<bool>(args[1]);
+	baton->setCallback(args[2]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetReference,
+		AsyncAfterGetReference);
+	return Undefined();
+}
+
+void Repository::AsyncGetReference(uv_work_t *req) {
+	GetReferenceBaton *baton = GetBaton<GetReferenceBaton>(req);
+
+	git_reference *ref;
+	if(AsyncLibCall(git_reference_lookup(&ref, baton->repo->repo_,
+			baton->name.c_str()), baton)) {
+		if(baton->resolve) {
+			AsyncLibCall(git_reference_resolve(&baton->ref, ref), baton);
+			git_reference_free(ref);
+		}
+		else {
+			baton->ref = ref;
+		}
+	}
+}
+
+void Repository::AsyncAfterGetReference(uv_work_t *req) {
+	HandleScope scope;
+	GetReferenceBaton *baton = GetBaton<GetReferenceBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> argv[] = { Null(), CreateReferenceObject(baton->ref) };
+		FireCallback(baton->callback, 2, argv);
+		git_reference_free(baton->ref);
+	}
+
+	delete baton;
+}
+
+Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
+	HandleScope scope;
+
+	Handle<Object> obj = Object::New();
+
+	git_ref_t refType = git_reference_type(ref);
+	obj->Set(ref_name_symbol, CastToJS(git_reference_name(ref)));
+	obj->Set(ref_direct_symbol, CastToJS<bool>(refType == GIT_REF_OID));
+	obj->Set(ref_packed_symbol, CastToJS<bool>(git_reference_is_packed(ref)));
+
+	if(refType == GIT_REF_OID) {
+		obj->Set(ref_target_symbol, CastToJS(git_reference_oid(ref)));
+	}
+	else {
+		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
+	}
+
+	return scope.Close(obj);
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {

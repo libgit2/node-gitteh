@@ -52,3 +52,12 @@ Repository.prototype.tree = (oid, cb) ->
 	@object oid, wrapObjectCallback cb, oid, Tree
 Repository.prototype.blob = (oid, cb) ->
 	@object oid, wrapObjectCallback cb, oid, Blob
+
+wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
+	if typeof resolve is "function"
+		cb = resolve
+		resolve = false
+	shadowed name, resolve, cb
+
+Repository.prototype.ref = (name, resolve, cb) ->
+	@reference name, resolve, cb

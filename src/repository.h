@@ -36,17 +36,6 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
-	// void lockRefs();
-	// void unlockRefs();
-
-	/*WrappedGitObjectCache<Commit, git_commit> *commitCache_;
-	WrappedGitObjectCache<Tag, git_tag> *tagCache_;
-	WrappedGitObjectCache<Tree, git_tree> *treeCache_;
-	WrappedGitObjectCache<Reference, git_reference> *referenceCache_;
-	WrappedGitObjectCache<Blob, git_blob> *blobCache_;*/
-
-	// void notifyIndexDead();
-
 	void adopt(GitObject*);
 	void disown(GitObject*);
 
@@ -59,44 +48,13 @@ protected:
 
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetObject(const Arguments&);
-
-	/*static Handle<Value> GetODB(const Arguments&);
-	static Handle<Value> GetCommit(const Arguments&);
-	static Handle<Value> GetTree(const Arguments&);
-	static Handle<Value> GetTag(const Arguments&);
-	static Handle<Value> GetRawObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
-	static Handle<Value> GetBlob(const Arguments&);
-
-	static Handle<Value> GetIndex(const Arguments&);*/
-
 	static Handle<Value> Exists(const Arguments&);
-
-	/*static Handle<Value> CreateRawObject(const Arguments&);
-	static Handle<Value> CreateTag(const Arguments&);
-	static Handle<Value> CreateTree(const Arguments&);
-	static Handle<Value> CreateCommit(const Arguments&);
-	static Handle<Value> CreateWalker(const Arguments&);
-	static Handle<Value> CreateSymbolicRef(const Arguments&);
-	static Handle<Value> CreateOidRef(const Arguments&);
-	static Handle<Value> CreateBlob(const Arguments&);
-
-	static Handle<Value> ListReferences(const Arguments&);
-	static Handle<Value> PackReferences(const Arguments&);*/
 
 	void close();
 
 private:
 	GitObjectCache cache_;
-	/*int getTree(git_oid*, git_tree**);
-	int getTag(git_oid*, git_tag**);
-	int getCommit(git_oid*, git_commit**);
-	int getReference(const char*, git_reference**);
-	int getBlob(git_oid*, git_blob**);
-
-	RevWalker *wrapRevWalker(git_revwalk*);
-
-	int createRevWalker(git_revwalk**);*/
 
 	Handle<Value> wrapObject(git_object*);
 
@@ -113,44 +71,11 @@ private:
 	static void AsyncGetObject(uv_work_t*);
 	static void AsyncAfterGetObject(uv_work_t*);
 
-/*	static void EIO_OpenRepository2(eio_req*);
-	static int EIO_AfterOpenRepository2(eio_req*);
+	static void AsyncGetReference(uv_work_t*);
+	static void AsyncAfterGetReference(uv_work_t*);
 
-	static void EIO_GetTree(eio_req*);
-	static void EIO_CreateTree(eio_req*);
-	static int EIO_ReturnTree(eio_req*);
+	static Handle<Object> CreateReferenceObject(git_reference*);
 	
-	static void EIO_GetTag(eio_req*);
-	static int EIO_ReturnTag(eio_req*);
-	
-	static void EIO_GetRawObject(eio_req*);
-	static void EIO_CreateRawObject(eio_req*);
-	static int EIO_ReturnRawObject(eio_req*);
-
-	static void EIO_GetReference(eio_req*);
-	static void EIO_CreateSymbolicRef(eio_req*);
-	static void EIO_CreateOidRef(eio_req*);
-	static int EIO_ReturnReference(eio_req*);
-
-	static void EIO_CreateRevWalker(eio_req*);
-	static int EIO_ReturnRevWalker(eio_req*);
-
-	static void EIO_GetRefList(eio_req*);
-	static int EIO_AfterGetRefList(eio_req*);
-
-	static void EIO_PackRefs(eio_req*);
-	static int EIO_AfterPackRefs(eio_req*);
-
-	static void EIO_InitIndex(eio_req*);
-	static int EIO_ReturnIndex(eio_req*);
-
-	static void EIO_GetBlob(eio_req*);
-	static int EIO_ReturnBlob(eio_req*);
-
-	int DoRefPacking();
-
-	Index *index_;*/
-
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,
 	// as I'm sure working on the index file or working on a specific ref isn't
