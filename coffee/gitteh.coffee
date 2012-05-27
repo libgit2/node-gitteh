@@ -33,7 +33,7 @@ wrap Repository, "exists", true, (shadowed, oid, cb) ->
 
 wrap Repository, "object", true, (shadowed, oid, cb) ->
 	# TODO: change this to true when we support object_lookup_prefix
-	checkOid oid, false
+	checkOid oid
 	shadowed oid, cb
 
 # OBJECT LOOKUP METHODS

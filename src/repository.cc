@@ -78,6 +78,7 @@ public:
 class GetObjectBaton : public RepositoryBaton {
 public:
 	git_oid oid;
+	char oidLength;
 	git_object *object;
 	GetObjectBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
 };
@@ -92,7 +93,6 @@ Repository::Repository() : cache_(this) {
 }
 
 Repository::~Repository() {
-	std::cout << "~Repository" << std::endl;
 	if(odb_) {
 		git_odb_free(odb_);
 		odb_ = NULL;
@@ -119,7 +119,6 @@ void Repository::adopt(GitObject *obj) {
 }
 
 void Repository::disown(GitObject *obj) {
-	// std::cout << "disown()" << std::endl;
 	Unref();
 	cache_.evict(obj);
 }
@@ -274,7 +273,9 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 Handle<Value> Repository::GetObject(const Arguments& args) {
 	HandleScope scope;
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+	Handle<String> oidArg = Handle<String>::Cast(args[0]);
 	GetObjectBaton *baton = new GetObjectBaton(repo, CastFromJS<git_oid>(args[0]));
+	baton->oidLength = oidArg->Length();
 	baton->setCallback(args[1]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject, 
 		AsyncAfterGetObject);
@@ -285,8 +286,8 @@ void Repository::AsyncGetObject(uv_work_t *req) {
 	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
 
 	baton->repo->lockRepository();
-	AsyncLibCall(git_object_lookup(&baton->object, baton->repo->repo_, 
-		&baton->oid, GIT_OBJ_ANY), baton);
+	AsyncLibCall(git_object_lookup_prefix(&baton->object, baton->repo->repo_, 
+		&baton->oid, baton->oidLength, GIT_OBJ_ANY), baton);
 	baton->repo->unlockRepository();
 }
 
@@ -305,16 +306,8 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 			return;
 		}
 
-		// For some reason, wrapping a Local around Node ObjectWrap's weakly 
-		// held handle_ doesn't play too nicely with V8, I was getting some
-		// really weird segfaults in V8 internals during the regular unit tests.
-		// Temporarily allocating a Persistent ref during the lifetime of the 
-		// callback seems to be working for now.
-		Persistent<Value> strongRef = Persistent<Value>::New(ref);
 		Handle<Value> argv[] = { Null(), Local<Value>::New(obj->handle_) };
 		FireCallback(baton->callback, 2, argv);
-		strongRef.Dispose();
-		strongRef.Clear();
 	}
 
 	delete baton;
@@ -344,7 +337,6 @@ void Repository::AsyncAfterExists(uv_work_t *req) {
 	Handle<Value> argv[] = { Null(), Boolean::New(baton->exists) };
 	FireCallback(baton->callback, 2, argv);
 
-	baton->callback.Dispose();
 	delete baton;
 }
 

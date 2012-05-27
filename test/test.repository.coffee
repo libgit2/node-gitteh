@@ -50,3 +50,24 @@ describe "Repository", ->
 				(->
 					repo.exists "abcd123"
 				).should.throw()
+		describe "#object()", ->
+			it "works for full OID", (done) ->
+				repo.object "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14", (err, obj) ->
+					should.not.exist err
+					obj.should.be.an.instanceof gitteh.Commit
+					done()
+			it "works for shortened OID", (done) ->
+				repo.object "1f4425ce2a", (err, obj) ->
+					should.not.exist err
+					obj.should.be.an.instanceof gitteh.Commit
+					done()
+		describe "#commit()", ->
+			it "works", (done) ->
+				repo.commit "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14", (err, obj) ->
+					should.not.exist err
+					obj.should.be.an.instanceof gitteh.Commit
+					done()
+			it "fails for objects that aren't a commit", (done) ->
+				repo.commit fixtures.projectRepo.secondCommit.wscriptBlob, (err, obj) ->
+					should.exist err
+					done()

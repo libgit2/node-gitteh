@@ -141,7 +141,7 @@ namespace cvv8 {
 			memset(&id, 0, sizeof(git_oid));
 
 			string idStr = CastFromJS<string>(h);
-			git_oid_fromstr(&id, idStr.c_str());
+			git_oid_fromstrn(&id, idStr.c_str(), idStr.length());
 			return id;
 		}
 	};

@@ -17,8 +17,6 @@ namespace gitteh {
 		GitObject *wrappedObj;
 
 		if(cache_.count(*oid)) {
-			// return cache_[*oid];
-			std::cout << "Cached VICTORY!" << std::endl;
 			*out = cache_[*oid];
 			return scope.Close(Local<Object>::New((*out)->handle_));
 		}
@@ -67,7 +65,6 @@ namespace gitteh {
 	}
 
 	void GitObjectCache::evict(GitObject *obj) {
-		std::cout << "erase" << std::endl;
 		cache_.erase(obj->oid_);
 	}
 

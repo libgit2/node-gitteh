@@ -98,7 +98,6 @@ Tree::Tree(git_tree *tree) : GitObject((git_object*)tree) {
 }
 
 Tree::~Tree() {
-	std::cout << "Tree dying." << std::endl;
 	if(tree_) {
 		git_tree_free(tree_);
 		tree_ = NULL;
