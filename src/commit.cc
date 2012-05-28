@@ -62,8 +62,8 @@ namespace gitteh {
 				parents->Set(i, CastToJS(git_commit_parent_oid(cm, i)));
 			}
 			o->Set(parents_symbol, parents);
-			o->Set(author_symbol, Signature::Create(git_commit_author(cm)));
-			o->Set(committer_symbol, Signature::Create(git_commit_committer(cm)));
+			o->Set(author_symbol, CastToJS(git_commit_author(cm)));
+			o->Set(committer_symbol, CastToJS(git_commit_committer(cm)));
 
 			return scope.Close(o);
 		}

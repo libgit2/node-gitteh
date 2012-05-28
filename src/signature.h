@@ -10,4 +10,11 @@ namespace gitteh {
 	};
 };
 
+namespace cvv8 {
+	template<>
+	struct NativeToJS<git_signature> {
+		Handle<Value> operator() (git_signature const *sig) const;
+	};
+};
+
 #endif // GITTEH_SIGNATURE_H

@@ -18,7 +18,17 @@ immutable = (obj, src) ->
 			return o
 	}
 
+Signature = (obj) ->
+	immutable(@, obj)
+		.set("name")
+		.set("email")
+		.set("time")
+		.set("offset")
+	return @
+
 Gitteh.Commit = Commit = (@repository, obj) ->
+	obj.author = new Signature obj.author
+	obj.committer = new Signature obj.committer
 	immutable(@, obj)
 		.set("id")
 		.set("tree", "treeId")

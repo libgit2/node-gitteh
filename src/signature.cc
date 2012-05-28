@@ -13,15 +13,17 @@ namespace gitteh {
 			time_symbol 	= NODE_PSYMBOL("time");
 			offset_symbol 	= NODE_PSYMBOL("offset");
 		}
-
-		Handle<Object> Create(const git_signature *sig) {
-			HandleScope scope;
-			Handle<Object> o = Object::New();
-			ImmutableSet(o, name_symbol, CastToJS(sig->name));
-			ImmutableSet(o, email_symbol, CastToJS(sig->email));
-			ImmutableSet(o, time_symbol, Date::New(sig->when.time * 1000));
-			ImmutableSet(o, offset_symbol, CastToJS(sig->when.offset));
-			return scope.Close(o);
-		}
 	};
+};
+
+namespace cvv8 {
+	Handle<Value> NativeToJS<git_signature>::operator() (git_signature const *sig) const {
+		HandleScope scope;
+		Handle<Object> o = Object::New();
+		o->Set(name_symbol, CastToJS(sig->name));
+		o->Set(email_symbol, CastToJS(sig->email));
+		o->Set(time_symbol, Date::New(sig->when.time * 1000));
+		o->Set(offset_symbol, CastToJS(sig->when.offset));
+		return scope.Close(o);
+	}
 };
