@@ -97,7 +97,7 @@ public:
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
-Repository::Repository() : cache_(this) {
+Repository::Repository() {
 	CREATE_MUTEX(gitLock_);
 
 	odb_ = NULL;
@@ -124,15 +124,6 @@ Repository::~Repository() {
 	delete blobCache_;
 
 	close();*/
-}
-
-void Repository::adopt(GitObject *obj) {
-	Ref();
-}
-
-void Repository::disown(GitObject *obj) {
-	Unref();
-	cache_.evict(obj);
 }
 
 void Repository::Init(Handle<Object> target) {
