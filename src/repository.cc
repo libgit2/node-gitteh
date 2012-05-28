@@ -320,12 +320,7 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 			}
 		}
 
-		/*
-		GitObject *obj;
-		Handle<Value> ref = baton->repo->cache_.wrap(baton->object, &obj);
-		if(obj == NULL) {
-			return;
-		}*/
+		git_object_free(baton->object);
 
 		Handle<Value> argv[] = { Null(), Local<Value>::New(jsObj) };
 		FireCallback(baton->callback, 2, argv);
