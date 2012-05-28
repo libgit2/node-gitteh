@@ -2,6 +2,33 @@ module.exports = Gitteh = require "../build/Debug/gitteh"
 
 {Repository, Commit, Tree, Blob} = Gitteh
 
+immutable = (obj, src) ->
+	return o = {
+		set: (name, target = name) ->
+			if typeof src[name] is "array"
+				return Object.defineProperty obj, target,
+					get: () -> src[val].slice(0)
+					configurable: false
+					enumerable: true
+			Object.defineProperty obj, target, 
+				value: src[name]
+				writable: false
+				configurable: false
+				enumerable: true
+			return o
+	}
+
+Gitteh.Commit = Commit = (obj) ->
+	immutable(@, obj)
+		.set("id")
+		.set("tree", "treeId")
+		.set("parents")
+		.set("message")
+		.set("messageEncoding")
+		.set("author")
+		.set("committer")
+	return @
+
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
 checkOid = (str, allowLookup = true) ->
 	throw new TypeError "OID should be a string" if typeof str isnt "string"
@@ -47,7 +74,11 @@ wrapObjectCallback = (cb, oid, expectedType) ->
 			return cb new TypeError "#{oid} is not a #{expectedType.prototype.constructor.name}"
 		cb err, obj
 Repository.prototype.commit = (oid, cb) ->
-	@object oid, wrapObjectCallback cb, oid, Commit
+	#@object oid, wrapObjectCallback cb, oid, Commit
+	@object oid, (err, obj) ->
+		return cb err if err?
+		cb null, new Commit obj
+
 Repository.prototype.tree = (oid, cb) ->
 	@object oid, wrapObjectCallback cb, oid, Tree
 Repository.prototype.blob = (oid, cb) ->

@@ -28,81 +28,47 @@
 #include <stdlib.h>
 #include "signature.h"
 
-static Persistent<String> commit_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> message_symbol;
 static Persistent<String> message_encoding_symbol;
 static Persistent<String> author_symbol;
 static Persistent<String> committer_symbol;
 static Persistent<String> tree_symbol;
-static Persistent<String> tree_id_symbol;
 static Persistent<String> parents_symbol;
 
 namespace gitteh {
+	namespace Commit {
+		void Init(Handle<Object> target) {
+			HandleScope scope;
+			id_symbol = NODE_PSYMBOL("id");
+			message_symbol = NODE_PSYMBOL("message");
+			message_encoding_symbol = NODE_PSYMBOL("messageEncoding");
+			author_symbol = NODE_PSYMBOL("author");
+			committer_symbol = NODE_PSYMBOL("committer");
+			tree_symbol = NODE_PSYMBOL("tree");
+			parents_symbol = NODE_PSYMBOL("parents");
+		}
 
-Persistent<FunctionTemplate> Commit::constructor_template;
+		Handle<Object> Create(git_commit *cm) {
+			HandleScope scope;
+			Handle<Object> o = Object::New();
+			o->Set(id_symbol, CastToJS(git_commit_id(cm)));
+			o->Set(tree_symbol, CastToJS(git_commit_tree_oid(cm)));
+			o->Set(message_symbol, CastToJS(git_commit_message(cm)));
+			const char *encoding = git_commit_message_encoding(cm);
+			if(encoding) {
+				o->Set(message_encoding_symbol, CastToJS(encoding));
+			}
+			Handle<Array> parents = Array::New();
+			int parentCount = git_commit_parentcount(cm);
+			for(int i = 0; i < parentCount; i++) {
+				parents->Set(i, CastToJS(git_commit_parent_oid(cm, i)));
+			}
+			o->Set(parents_symbol, parents);
+			o->Set(author_symbol, Signature::Create(git_commit_author(cm)));
+			o->Set(committer_symbol, Signature::Create(git_commit_committer(cm)));
 
-void Commit::Init(Handle<Object> target) {
-	HandleScope scope;
-
-	commit_class_symbol = NODE_PSYMBOL("Commit");
-	id_symbol = NODE_PSYMBOL("id");
-	message_symbol = NODE_PSYMBOL("message");
-	message_encoding_symbol = NODE_PSYMBOL("messageEncoding");
-	author_symbol = NODE_PSYMBOL("author");
-	committer_symbol = NODE_PSYMBOL("committer");
-	tree_symbol = NODE_PSYMBOL("tree");
-	tree_id_symbol = NODE_PSYMBOL("treeId");
-	parents_symbol = NODE_PSYMBOL("parents");
-
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(commit_class_symbol);
-	t->InstanceTemplate()->SetInternalFieldCount(1);
-
-	target->Set(commit_class_symbol, constructor_template->GetFunction());
-}
-
-Handle<Value> Commit::New(const Arguments& args) {
-	HandleScope scope;
-	REQ_EXT_ARG(0, commitArg);
-
-	Commit *commitObj = static_cast<Commit*>(commitArg->Value());
-	commitObj->Wrap(args.This());
-
-	Handle<Object> me = args.This();
-
-	git_commit *commit = commitObj->commit_;
-
-	ImmutableSet(me, id_symbol, CastToJS(&commitObj->oid_));
-	ImmutableSet(me, tree_id_symbol, CastToJS(git_commit_tree_oid(commit)));
-	ImmutableSet(me, message_symbol, CastToJS(git_commit_message(commit)));
-	const char *encoding = git_commit_message_encoding(commit);
-	if(encoding) ImmutableSet(me, message_encoding_symbol, CastToJS(encoding));
-
-	// TODO: immutable me bro.
-	Handle<Array> parents = Array::New();
-	int parentCount = git_commit_parentcount(commit);
-	for(int i = 0; i < parentCount; i++) {
-		parents->Set(i, CastToJS(git_commit_parent_oid(commit, i)));
-	}
-	me->Set(parents_symbol, parents);
-
-	ImmutableSet(me, author_symbol, CreateSignature(git_commit_author(commit)));
-	ImmutableSet(me, committer_symbol, CreateSignature(git_commit_committer(commit)));
-
-	return args.This();
-}
-
-Commit::Commit(git_commit *commit) : GitObject((git_object*)commit) {
-	commit_ = commit;
-}
-
-Commit::~Commit() {
-	if(commit_) {
-		git_commit_free(commit_);
-		commit_ = NULL;
-	}
-}
-
-}; // namespace gitteh
+			return scope.Close(o);
+		}
+	};
+};

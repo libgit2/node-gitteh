@@ -49,7 +49,7 @@ init(Handle<Object> target) {
 	// Initialize libgit2's thread system.
 	git_threads_init();
 
-	SignatureInit();
+	Signature::Init();
 	Repository::Init(target);
 	Commit::Init(target);
 	Tree::Init(target);

@@ -302,13 +302,23 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
+		Handle<Value> jsObj;
+		git_otype type = git_object_type(baton->object);
+		switch(type) {
+			case GIT_OBJ_COMMIT: {
+				jsObj = Commit::Create((git_commit*)baton->object);
+				break;
+			}
+		}
+
+		/*
 		GitObject *obj;
 		Handle<Value> ref = baton->repo->cache_.wrap(baton->object, &obj);
 		if(obj == NULL) {
 			return;
-		}
+		}*/
 
-		Handle<Value> argv[] = { Null(), Local<Value>::New(obj->handle_) };
+		Handle<Value> argv[] = { Null(), Local<Value>::New(jsObj) };
 		FireCallback(baton->callback, 2, argv);
 	}
 

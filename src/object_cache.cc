@@ -25,11 +25,11 @@ namespace gitteh {
 
 		Handle<Function> constructor;
 		switch(type) {
-			case GIT_OBJ_COMMIT: {
+			/*case GIT_OBJ_COMMIT: {
 				wrappedObj = new Commit((git_commit*)obj);
 				constructor = Commit::constructor_template->GetFunction();
 				break;
-			}
+			}*/
 			case GIT_OBJ_TREE: {
 				wrappedObj = new Tree((git_tree*)obj);
 				constructor = Tree::constructor_template->GetFunction();
