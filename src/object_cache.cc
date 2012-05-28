@@ -29,7 +29,7 @@ namespace gitteh {
 				wrappedObj = new Commit((git_commit*)obj);
 				constructor = Commit::constructor_template->GetFunction();
 				break;
-			}*/
+			}
 			case GIT_OBJ_TREE: {
 				wrappedObj = new Tree((git_tree*)obj);
 				constructor = Tree::constructor_template->GetFunction();
@@ -39,7 +39,7 @@ namespace gitteh {
 				wrappedObj = new Blob((git_blob*)obj);
 				constructor = Blob::constructor_template->GetFunction();
 				break;
-			}
+			}*/
 			default: {
 				assert(0);
 			}

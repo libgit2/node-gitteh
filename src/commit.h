@@ -2,7 +2,6 @@
 #define GITTEH_COMMIT_H
 
 #include "gitteh.h"
-#include "git_object.h"
 
 namespace gitteh {
 	namespace Commit {

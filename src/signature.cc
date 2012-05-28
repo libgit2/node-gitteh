@@ -1,12 +1,12 @@
 #include "signature.h"
 
+static Persistent<String> name_symbol;
+static Persistent<String> email_symbol;
+static Persistent<String> time_symbol;
+static Persistent<String> offset_symbol;
+
 namespace gitteh {
 	namespace Signature {
-		static Persistent<String> name_symbol;
-		static Persistent<String> email_symbol;
-		static Persistent<String> time_symbol;
-		static Persistent<String> offset_symbol;
-
 		void Init() {
 			name_symbol 	= NODE_PSYMBOL("name");
 			email_symbol 	= NODE_PSYMBOL("email");

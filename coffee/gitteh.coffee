@@ -1,6 +1,6 @@
 module.exports = Gitteh = require "../build/Debug/gitteh"
 
-{Repository, Commit, Tree, Blob} = Gitteh
+{Repository, Tree, Blob} = Gitteh
 
 immutable = (obj, src) ->
 	return o = {
@@ -18,7 +18,7 @@ immutable = (obj, src) ->
 			return o
 	}
 
-Gitteh.Commit = Commit = (obj) ->
+Gitteh.Commit = Commit = (@repository, obj) ->
 	immutable(@, obj)
 		.set("id")
 		.set("tree", "treeId")
@@ -27,6 +27,23 @@ Gitteh.Commit = Commit = (obj) ->
 		.set("messageEncoding")
 		.set("author")
 		.set("committer")
+	@tree = (cb) =>
+		@repository.tree obj.tree, cb
+	return @
+
+Gitteh.Tree = Tree = (@repository, obj) ->
+	obj._entries = obj.entries
+	obj.entries = []
+	for origEntry in obj._entries
+		obj.entries.push entry = {}
+		immutable(entry, origEntry)
+			.set("id")
+			.set("name")
+			.set("type")
+			.set("attributes")
+	immutable(@, obj)
+		.set("id")
+		.set("entries")
 	return @
 
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
@@ -75,12 +92,16 @@ wrapObjectCallback = (cb, oid, expectedType) ->
 		cb err, obj
 Repository.prototype.commit = (oid, cb) ->
 	#@object oid, wrapObjectCallback cb, oid, Commit
-	@object oid, (err, obj) ->
+	@object oid, (err, obj) =>
 		return cb err if err?
-		cb null, new Commit obj
+		cb null, new Commit @, obj
 
 Repository.prototype.tree = (oid, cb) ->
-	@object oid, wrapObjectCallback cb, oid, Tree
+	#@object oid, wrapObjectCallback cb, oid, Tree
+	@object oid, (err, obj) =>
+		return cb err if err?
+		cb null, new Tree @, obj
+
 Repository.prototype.blob = (oid, cb) ->
 	@object oid, wrapObjectCallback cb, oid, Blob
 

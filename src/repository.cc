@@ -309,6 +309,10 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 				jsObj = Commit::Create((git_commit*)baton->object);
 				break;
 			}
+			case GIT_OBJ_TREE: {
+				jsObj = Tree::Create((git_tree*)baton->object);
+				break;
+			}
 		}
 
 		/*

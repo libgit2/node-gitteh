@@ -23,9 +23,6 @@
  */
 
 #include "commit.h"
-#include "repository.h"
-#include <time.h>
-#include <stdlib.h>
 #include "signature.h"
 
 static Persistent<String> id_symbol;
@@ -40,13 +37,13 @@ namespace gitteh {
 	namespace Commit {
 		void Init(Handle<Object> target) {
 			HandleScope scope;
-			id_symbol = NODE_PSYMBOL("id");
-			message_symbol = NODE_PSYMBOL("message");
-			message_encoding_symbol = NODE_PSYMBOL("messageEncoding");
-			author_symbol = NODE_PSYMBOL("author");
-			committer_symbol = NODE_PSYMBOL("committer");
-			tree_symbol = NODE_PSYMBOL("tree");
-			parents_symbol = NODE_PSYMBOL("parents");
+			id_symbol = 				NODE_PSYMBOL("id");
+			message_symbol = 			NODE_PSYMBOL("message");
+			message_encoding_symbol = 	NODE_PSYMBOL("messageEncoding");
+			author_symbol = 			NODE_PSYMBOL("author");
+			committer_symbol = 			NODE_PSYMBOL("committer");
+			tree_symbol = 				NODE_PSYMBOL("tree");
+			parents_symbol = 			NODE_PSYMBOL("parents");
 		}
 
 		Handle<Object> Create(git_commit *cm) {
