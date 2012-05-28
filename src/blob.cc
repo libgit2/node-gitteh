@@ -22,61 +22,28 @@
  * THE SOFTWARE.
  */
 
-#include <node_buffer.h>
 #include "blob.h"
+#include <node_buffer.h>
 
-static Persistent<String> blob_class_symbol;
 static Persistent<String> id_symbol;
 static Persistent<String> data_symbol;
 
 namespace gitteh {
+	namespace Blob {
+		void Init(Handle<Object> target) {
+			HandleScope scope;
+			id_symbol = 	NODE_PSYMBOL("id");
+			data_symbol = 	NODE_PSYMBOL("data");
+		}
 
-Persistent<FunctionTemplate> Blob::constructor_template;
-
-void Blob::Init(Handle<Object> target) {
-	HandleScope scope;
-
-	blob_class_symbol = NODE_PSYMBOL("Blob");
-	id_symbol = NODE_PSYMBOL("id");
-	data_symbol = NODE_PSYMBOL("data");
-
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
-	constructor_template->SetClassName(blob_class_symbol);
-	t->InstanceTemplate()->SetInternalFieldCount(1);
-
-	target->Set(blob_class_symbol, constructor_template->GetFunction());
-}
-
-Handle<Value> Blob::New(const Arguments& args) {
-	HandleScope scope;
-	REQ_EXT_ARG(0, blobArg);
-
-	Blob *blobObj = static_cast<Blob*>(blobArg->Value());
-	blobObj->Wrap(args.This());
-
-	Handle<Object> me = args.This();
-
-	git_blob *blob = blobObj->blob_;
-
-	ImmutableSet(me, id_symbol, CastToJS(&blobObj->oid_));
-
-	int blobSize = git_blob_rawsize(blob);
-	Buffer *buffer = Buffer::New((char*)git_blob_rawcontent(blob), blobSize);
-	ImmutableSet(me, data_symbol, MakeFastBuffer(buffer, blobSize));
-
-	return args.This();
-}
-
-Blob::Blob(git_blob *blob) : GitObject((git_object*)blob) {
-	blob_ = blob;
-}
-
-Blob::~Blob() {
-	if(blob_) {
-		git_blob_free(blob_);
-		blob_ = NULL;
+		Handle<Value> Create(git_blob *blob) {
+			HandleScope scope;
+			Handle<Object> o = Object::New();
+			o->Set(id_symbol, CastToJS(git_object_id((git_object*)blob)));
+			int len = git_blob_rawsize(blob);
+			Buffer *buffer = Buffer::New((char*)git_blob_rawcontent(blob), len);
+			o->Set(data_symbol, MakeFastBuffer(buffer, len));
+			return scope.Close(o);
+		}
 	}
-}
-
-}; // namespace gitteh
+};

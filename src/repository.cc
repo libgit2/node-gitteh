@@ -23,11 +23,9 @@
  */
 
 #include "repository.h"
-#include "git_object.h"
-#include <sys/time.h>
-
 #include "commit.h"
 #include "tree.h"
+#include "blob.h"
 
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
@@ -312,6 +310,13 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 			case GIT_OBJ_TREE: {
 				jsObj = Tree::Create((git_tree*)baton->object);
 				break;
+			}
+			case GIT_OBJ_BLOB: {
+				jsObj = Blob::Create((git_blob*)baton->object);
+				break;
+			}
+			default: {
+				assert(0);
 			}
 		}
 

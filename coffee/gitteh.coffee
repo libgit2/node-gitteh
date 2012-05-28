@@ -46,6 +46,12 @@ Gitteh.Tree = Tree = (@repository, obj) ->
 		.set("entries")
 	return @
 
+Gitteh.Blob = Blob = (@repository, obj) ->
+	immutable(@, obj)
+		.set("id")
+		.set("data")
+	return @
+
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
 checkOid = (str, allowLookup = true) ->
 	throw new TypeError "OID should be a string" if typeof str isnt "string"
@@ -91,19 +97,19 @@ wrapObjectCallback = (cb, oid, expectedType) ->
 			return cb new TypeError "#{oid} is not a #{expectedType.prototype.constructor.name}"
 		cb err, obj
 Repository.prototype.commit = (oid, cb) ->
-	#@object oid, wrapObjectCallback cb, oid, Commit
 	@object oid, (err, obj) =>
 		return cb err if err?
 		cb null, new Commit @, obj
 
 Repository.prototype.tree = (oid, cb) ->
-	#@object oid, wrapObjectCallback cb, oid, Tree
 	@object oid, (err, obj) =>
 		return cb err if err?
 		cb null, new Tree @, obj
 
 Repository.prototype.blob = (oid, cb) ->
-	@object oid, wrapObjectCallback cb, oid, Blob
+	@object oid, (err, obj) =>
+		return cb err if err?
+		cb null, new Blob @, obj
 
 wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
 	if typeof resolve is "function"
