@@ -62,6 +62,16 @@ Gitteh.Blob = Blob = (@repository, obj) ->
 		.set("data")
 	return @
 
+Gitteh.Tag = Tag = (@repository, obj) ->
+	obj.tagger = new Signature obj.tagger
+	immutable(@, obj)
+		.set("id")
+		.set("name")
+		.set("message")
+		.set("tagger")
+		.set("target", "targetId")
+		.set("type")
+	return @
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
 checkOid = (str, allowLookup = true) ->
 	throw new TypeError "OID should be a string" if typeof str isnt "string"
@@ -120,6 +130,11 @@ Repository.prototype.blob = (oid, cb) ->
 	@object oid, (err, obj) =>
 		return cb err if err?
 		cb null, new Blob @, obj
+
+Repository.prototype.tag = (oid, cb) ->
+	@object oid, (err, obj) =>
+		return cb err if err?
+		cb null, new Tag @, obj
 
 wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
 	if typeof resolve is "function"

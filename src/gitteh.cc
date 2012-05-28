@@ -28,13 +28,7 @@
 #include "signature.h"
 #include "tree.h"
 #include "blob.h"
-/*#include "index.h"
-#include "index_entry.h"
 #include "tag.h"
-#include "rev_walker.h"
-#include "error.h"
-#include "ref.h"
-#include "thread.h"*/
 
 namespace gitteh {
 
@@ -54,12 +48,13 @@ init(Handle<Object> target) {
 	Commit::Init(target);
 	Tree::Init(target);
 	Blob::Init(target);
+	Tag::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
 	
 	/*Index::Init(target);
 	IndexEntry::Init(target);
-	Tag::Init(target);
+	
 	RevWalker::Init(target);
 	Reference::Init(target);
 

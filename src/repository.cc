@@ -26,6 +26,7 @@
 #include "commit.h"
 #include "tree.h"
 #include "blob.h"
+#include "tag.h"
 
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
@@ -304,6 +305,10 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 			}
 			case GIT_OBJ_BLOB: {
 				jsObj = Blob::Create((git_blob*)baton->object);
+				break;
+			}
+			case GIT_OBJ_TAG: {
+				jsObj = Tag::Create((git_tag*)baton->object);
 				break;
 			}
 			default: {

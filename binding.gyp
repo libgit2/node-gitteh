@@ -10,6 +10,7 @@
 				'src/commit.cc',
 				'src/tree.cc',
 				'src/blob.cc',
+				'src/tag.cc',
 			],
 			'todosources': [
 				'src/index.cc',

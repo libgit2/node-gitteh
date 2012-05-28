@@ -1,4 +1,9 @@
-# TODO
+TODO:
+
+* Lookup lightweight/annotated tag by name.
+
+
+# (Old) TODO - probably still relevant
 
 * Integrity tests, make sure bindings don't choke or segfault on really bad data.
 * Possibly implement custom backend support, allowing JS callbacks to provide a custom git backend.
