@@ -27,6 +27,7 @@
 #include "tree.h"
 #include "blob.h"
 #include "tag.h"
+#include "remote.h"
 
 using std::vector;
 
@@ -103,6 +104,14 @@ public:
 	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
+class GetRemoteBaton : public RepositoryBaton {
+public:
+	string name;
+	git_remote *remote;
+
+	GetRemoteBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -164,6 +173,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "object", GetObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "reference", GetReference);
+	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -435,6 +445,46 @@ Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
 	}
 
 	return scope.Close(obj);
+}
+
+Handle<Value> Repository::GetRemote(const Arguments& args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+
+	GetRemoteBaton *baton = new GetRemoteBaton(repo, 
+		CastFromJS<string>(args[0]));
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetRemote,
+		AsyncAfterGetRemote);
+	return Undefined();
+}
+
+void Repository::AsyncGetRemote(uv_work_t *req) {
+	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
+
+	AsyncLibCall(git_remote_load(&baton->remote, baton->repo->repo_, 
+		baton->name.c_str()), baton);
+}
+
+void Repository::AsyncAfterGetRemote(uv_work_t *req) {
+	HandleScope scope;
+	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> constructorArgs[] = { External::New(baton->remote) };
+		Local<Object> obj = Remote::constructor_template->GetFunction()
+						->NewInstance(1, constructorArgs);
+
+		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
 }
 
 Handle<Value> Repository::Exists(const Arguments& args) {

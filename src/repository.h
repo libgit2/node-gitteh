@@ -34,6 +34,7 @@ protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
+	static Handle<Value> GetRemote(const Arguments&);
 	static Handle<Value> Exists(const Arguments&);
 
 	void close();
@@ -55,6 +56,9 @@ private:
 
 	static void AsyncGetReference(uv_work_t*);
 	static void AsyncAfterGetReference(uv_work_t*);
+
+	static void AsyncGetRemote(uv_work_t*);
+	static void AsyncAfterGetRemote(uv_work_t*);
 
 	static Handle<Object> CreateReferenceObject(git_reference*);
 	

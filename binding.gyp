@@ -11,6 +11,7 @@
 				'src/tree.cc',
 				'src/blob.cc',
 				'src/tag.cc',
+				'src/remote.cc',
 			],
 			'todosources': [
 				'src/index.cc',

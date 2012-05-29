@@ -29,6 +29,7 @@
 #include "tree.h"
 #include "blob.h"
 #include "tag.h"
+#include "remote.h"
 
 namespace gitteh {
 
@@ -58,6 +59,7 @@ init(Handle<Object> target) {
 	Tree::Init(target);
 	Blob::Init(target);
 	Tag::Init(target);
+	Remote::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
 	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
