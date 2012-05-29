@@ -28,18 +28,21 @@
 #include "signature.h"
 #include "tree.h"
 #include "blob.h"
-/*#include "index.h"
-#include "index_entry.h"
 #include "tag.h"
-#include "rev_walker.h"
-#include "error.h"
-#include "ref.h"
-#include "thread.h"*/
 
 namespace gitteh {
 
 Persistent<Object> module;
 
+static Handle<Object> CreateTypeObject() {
+	HandleScope scope;
+	Handle<Object> o = Object::New();
+	ImmutableSet(o, String::NewSymbol("commit"), Integer::New(GIT_OBJ_COMMIT));
+	ImmutableSet(o, String::NewSymbol("tree"), Integer::New(GIT_OBJ_TREE));
+	ImmutableSet(o, String::NewSymbol("blob"), Integer::New(GIT_OBJ_BLOB));
+	ImmutableSet(o, String::NewSymbol("tag"), Integer::New(GIT_OBJ_TAG));
+	return scope.Close(o);
+}
 
 extern "C" void
 init(Handle<Object> target) {
@@ -49,17 +52,18 @@ init(Handle<Object> target) {
 	// Initialize libgit2's thread system.
 	git_threads_init();
 
-	SignatureInit();
+	Signature::Init();
 	Repository::Init(target);
 	Commit::Init(target);
 	Tree::Init(target);
 	Blob::Init(target);
+	Tag::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
-	
+	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
 	/*Index::Init(target);
 	IndexEntry::Init(target);
-	Tag::Init(target);
+	
 	RevWalker::Init(target);
 	Reference::Init(target);
 

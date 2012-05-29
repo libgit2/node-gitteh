@@ -2,20 +2,8 @@
 #define GITTEH_REPO_H
 
 #include "gitteh.h"
-#include "object_cache.h"
 
 namespace gitteh {
-
-/*class Tree;
-class Tag;
-class Commit;
-class Index;
-class RawObject;
-class Reference;
-class RevWalker;
-class Blob;*/
-
-// template <class, class, class> class ObjectFactory;
 
 class RepositoryBaton;
 
@@ -36,9 +24,6 @@ public:
 	void lockRepository();
 	void unlockRepository();
 
-	void adopt(GitObject*);
-	void disown(GitObject*);
-
 	git_repository *repo_;
 	git_odb *odb_;
 
@@ -54,11 +39,8 @@ protected:
 	void close();
 
 private:
-	GitObjectCache cache_;
-
 	Handle<Value> wrapObject(git_object*);
 
-	static bool DoOpenRepository();
 	static void AsyncOpenRepository(uv_work_t*);
 	static void AsyncAfterOpenRepository(uv_work_t*);
 

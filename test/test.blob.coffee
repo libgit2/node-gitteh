@@ -29,7 +29,7 @@ describe "Blob", ->
 				blob.data.should.be.an.instanceof Buffer
 			it "has correct contents", ->
 				shasum = crypto.createHash "sha1"
-				shasum.update "blob #{blob.data.length}\0"
+				shasum.update "blob #{blob.data.length}\u0000"
 				shasum.update blob.data.toString("binary")
 				shasum.digest("hex").should.equal blob.id
 			it "is immutable", -> utils.checkImmutable blob, "data"

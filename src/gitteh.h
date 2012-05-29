@@ -38,12 +38,12 @@ namespace gitteh {
 	}
 
 	static inline Handle<Value> ThrowGitError() {
-			return ThrowException(CreateGitError());
+		return ThrowException(CreateGitError());
 	}
 
 	template<typename T>
 	static inline T* GetBaton(uv_work_t *req) {
-			return static_cast<T*>(req->data);
+		return static_cast<T*>(req->data);
 	}
 
 	/**
@@ -88,26 +88,6 @@ namespace gitteh {
 		o->Set(k, v, (PropertyAttribute)(ReadOnly | DontDelete));
 	}
 
-	static inline string GitObjectTypeToString(git_otype type) {
-		switch(type) {
-			case GIT_OBJ_COMMIT: {
-				return string("commit");
-			}
-			case GIT_OBJ_TREE: {
-				return string("tree");
-			}
-			case GIT_OBJ_BLOB: {
-				return string("blob");
-			}
-			case GIT_OBJ_TAG: {
-				return string("tag");
-			}
-			default: {
-				assert(0);
-			}
-		}
-	}
-
 	static inline Handle<Value> MakeFastBuffer(Buffer *slowBuffer, int size) {
 		HandleScope scope;
 
@@ -146,6 +126,36 @@ namespace cvv8 {
 			string idStr = CastFromJS<string>(h);
 			git_oid_fromstrn(&id, idStr.c_str(), idStr.length());
 			return id;
+		}
+	};
+
+	template<> 
+	struct NativeToJS<git_otype> {
+		Handle<Value> operator() (git_otype const type) const {
+			HandleScope scope;
+			Handle<Value> val;
+			switch(type) {
+				case GIT_OBJ_COMMIT: 	{ val = String::New("commit"); break; }
+				case GIT_OBJ_TREE: 		{ val = String::New("tree"); break; }
+				case GIT_OBJ_BLOB: 		{ val = String::New("blob"); break; }
+				case GIT_OBJ_TAG: 		{ val = String::New("tag"); break; }
+				default: 				{ val = Undefined(); break; }
+			}
+			return scope.Close(val);
+		}
+	};
+
+	template<>
+	struct JSToNative<git_otype> {
+		typedef git_otype ResultType;
+		ResultType operator() (Handle<Value> const &h) const {
+			string typeStr = string(*String::Utf8Value(h));
+			if(!typeStr.compare("commit")) return GIT_OBJ_COMMIT;
+			if(!typeStr.compare("tree")) return GIT_OBJ_TREE;
+			if(!typeStr.compare("blob")) return GIT_OBJ_BLOB;
+			if(!typeStr.compare("tag")) return GIT_OBJ_TAG;
+			if(!typeStr.compare("any")) return GIT_OBJ_ANY;
+			return GIT_OBJ_BAD;
 		}
 	};
 }

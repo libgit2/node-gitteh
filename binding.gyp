@@ -4,14 +4,13 @@
 			'target_name': 'gitteh',
 			'sources': [
 				'src/gitteh.cc',
-				'src/git_object.cc',
 				'src/signature.cc',
 				'src/repository.cc',
-				'src/object_cache.cc',
 				'src/baton.cc',
 				'src/commit.cc',
 				'src/tree.cc',
 				'src/blob.cc',
+				'src/tag.cc',
 			],
 			'todosources': [
 				'src/index.cc',

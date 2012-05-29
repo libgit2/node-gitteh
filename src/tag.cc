@@ -22,47 +22,34 @@
  * THE SOFTWARE.
  */
 
-#include "commit.h"
-#include "signature.h"
+#include "tag.h"
 
+static Persistent<String> name_symbol;
 static Persistent<String> message_symbol;
-static Persistent<String> message_encoding_symbol;
-static Persistent<String> author_symbol;
-static Persistent<String> committer_symbol;
-static Persistent<String> tree_symbol;
-static Persistent<String> parents_symbol;
+static Persistent<String> tagger_symbol;
+static Persistent<String> target_symbol;
+static Persistent<String> type_symbol;
 
 namespace gitteh {
-	namespace Commit {
+	namespace Tag {
 		void Init(Handle<Object> target) {
 			HandleScope scope;
-			message_symbol = 			NODE_PSYMBOL("message");
-			message_encoding_symbol = 	NODE_PSYMBOL("messageEncoding");
-			author_symbol = 			NODE_PSYMBOL("author");
-			committer_symbol = 			NODE_PSYMBOL("committer");
-			tree_symbol = 				NODE_PSYMBOL("tree");
-			parents_symbol = 			NODE_PSYMBOL("parents");
+			name_symbol 	= NODE_PSYMBOL("name");
+			message_symbol	= NODE_PSYMBOL("message");
+			tagger_symbol 	= NODE_PSYMBOL("tagger");
+			target_symbol 	= NODE_PSYMBOL("target");
+			type_symbol 	= NODE_PSYMBOL("type");
 		}
 
-		Handle<Object> Create(git_commit *cm) {
+		Handle<Object> Create(git_tag *tag) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(tree_symbol, CastToJS(git_commit_tree_oid(cm)));
-			o->Set(message_symbol, CastToJS(git_commit_message(cm)));
-			const char *encoding = git_commit_message_encoding(cm);
-			if(encoding) {
-				o->Set(message_encoding_symbol, CastToJS(encoding));
-			}
-			Handle<Array> parents = Array::New();
-			int parentCount = git_commit_parentcount(cm);
-			for(int i = 0; i < parentCount; i++) {
-				parents->Set(i, CastToJS(git_commit_parent_oid(cm, i)));
-			}
-			o->Set(parents_symbol, parents);
-			o->Set(author_symbol, CastToJS(git_commit_author(cm)));
-			o->Set(committer_symbol, CastToJS(git_commit_committer(cm)));
-
+			o->Set(name_symbol, CastToJS(git_tag_name(tag)));
+			o->Set(message_symbol, CastToJS(git_tag_message(tag)));
+			o->Set(tagger_symbol, CastToJS(git_tag_tagger(tag)));
+			o->Set(target_symbol, CastToJS(git_tag_target_oid(tag)));
+			o->Set(type_symbol, CastToJS(git_tag_type(tag)));
 			return scope.Close(o);
 		}
-	};
+	}
 };
