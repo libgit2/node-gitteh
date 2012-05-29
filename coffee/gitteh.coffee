@@ -70,6 +70,8 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 		.set("tagger")
 		.set("target", "targetId")
 		.set("type")
+	@target = (cb) =>
+		@repository.object @targetId, @type, cb
 	return @
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
 checkOid = (str, allowLookup = true) ->
