@@ -197,7 +197,12 @@ Handle<Value> Repository::New(const Arguments& args) {
 	if(workDir) ImmutableSet(me, work_dir_symbol, CastToJS(workDir));
 
 	vector<string> *remotes = static_cast<vector<string>*>(remotesArg->Value());
-	ImmutableSet(me, remotes_symbol, CastToJS(*remotes));
+	if(remotes != NULL) {
+		ImmutableSet(me, remotes_symbol, CastToJS(*remotes));
+	}
+	else {
+		ImmutableSet(me, remotes_symbol, Array::New());
+	}
 
 	return args.This();
 }
@@ -279,9 +284,12 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Handle<Value> constructorArgs[] = {
+			External::New(baton->repo),
+			External::New(NULL)
+		};
 		Handle<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(1, constructorArgs);
+						->NewInstance(2, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
