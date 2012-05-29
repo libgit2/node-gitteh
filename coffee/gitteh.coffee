@@ -133,5 +133,4 @@ wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
 		resolve = false
 	shadowed name, resolve, cb
 
-Repository.prototype.ref = (name, resolve, cb) ->
-	@reference name, resolve, cb
+Repository.prototype.ref = Repository.prototype.reference
