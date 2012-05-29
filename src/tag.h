@@ -6,7 +6,7 @@
 namespace gitteh {
 	namespace Tag {
 		void Init(Handle<Object>);
-		Handle<Value> Create(git_tag*);
+		Handle<Object> Create(git_tag*);
 	}
 };
 

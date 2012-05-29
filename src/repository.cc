@@ -43,6 +43,9 @@ static Persistent<String> ref_direct_symbol;
 static Persistent<String> ref_packed_symbol;
 static Persistent<String> ref_target_symbol;
 
+static Persistent<String> object_id_symbol;
+static Persistent<String> object_type_symbol;
+
 class OpenRepoBaton : public Baton {
 public:
 	string path	;
@@ -130,19 +133,23 @@ Repository::~Repository() {
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	repo_class_symbol = NODE_PSYMBOL("Repository");
-	path_symbol = NODE_PSYMBOL("path");
-	bare_symbol = NODE_PSYMBOL("bare");
-	git_dir_symbol = NODE_PSYMBOL("gitDirectory");
-	object_dir_symbol = NODE_PSYMBOL("objectDirectory");
-	index_file_symbol = NODE_PSYMBOL("indexFile");
-	work_dir_symbol = NODE_PSYMBOL("workDir");
+	repo_class_symbol 	= NODE_PSYMBOL("Repository");
+	path_symbol 		= NODE_PSYMBOL("path");
+	bare_symbol 		= NODE_PSYMBOL("bare");
+	git_dir_symbol 		= NODE_PSYMBOL("gitDirectory");
+	object_dir_symbol 	= NODE_PSYMBOL("objectDirectory");
+	index_file_symbol 	= NODE_PSYMBOL("indexFile");
+	work_dir_symbol 	= NODE_PSYMBOL("workDir");
 
 	// Reference symbols
-	ref_name_symbol = NODE_PSYMBOL("name");
-	ref_direct_symbol = NODE_PSYMBOL("direct");
-	ref_packed_symbol = NODE_PSYMBOL("packed");
-	ref_target_symbol = NODE_PSYMBOL("target");
+	ref_name_symbol 	= NODE_PSYMBOL("name");
+	ref_direct_symbol 	= NODE_PSYMBOL("direct");
+	ref_packed_symbol 	= NODE_PSYMBOL("packed");
+	ref_target_symbol 	= NODE_PSYMBOL("target");
+
+	// Object symbols
+	object_id_symbol	= NODE_PSYMBOL("id");
+	object_type_symbol	= NODE_PSYMBOL("_type");
 
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -292,31 +299,39 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		Handle<Value> jsObj;
-		git_otype type = git_object_type(baton->object);
+		git_object *gitObj = baton->object;
+		Handle<Object> jsObj;
+		git_otype type = git_object_type(gitObj);
 		switch(type) {
 			case GIT_OBJ_COMMIT: {
-				jsObj = Commit::Create((git_commit*)baton->object);
+				jsObj = Commit::Create((git_commit*)gitObj);
 				break;
 			}
 			case GIT_OBJ_TREE: {
-				jsObj = Tree::Create((git_tree*)baton->object);
+				jsObj = Tree::Create((git_tree*)gitObj);
 				break;
 			}
 			case GIT_OBJ_BLOB: {
-				jsObj = Blob::Create((git_blob*)baton->object);
+				jsObj = Blob::Create((git_blob*)gitObj);
 				break;
 			}
 			case GIT_OBJ_TAG: {
-				jsObj = Tag::Create((git_tag*)baton->object);
+				jsObj = Tag::Create((git_tag*)gitObj);
 				break;
 			}
 			default: {
-				assert(0);
+				Handle<String> err = String::New("Invalid object.");
+				Handle<Value> argv[] = { Exception::Error(err) };
+				FireCallback(baton->callback, 1, argv);
+				git_object_free(gitObj);
+				return;
 			}
 		}
 
-		git_object_free(baton->object);
+		jsObj->Set(object_id_symbol, CastToJS(git_object_id(gitObj)));
+		jsObj->Set(object_type_symbol, Integer::New(git_object_type(gitObj)));
+
+		git_object_free(gitObj);
 
 		Handle<Value> argv[] = { Null(), Local<Value>::New(jsObj) };
 		FireCallback(baton->callback, 2, argv);

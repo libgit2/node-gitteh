@@ -1,6 +1,5 @@
 module.exports = Gitteh = require "../build/Debug/gitteh"
-
-{Repository, Tree, Blob} = Gitteh
+{Repository} = Gitteh
 
 immutable = (obj, src) ->
 	return o = {
@@ -102,9 +101,17 @@ wrap Repository, "exists", true, (shadowed, oid, cb) ->
 	shadowed oid, cb
 
 wrap Repository, "object", true, (shadowed, oid, cb) ->
-	# TODO: change this to true when we support object_lookup_prefix
 	checkOid oid
-	shadowed oid, cb
+	shadowed oid, (err, object) =>
+		return cb err if err?
+		clazz = switch object._type
+			when Gitteh.types.commit then Commit
+			when Gitteh.types.tree then Tree
+			when Gitteh.types.blob then Blob
+			when Gitteh.types.tag then Tag
+			else undefined
+		return cb new TypeError("Unexpected object type") if clazz is undefined
+		return cb null, new clazz @, object
 
 # OBJECT LOOKUP METHODS
 # We do a little bit of extra due dilligence here, ensuring that a call to 

@@ -6,7 +6,7 @@
 namespace gitteh {
 	namespace Tree {
 		void Init(Handle<Object>);
-		Handle<Value> Create(git_tree*);
+		Handle<Object> Create(git_tree*);
 	};
 };
 

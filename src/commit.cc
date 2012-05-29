@@ -25,7 +25,6 @@
 #include "commit.h"
 #include "signature.h"
 
-static Persistent<String> id_symbol;
 static Persistent<String> message_symbol;
 static Persistent<String> message_encoding_symbol;
 static Persistent<String> author_symbol;
@@ -37,7 +36,6 @@ namespace gitteh {
 	namespace Commit {
 		void Init(Handle<Object> target) {
 			HandleScope scope;
-			id_symbol = 				NODE_PSYMBOL("id");
 			message_symbol = 			NODE_PSYMBOL("message");
 			message_encoding_symbol = 	NODE_PSYMBOL("messageEncoding");
 			author_symbol = 			NODE_PSYMBOL("author");
@@ -49,7 +47,6 @@ namespace gitteh {
 		Handle<Object> Create(git_commit *cm) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(id_symbol, CastToJS(git_commit_id(cm)));
 			o->Set(tree_symbol, CastToJS(git_commit_tree_oid(cm)));
 			o->Set(message_symbol, CastToJS(git_commit_message(cm)));
 			const char *encoding = git_commit_message_encoding(cm);

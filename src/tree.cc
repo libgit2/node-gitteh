@@ -37,8 +37,7 @@ static Handle<Object> CreateEntry(const git_tree_entry *entry) {
 	o->Set(entry_id_symbol, CastToJS(git_tree_entry_id(entry)));
 	o->Set(entry_name_symbol, CastToJS(git_tree_entry_name(entry)));
 	o->Set(entry_attributes_symbol, CastToJS(git_tree_entry_attributes(entry)));
-	o->Set(entry_type_symbol, CastToJS(gitteh::GitObjectTypeToString(
-			git_tree_entry_type(entry))));
+	o->Set(entry_type_symbol, CastToJS(git_tree_entry_type(entry)));
 	return scope.Close(o);
 }
 
@@ -54,10 +53,9 @@ namespace gitteh {
 			entry_attributes_symbol = NODE_PSYMBOL("attributes");
 		}
 
-		Handle<Value> Create(git_tree *tree) {
+		Handle<Object> Create(git_tree *tree) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(id_symbol, CastToJS(git_tree_id(tree)));
 
 			Handle<Array> entries = Array::New();
 			int entryCount = git_tree_entrycount(tree);

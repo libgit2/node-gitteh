@@ -24,7 +24,6 @@
 
 #include "tag.h"
 
-static Persistent<String> id_symbol;
 static Persistent<String> name_symbol;
 static Persistent<String> message_symbol;
 static Persistent<String> tagger_symbol;
@@ -35,7 +34,6 @@ namespace gitteh {
 	namespace Tag {
 		void Init(Handle<Object> target) {
 			HandleScope scope;
-			id_symbol 		= NODE_PSYMBOL("id");
 			name_symbol 	= NODE_PSYMBOL("name");
 			message_symbol	= NODE_PSYMBOL("message");
 			tagger_symbol 	= NODE_PSYMBOL("tagger");
@@ -43,16 +41,14 @@ namespace gitteh {
 			type_symbol 	= NODE_PSYMBOL("type");
 		}
 
-		Handle<Value> Create(git_tag *tag) {
+		Handle<Object> Create(git_tag *tag) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(id_symbol, CastToJS(git_tag_id(tag)));
 			o->Set(name_symbol, CastToJS(git_tag_name(tag)));
 			o->Set(message_symbol, CastToJS(git_tag_message(tag)));
 			o->Set(tagger_symbol, CastToJS(git_tag_tagger(tag)));
 			o->Set(target_symbol, CastToJS(git_tag_target_oid(tag)));
-			o->Set(type_symbol, CastToJS(GitObjectTypeToString(
-					git_tag_type(tag))));
+			o->Set(type_symbol, CastToJS(git_tag_type(tag)));
 			return scope.Close(o);
 		}
 	}

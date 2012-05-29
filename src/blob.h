@@ -6,7 +6,7 @@
 namespace gitteh {
 	namespace Blob {
 		void Init(Handle<Object>);
-		Handle<Value> Create(git_blob*);
+		Handle<Object> Create(git_blob*);
 	}
 };
 

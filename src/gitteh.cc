@@ -34,6 +34,15 @@ namespace gitteh {
 
 Persistent<Object> module;
 
+static Handle<Object> CreateTypeObject() {
+	HandleScope scope;
+	Handle<Object> o = Object::New();
+	ImmutableSet(o, String::NewSymbol("commit"), Integer::New(GIT_OBJ_COMMIT));
+	ImmutableSet(o, String::NewSymbol("tree"), Integer::New(GIT_OBJ_TREE));
+	ImmutableSet(o, String::NewSymbol("blob"), Integer::New(GIT_OBJ_BLOB));
+	ImmutableSet(o, String::NewSymbol("tag"), Integer::New(GIT_OBJ_TAG));
+	return scope.Close(o);
+}
 
 extern "C" void
 init(Handle<Object> target) {
@@ -51,7 +60,7 @@ init(Handle<Object> target) {
 	Tag::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
-	
+	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
 	/*Index::Init(target);
 	IndexEntry::Init(target);
 	

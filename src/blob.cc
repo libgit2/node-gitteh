@@ -25,21 +25,18 @@
 #include "blob.h"
 #include <node_buffer.h>
 
-static Persistent<String> id_symbol;
 static Persistent<String> data_symbol;
 
 namespace gitteh {
 	namespace Blob {
 		void Init(Handle<Object> target) {
 			HandleScope scope;
-			id_symbol = 	NODE_PSYMBOL("id");
 			data_symbol = 	NODE_PSYMBOL("data");
 		}
 
-		Handle<Value> Create(git_blob *blob) {
+		Handle<Object> Create(git_blob *blob) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(id_symbol, CastToJS(git_object_id((git_object*)blob)));
 			int len = git_blob_rawsize(blob);
 			Buffer *buffer = Buffer::New((char*)git_blob_rawcontent(blob), len);
 			o->Set(data_symbol, MakeFastBuffer(buffer, len));
