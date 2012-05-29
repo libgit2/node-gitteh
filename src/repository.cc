@@ -87,6 +87,7 @@ public:
 	git_oid oid;
 	char oidLength;
 	git_object *object;
+	git_otype type;
 	GetObjectBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
 };
 
@@ -274,8 +275,9 @@ Handle<Value> Repository::GetObject(const Arguments& args) {
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 	Handle<String> oidArg = Handle<String>::Cast(args[0]);
 	GetObjectBaton *baton = new GetObjectBaton(repo, CastFromJS<git_oid>(args[0]));
+	baton->type = CastFromJS<git_otype>(args[1]);
 	baton->oidLength = oidArg->Length();
-	baton->setCallback(args[1]);
+	baton->setCallback(args[2]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject, 
 		AsyncAfterGetObject);
 	return Undefined();
@@ -286,7 +288,7 @@ void Repository::AsyncGetObject(uv_work_t *req) {
 
 	baton->repo->lockRepository();
 	AsyncLibCall(git_object_lookup_prefix(&baton->object, baton->repo->repo_, 
-		&baton->oid, baton->oidLength, GIT_OBJ_ANY), baton);
+		&baton->oid, baton->oidLength, baton->type), baton);
 	baton->repo->unlockRepository();
 }
 

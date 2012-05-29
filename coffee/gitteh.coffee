@@ -100,9 +100,11 @@ wrap Repository, "exists", true, (shadowed, oid, cb) ->
 	checkOid oid, false
 	shadowed oid, cb
 
-wrap Repository, "object", true, (shadowed, oid, cb) ->
+wrap Repository, "object", true, (shadowed, args..., cb) ->
+	[oid, type] = args
+	type = "any" if not type
 	checkOid oid
-	shadowed oid, (err, object) =>
+	shadowed oid, type, (err, object) =>
 		return cb err if err?
 		clazz = switch object._type
 			when Gitteh.types.commit then Commit
@@ -113,35 +115,17 @@ wrap Repository, "object", true, (shadowed, oid, cb) ->
 		return cb new TypeError("Unexpected object type") if clazz is undefined
 		return cb null, new clazz @, object
 
-# OBJECT LOOKUP METHODS
-# We do a little bit of extra due dilligence here, ensuring that a call to 
-# commit() for a tree OID fails gracefully-ish.
-
-wrapObjectCallback = (cb, oid, expectedType) ->
-	(err, obj) ->
-		return cb err if err?
-		if obj not instanceof expectedType
-			return cb new TypeError "#{oid} is not a #{expectedType.prototype.constructor.name}"
-		cb err, obj
 Repository.prototype.commit = (oid, cb) ->
-	@object oid, (err, obj) =>
-		return cb err if err?
-		cb null, new Commit @, obj
+	@object oid, "commit", cb
 
 Repository.prototype.tree = (oid, cb) ->
-	@object oid, (err, obj) =>
-		return cb err if err?
-		cb null, new Tree @, obj
+	@object oid, "tree", cb
 
 Repository.prototype.blob = (oid, cb) ->
-	@object oid, (err, obj) =>
-		return cb err if err?
-		cb null, new Blob @, obj
+	@object oid, "blob", cb
 
 Repository.prototype.tag = (oid, cb) ->
-	@object oid, (err, obj) =>
-		return cb err if err?
-		cb null, new Tag @, obj
+	@object oid, "tag", cb
 
 wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
 	if typeof resolve is "function"

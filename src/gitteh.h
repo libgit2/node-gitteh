@@ -135,28 +135,27 @@ namespace cvv8 {
 			HandleScope scope;
 			Handle<Value> val;
 			switch(type) {
-				case GIT_OBJ_COMMIT: {
-					val = String::New("commit");
-					break;
-				}
-				case GIT_OBJ_TREE: {
-					val = String::New("tree");
-					break;
-				}
-				case GIT_OBJ_BLOB: {
-					val = String::New("blob");
-					break;
-				}
-				case GIT_OBJ_TAG: {
-					val = String::New("tag");
-					break;
-				}
-				default: {
-					val = Undefined();
-					break;
-				}
+				case GIT_OBJ_COMMIT: 	{ val = String::New("commit"); break; }
+				case GIT_OBJ_TREE: 		{ val = String::New("tree"); break; }
+				case GIT_OBJ_BLOB: 		{ val = String::New("blob"); break; }
+				case GIT_OBJ_TAG: 		{ val = String::New("tag"); break; }
+				default: 				{ val = Undefined(); break; }
 			}
 			return scope.Close(val);
+		}
+	};
+
+	template<>
+	struct JSToNative<git_otype> {
+		typedef git_otype ResultType;
+		ResultType operator() (Handle<Value> const &h) const {
+			string typeStr = string(*String::Utf8Value(h));
+			if(!typeStr.compare("commit")) return GIT_OBJ_COMMIT;
+			if(!typeStr.compare("tree")) return GIT_OBJ_TREE;
+			if(!typeStr.compare("blob")) return GIT_OBJ_BLOB;
+			if(!typeStr.compare("tag")) return GIT_OBJ_TAG;
+			if(!typeStr.compare("any")) return GIT_OBJ_ANY;
+			return GIT_OBJ_BAD;
 		}
 	};
 }
