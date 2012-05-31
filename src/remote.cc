@@ -6,6 +6,22 @@ static Persistent<String> url_symbol;
 static Persistent<String> fetchspec_symbol;
 static Persistent<String> pushspec_symbol;
 
+static Persistent<String> refspec_src_symbol;
+static Persistent<String> refspec_dst_symbol;
+
+namespace cvv8 {
+	template<> 
+	struct NativeToJS<git_refspec> {
+		Handle<Value> operator() (git_refspec const *refspec) const {
+			HandleScope scope;
+			Handle<Object> o = Object::New();
+			o->Set(refspec_src_symbol, CastToJS(git_refspec_src(refspec)));
+			o->Set(refspec_dst_symbol, CastToJS(git_refspec_dst(refspec)));
+			return scope.Close(o);
+		}
+	};
+}
+
 namespace gitteh {
 	Persistent<FunctionTemplate> Remote::constructor_template;
 	void Remote::Init(Handle<Object> target) {
@@ -16,6 +32,9 @@ namespace gitteh {
 		url_symbol 			= NODE_PSYMBOL("url");
 		fetchspec_symbol 	= NODE_PSYMBOL("fetchSpec");
 		pushspec_symbol 	= NODE_PSYMBOL("pushSpec");
+
+		refspec_src_symbol 	= NODE_PSYMBOL("src");
+		refspec_dst_symbol 	= NODE_PSYMBOL("dst");
 
 		Local<FunctionTemplate> t = FunctionTemplate::New(New);
 		constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -36,8 +55,8 @@ namespace gitteh {
 
 		me->Set(name_symbol, CastToJS(git_remote_name(remote)));
 		me->Set(url_symbol, CastToJS(git_remote_url(remote)));
-		/*me->Set(fetchspec_symbol, CastToJS(git_remote_fetchspec(remote)));
-		me->Set(pushspec_symbol, CastToJS(git_remote_pushspec(remote)));*/
+		me->Set(fetchspec_symbol, CastToJS(git_remote_fetchspec(remote)));
+		me->Set(pushspec_symbol, CastToJS(git_remote_pushspec(remote)));
 
 		return scope.Close(me);
 	}

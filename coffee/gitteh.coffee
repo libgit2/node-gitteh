@@ -28,6 +28,12 @@ Signature = (obj) ->
 		.set("offset")
 	return @
 
+Refspec = (obj) ->
+	immutable(@, obj)
+		.set("src")
+		.set("dst")
+	return @
+
 Gitteh.Commit = Commit = (@repository, obj) ->
 	obj.author = new Signature obj.author
 	obj.committer = new Signature obj.committer
@@ -80,10 +86,13 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	if nativeRemote not instanceof NativeRemote
 		throw new Error "Don't construct me, see Repository.remote()"
-
+	nativeRemote.fetchSpec = new Refspec nativeRemote.fetchSpec
+	nativeRemote.pushSpec = new Refspec nativeRemote.pushSpec
 	immutable(@, nativeRemote)
 		.set("name")
 		.set("url")
+		.set("fetchSpec")
+		.set("pushSpec")
 	return @
 
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
