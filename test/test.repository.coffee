@@ -27,14 +27,14 @@ describe "Repository", ->
 				repo.path.should.equal fixtures.projectRepo.gitPath
 				delete repo.path
 				repo.path.should.equal fixtures.projectRepo.gitPath
-		describe "#workDir", ->
+		describe "#workingDirectory", ->
 			it "should point to #{fixtures.projectRepo.path}", ->
-				repo.workDir.should.equal fixtures.projectRepo.path
+				repo.workingDirectory.should.equal fixtures.projectRepo.path
 			it "should be immutable", ->
 				repo.path = "foo"
-				repo.workDir.should.equal fixtures.projectRepo.path
+				repo.workingDirectory.should.equal fixtures.projectRepo.path
 				delete repo.path
-				repo.workDir.should.equal fixtures.projectRepo.path
+				repo.workingDirectory.should.equal fixtures.projectRepo.path
 		describe "#exists()", ->
 			it "should return true for first commit in repo :)", (done) ->
 				repo.exists "1f4425ce2a14f21b96b9c8dde5bcfd3733467b14", (err, exists) ->

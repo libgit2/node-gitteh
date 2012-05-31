@@ -1,5 +1,8 @@
-module.exports = Gitteh = require "../build/Debug/gitteh"
-{Repository} = Gitteh
+bindings = require "../build/Debug/gitteh"
+{minOidLength, types, NativeRepository} = bindings
+args = require "./args"
+
+module.exports = Gitteh = {}
 
 immutable = (obj, src) ->
 	return o = {
@@ -73,66 +76,80 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 	@target = (cb) =>
 		@repository.object @targetId, @type, cb
 	return @
+
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
+args.validators.oid = (val) ->
+	return false if typeof val isnt "string"
+	return false if not oidRegex.test val
+	return false if val.length < minOidLength
+	return true
+
+objectTypes = ["any", "blob", "commit", "tag", "tree"]
+args.validators.objectType = (val) ->
+	return objectTypes.indexOf val > -1
+
 checkOid = (str, allowLookup = true) ->
 	throw new TypeError "OID should be a string" if typeof str isnt "string"
 	throw new TypeError "Invalid OID" if not oidRegex.test str
 	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
 	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
 
-wrap = (clazz, fn, prototype, newFn) ->
-	override = if prototype then clazz.prototype else clazz
-	orig = override[fn]
+wrapCallback = (orig, cb) ->
+	return (err) ->
+		return orig err if err?
+		cb.apply null, Array.prototype.slice.call arguments, 1
 
-	override[fn] = ->
-		shadowed = if prototype then orig.bind @ else orig
-		newFn.apply @, [shadowed].concat Array.prototype.slice.call arguments
+module.exports.Repository = Repository = (nativeRepo) ->
+	if nativeRepo not instanceof NativeRepository
+		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
 
-wrap Gitteh, "openRepository", false, (shadowed, path, cb) ->
-	shadowed path, cb
+	immutable(@, nativeRepo)
+		.set("bare")
+		.set("path")
+		.set("workDir", "workingDirectory")
+	@exists = =>
+		[oid, cb] = args
+			oid: type: "oid"
+			cb: type: "function"
+		nativeRepo.exists oid, cb
+	@object = =>
+		[oid, type, cb] = args
+			oid: type: "oid"
+			type: type: "objectType", default: "any"
+			cb: type: "function"
+		nativeRepo.object oid, type, wrapCallback cb, (object) =>
+			clazz = switch object._type
+				when types.commit then Commit
+				when types.tree then Tree
+				when types.blob then Blob
+				when types.tag then Tag
+				else undefined
+			return cb new TypeError("Unexpected object type") if clazz is undefined
+			return cb null, new clazz @, object
+	@blob = (oid, cb) => @object oid, "blob", cb
+	@commit = (oid, cb) => @object oid, "commit", cb
+	@tag = (oid, cb) => @object oid, "tag", cb
+	@tree = (oid, cb) => @object oid, "tree", cb
+	@reference = =>
+		[name, resolve, cb] = args
+			name: type: "string"
+			resolve: type: "bool"
+			cb: type: "function"
+		nativeRepo.reference name, resolve, cb
+	@ref = @reference
+	return @
 
-wrap Gitteh, "initRepository", false, (shadowed, path, bare, cb) ->
-	if typeof bare is "function"
-		cb = bare
-		bare = false 
+Gitteh.openRepository = ->
+	[path, cb] = args
+		path: type: "string"
+		cb: type: "function"
+	bindings.openRepository path, wrapCallback cb, (repo) ->
+		cb null, new Repository repo
 
-	shadowed path, bare, cb
-
-wrap Repository, "exists", true, (shadowed, oid, cb) ->
-	checkOid oid, false
-	shadowed oid, cb
-
-wrap Repository, "object", true, (shadowed, args..., cb) ->
-	[oid, type] = args
-	type = "any" if not type
-	checkOid oid
-	shadowed oid, type, (err, object) =>
-		return cb err if err?
-		clazz = switch object._type
-			when Gitteh.types.commit then Commit
-			when Gitteh.types.tree then Tree
-			when Gitteh.types.blob then Blob
-			when Gitteh.types.tag then Tag
-			else undefined
-		return cb new TypeError("Unexpected object type") if clazz is undefined
-		return cb null, new clazz @, object
-
-Repository.prototype.commit = (oid, cb) ->
-	@object oid, "commit", cb
-
-Repository.prototype.tree = (oid, cb) ->
-	@object oid, "tree", cb
-
-Repository.prototype.blob = (oid, cb) ->
-	@object oid, "blob", cb
-
-Repository.prototype.tag = (oid, cb) ->
-	@object oid, "tag", cb
-
-wrap Repository, "reference", true, (shadowed, name, resolve, cb) ->
-	if typeof resolve is "function"
-		cb = resolve
-		resolve = false
-	shadowed name, resolve, cb
-
-Repository.prototype.ref = Repository.prototype.reference
+Gitteh.initRepository = () ->
+	[path, bare, cb] = args
+		path: type: "string"
+		bare: type: "bool", default: false
+		cb: type: "function"
+	bindings.initRepository path, bare, wrapCallback cb, (repo) ->
+		cb null, new Repository repo

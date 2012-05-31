@@ -35,7 +35,7 @@ namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
 static Persistent<String> bare_symbol;
-static Persistent<String> git_dir_symbol;
+
 static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
@@ -146,10 +146,9 @@ Repository::~Repository() {
 void Repository::Init(Handle<Object> target) {
 	HandleScope scope;
 
-	repo_class_symbol 	= NODE_PSYMBOL("Repository");
+	repo_class_symbol 	= NODE_PSYMBOL("NativeRepository");
 	path_symbol 		= NODE_PSYMBOL("path");
 	bare_symbol 		= NODE_PSYMBOL("bare");
-	git_dir_symbol 		= NODE_PSYMBOL("gitDirectory");
 	object_dir_symbol 	= NODE_PSYMBOL("objectDirectory");
 	index_file_symbol 	= NODE_PSYMBOL("indexFile");
 	work_dir_symbol 	= NODE_PSYMBOL("workDir");
