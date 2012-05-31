@@ -1,5 +1,5 @@
 bindings = require "../build/Debug/gitteh"
-{minOidLength, types, NativeRepository} = bindings
+{minOidLength, types, NativeRepository, NativeRemote} = bindings
 args = require "./args"
 
 module.exports = Gitteh = {}
@@ -77,6 +77,15 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 		@repository.object @targetId, @type, cb
 	return @
 
+Gitteh.Remote = Remote = (@repository, nativeRemote) ->
+	if nativeRemote not instanceof NativeRemote
+		throw new Error "Don't construct me, see Repository.remote()"
+
+	immutable(@, nativeRemote)
+		.set("name")
+		.set("url")
+	return @
+
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
 args.validators.oid = (val) ->
 	return false if typeof val isnt "string"
@@ -137,6 +146,13 @@ module.exports.Repository = Repository = (nativeRepo) ->
 			cb: type: "function"
 		nativeRepo.reference name, resolve, cb
 	@ref = @reference
+	@remote = =>
+		[name, cb] = args
+			name: type: "string"
+			cb: type: "function"
+		nativeRepo.remote name, wrapCallback cb, (remote) =>
+			return cb null, new Remote @, remote
+
 	return @
 
 Gitteh.openRepository = ->

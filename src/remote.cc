@@ -11,7 +11,7 @@ namespace gitteh {
 	void Remote::Init(Handle<Object> target) {
 		HandleScope scope;
 
-		class_symbol 		= NODE_PSYMBOL("Remote");
+		class_symbol 		= NODE_PSYMBOL("NativeRemote");
 		name_symbol 		= NODE_PSYMBOL("name");
 		url_symbol 			= NODE_PSYMBOL("url");
 		fetchspec_symbol 	= NODE_PSYMBOL("fetchSpec");
