@@ -124,7 +124,9 @@ module.exports.Repository = Repository = (nativeRepo) ->
 	immutable(@, nativeRepo)
 		.set("bare")
 		.set("path")
+		.set("remotes")
 		.set("workDir", "workingDirectory")
+
 	@exists = =>
 		[oid, cb] = args
 			oid: type: "oid"
