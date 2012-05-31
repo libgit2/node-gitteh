@@ -8,6 +8,7 @@ gitteh.openRepository(path.join(__dirname, ".."), function(err, repo) {
 		remote.connect("fetch", function(err) {
 			if(err) return console.error(err);
 			console.log(remote.connected);
+			console.log(remote.refs);
 		});
 	});
 });

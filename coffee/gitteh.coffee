@@ -121,7 +121,8 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			dir: type: "remoteDir"
 			cb: type: "function"
 		dir = if dir is "push" then Gitteh.GIT_DIR_PUSH else Gitteh.GIT_DIR_FETCH
-		nativeRemote.connect dir, wrapCallback cb, ->
+		nativeRemote.connect dir, wrapCallback cb, (refs) =>
+			immutable(@, {refs}).set("refs")
 			connected = true
 			cb()
 	return @

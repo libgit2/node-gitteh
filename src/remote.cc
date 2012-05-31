@@ -31,11 +31,18 @@ namespace gitteh {
 	class ConnectBaton : public RemoteBaton {
 	public:
 		int direction;
-		list<string> refs;
+		std::list<string> refs;
 
 		ConnectBaton(Remote *remote, int direction) :
 				RemoteBaton(remote), direction(direction) { }
 	};
+
+	static int SaveRemoteRef(git_remote_head *head, void *payload) {
+		ConnectBaton *baton = static_cast<ConnectBaton*>(payload);
+		baton->refs.push_back(string(head->name));
+		return GIT_OK;
+	}
+	
 
 	Persistent<FunctionTemplate> Remote::constructor_template;
 
@@ -137,7 +144,7 @@ namespace gitteh {
 		ConnectBaton *baton = GetBaton<ConnectBaton>(req);
 		if(AsyncLibCall(git_remote_connect(baton->remote_->remote_,
 				baton->direction), baton)) {
-			
+			git_remote_ls(baton->remote_->remote_, SaveRemoteRef, baton);
 		}
 	}
 
@@ -150,8 +157,8 @@ namespace gitteh {
 			FireCallback(baton->callback, 1, argv);
 		}
 		else {
-			Handle<Value> argv[] = { Undefined() };
-			FireCallback(baton->callback, 1, argv);
+			Handle<Value> argv[] = { Undefined(), CastToJS(baton->refs) };
+			FireCallback(baton->callback, 2, argv);
 		}
 
 		delete baton;
