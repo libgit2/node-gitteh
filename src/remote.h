@@ -18,12 +18,15 @@ namespace gitteh {
 	protected:
 		static Handle<Value> New(const Arguments&);
 		static Handle<Value> UpdateTips(const Arguments&);
+		static Handle<Value> Connect(const Arguments&);
 
 	private:
 		git_remote *remote_;
 
 		static void AsyncUpdateTips(uv_work_t*);
 		static void AsyncAfterUpdateTips(uv_work_t*);
+		static void AsyncConnect(uv_work_t*);
+		static void AsyncAfterConnect(uv_work_t*);
 	};
 };
 

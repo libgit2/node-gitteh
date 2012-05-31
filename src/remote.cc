@@ -28,6 +28,15 @@ namespace gitteh {
 		UpdateTipsBaton(Remote *remote) : RemoteBaton(remote) { }
 	};
 
+	class ConnectBaton : public RemoteBaton {
+	public:
+		int direction;
+		list<string> refs;
+
+		ConnectBaton(Remote *remote, int direction) :
+				RemoteBaton(remote), direction(direction) { }
+	};
+
 	Persistent<FunctionTemplate> Remote::constructor_template;
 
 	Remote::Remote(git_remote *remote) : ObjectWrap() {
@@ -59,6 +68,7 @@ namespace gitteh {
 		t->InstanceTemplate()->SetInternalFieldCount(1);
 
 		NODE_SET_PROTOTYPE_METHOD(t, "updateTips", UpdateTips);
+		NODE_SET_PROTOTYPE_METHOD(t, "connect", Connect);
 
 		target->Set(class_symbol, constructor_template->GetFunction());
 	}
@@ -101,6 +111,39 @@ namespace gitteh {
 		HandleScope scope;
 		UpdateTipsBaton *baton = GetBaton<UpdateTipsBaton>(req);
 
+		if(baton->isErrored()) {
+			Handle<Value> argv[] = { baton->createV8Error() };
+			FireCallback(baton->callback, 1, argv);
+		}
+		else {
+			Handle<Value> argv[] = { Undefined() };
+			FireCallback(baton->callback, 1, argv);
+		}
+
+		delete baton;
+	}
+
+	Handle<Value> Remote::Connect(const Arguments& args) {
+		HandleScope scope;
+		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
+		ConnectBaton *baton = new ConnectBaton(remote, CastFromJS<int>(args[0]));
+		baton->setCallback(args[1]);
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncConnect, 
+				AsyncAfterConnect);
+		return Undefined();
+	}
+
+	void Remote::AsyncConnect(uv_work_t *req) {
+		ConnectBaton *baton = GetBaton<ConnectBaton>(req);
+		if(AsyncLibCall(git_remote_connect(baton->remote_->remote_,
+				baton->direction), baton)) {
+			
+		}
+	}
+
+	void Remote::AsyncAfterConnect(uv_work_t *req) {
+		HandleScope scope;
+		ConnectBaton *baton = GetBaton<ConnectBaton>(req);
 
 		if(baton->isErrored()) {
 			Handle<Value> argv[] = { baton->createV8Error() };

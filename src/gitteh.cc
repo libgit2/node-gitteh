@@ -63,6 +63,10 @@ init(Handle<Object> target) {
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
 	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
+
+	NODE_DEFINE_CONSTANT(target, GIT_DIR_PUSH);
+	NODE_DEFINE_CONSTANT(target, GIT_DIR_FETCH);
+	
 	/*Index::Init(target);
 	IndexEntry::Init(target);
 	

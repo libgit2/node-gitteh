@@ -4,14 +4,30 @@ args = require "./args"
 
 module.exports = Gitteh = {}
 
+oidRegex = /^[a-zA-Z0-9]{0,40}$/
+args.validators.oid = (val) ->
+	return false if typeof val isnt "string"
+	return false if not oidRegex.test val
+	return false if val.length < minOidLength
+	return true
+
+objectTypes = ["any", "blob", "commit", "tag", "tree"]
+args.validators.objectType = (val) ->
+	return objectTypes.indexOf val > -1
+
+remoteDirs = ["push", "fetch"]
+args.validators.remoteDir = (val) ->
+	return remoteDirs.indexOf val > -1
+
 immutable = (obj, src) ->
 	return o = {
 		set: (name, target = name) ->
-			if typeof src[name] is "array"
-				return Object.defineProperty obj, target,
-					get: () -> src[val].slice(0)
+			if Array.isArray src[name]
+				Object.defineProperty obj, target,
+					get: () -> src[name].slice(0)
 					configurable: false
 					enumerable: true
+				return o
 			Object.defineProperty obj, target, 
 				value: src[name]
 				writable: false
@@ -88,29 +104,27 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 		throw new Error "Don't construct me, see Repository.remote()"
 	nativeRemote.fetchSpec = new Refspec nativeRemote.fetchSpec
 	nativeRemote.pushSpec = new Refspec nativeRemote.pushSpec
+	connected = false
+
+	Object.defineProperty @, "connected",
+		get: -> return connected
+		enumerable: true
+		configurable: false
+
 	immutable(@, nativeRemote)
 		.set("name")
 		.set("url")
 		.set("fetchSpec")
 		.set("pushSpec")
+	@connect = =>
+		[dir, cb] = args
+			dir: type: "remoteDir"
+			cb: type: "function"
+		dir = if dir is "push" then Gitteh.GIT_DIR_PUSH else Gitteh.GIT_DIR_FETCH
+		nativeRemote.connect dir, wrapCallback cb, ->
+			connected = true
+			cb()
 	return @
-
-oidRegex = /^[a-zA-Z0-9]{0,40}$/
-args.validators.oid = (val) ->
-	return false if typeof val isnt "string"
-	return false if not oidRegex.test val
-	return false if val.length < minOidLength
-	return true
-
-objectTypes = ["any", "blob", "commit", "tag", "tree"]
-args.validators.objectType = (val) ->
-	return objectTypes.indexOf val > -1
-
-checkOid = (str, allowLookup = true) ->
-	throw new TypeError "OID should be a string" if typeof str isnt "string"
-	throw new TypeError "Invalid OID" if not oidRegex.test str
-	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
-	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
 
 wrapCallback = (orig, cb) ->
 	return (err) ->
