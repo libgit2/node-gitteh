@@ -1,7 +1,8 @@
-bindings = require "../build/Debug/gitteh"
-{minOidLength, types, NativeRepository, NativeRemote} = bindings
+{EventEmitter} = require "events"
 args = require "./args"
+bindings = require "../build/Debug/gitteh"
 
+{minOidLength, types, NativeRepository, NativeRemote} = bindings
 module.exports = Gitteh = {}
 
 oidRegex = /^[a-zA-Z0-9]{0,40}$/
@@ -125,6 +126,17 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			immutable(@, {refs}).set("refs")
 			connected = true
 			cb()
+	@fetch = =>
+		[cb] = args
+			cb: type: "function"
+
+		updateTimer = null
+		update = () ->
+			console.log nativeRemote.stats
+			setTimeout update, 1000
+		setTimeout update, 1000
+
+		nativeRemote.download 
 	return @
 
 wrapCallback = (orig, cb) ->
