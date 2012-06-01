@@ -190,7 +190,13 @@ module.exports.Repository = Repository = (nativeRepo) ->
 			cb: type: "function"
 		nativeRepo.remote name, wrapCallback cb, (remote) =>
 			return cb null, new Remote @, remote
-
+	@createRemote = =>
+		[name, url, cb] = args
+			name: type: "string"
+			url: type: "string"
+			cb: type: "function"
+		nativeRepo.createRemote name, url, wrapCallback cb, (remote) =>
+			return cb null, new Remote @, remote
 	return @
 
 Gitteh.openRepository = ->

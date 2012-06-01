@@ -112,6 +112,14 @@ public:
 	GetRemoteBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
+class CreateRemoteBaton : public RepositoryBaton {
+public:
+	string name;
+	string url;
+	git_remote *remote;
+	CreateRemoteBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -173,6 +181,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "reference", GetReference);
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
+	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -469,6 +478,52 @@ void Repository::AsyncGetRemote(uv_work_t *req) {
 void Repository::AsyncAfterGetRemote(uv_work_t *req) {
 	HandleScope scope;
 	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> constructorArgs[] = { External::New(baton->remote) };
+		Local<Object> obj = Remote::constructor_template->GetFunction()
+						->NewInstance(1, constructorArgs);
+
+		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateRemote(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateRemoteBaton *baton = new CreateRemoteBaton(repository);
+	baton->name = CastFromJS<string>(args[0]);
+	baton->url = CastFromJS<string>(args[1]);
+	baton->setCallback(args[2]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateRemote,
+			AsyncAfterCreateRemote);
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateRemote(uv_work_t *req) {
+	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
+
+	if(AsyncLibCall(git_remote_add(&baton->remote, baton->repo->repo_,
+			baton->name.c_str(), baton->url.c_str()), baton)) {
+		if(!AsyncLibCall(git_remote_save(baton->remote), baton)) {
+			git_remote_free(baton->remote);
+		}
+	}
+}
+
+void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
+	HandleScope scope;
+	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
 
 	if(baton->isErrored()) {
 		Handle<Value> argv[] = { baton->createV8Error() };
