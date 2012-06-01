@@ -93,7 +93,7 @@ namespace gitteh {
 
 		NODE_SET_PROTOTYPE_METHOD(t, "updateTips", UpdateTips);
 		NODE_SET_PROTOTYPE_METHOD(t, "connect", Connect);
-		NODE_SET_PROTOTYPE_METHOD(t, "download", Connect);
+		NODE_SET_PROTOTYPE_METHOD(t, "download", Download);
 
 		target->Set(class_symbol, constructor_template->GetFunction());
 	}
@@ -184,6 +184,7 @@ namespace gitteh {
 
 	Handle<Value> Remote::Download(const Arguments &args) {
 		HandleScope scope;
+		std::cout << "done." << std::endl;
 		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
 		DownloadBaton *baton = new DownloadBaton(remote);
 		baton->setCallback(args[0]);
@@ -210,6 +211,7 @@ namespace gitteh {
 
 	void Remote::AsyncAfterDownload(uv_work_t *req) {
 		HandleScope scope;
+		std::cout<<"done."<<std::endl;
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 
 		baton->remote_->handle_->Delete(stats_symbol);
