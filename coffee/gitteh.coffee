@@ -130,19 +130,23 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	@fetch = =>
 		throw new Error "Remote isn't connected." if not connected
 
-		[cb] = args
-			cb: type: "function"
-
 		updateTimer = null
-		update = () ->
-			console.log "update."
-			console.log nativeRemote.stats
-			setTimeout update, 1000
-		setTimeout update, 1000
+		update = =>
+			{bytes, total, done} = nativeRemote.stats
+			@emit "progress", bytes, total, done
+			updateTimer = setTimeout update, 500
+		setTimeout update, 500
 
-		console.log "download()"
-		nativeRemote.download wrapCallback cb, -> nativeRemote.updateTips cb
+		nativeRemote.download (err) =>
+			clearTimeout updateTimer
+			return @emit "error", err if err?
+			nativeRemote.updateTips =>
+				return @emit "error", err if err?
+				@emit "complete"
+
 	return @
+
+Remote.prototype = EventEmitter.prototype
 
 wrapCallback = (orig, cb) ->
 	return (err) ->
@@ -223,7 +227,9 @@ Gitteh.clone = =>
 	[url, path, cb] = args
 		url: type: "string"
 		path: type: "string"
-		cb: type: "function"
+
+	emitter = new EventEmitter
+
 	async.waterfall [
 		(cb) -> Gitteh.initRepository path, false, cb
 		(repo, cb) ->
@@ -232,9 +238,21 @@ Gitteh.clone = =>
 		(repo, remote, cb) ->
 			remote.connect "fetch", wrapCallback cb, ->
 				cb null, repo, remote
-		(repo, remote, cb) ->
-			remote.fetch wrapCallback cb, ->
-				cb null, repo, remote
 		# TODO: checkout HEAD into working dir.
-	], (err, repo) ->
-		console.log arguments
+	], (err, repo, remote) ->
+		remote.fetch wrapCallback cb, ->
+				cb null, repo, remote
+		errorHandler = (err) ->
+			emitter.emit "error", err
+		progressHandler = (bytes, done, complete) ->
+			emitter.emit "status", bytes, done, complete
+		completeHandler = () ->
+			remote.removeListener "error", errorHandler
+			remote.removeListener "progress", progressHandler
+			remote.removeListener "complete", completeHandler
+			emitter.emit "complete", repo
+		remote.on "error", errorHandler
+		remote.on "progress", progressHandler
+		remote.on "complete", completeHandler
+
+	return emitter
