@@ -46,10 +46,19 @@ Signature = (obj) ->
 		.set("offset")
 	return @
 
-Refspec = (obj) ->
-	immutable(@, obj)
+Gitteh.Refspec = Refspec = (src, dst) ->
+	srcRoot = src
+	srcRoot = srcRoot[0...-1] if srcRoot[-1..] is "*"
+
+	immutable(@, {src, dst})
 		.set("src")
 		.set("dst")
+	@matchesSrc = (ref) =>
+		return false if ref.length <= srcRoot.length
+		return ref.indexOf(srcRoot) is 0
+	@transform = (ref) =>
+		throw new Error "Ref doesn't match src." if not @matchesSrc ref
+		return "#{dst[0...-2]}#{ref[(src.length-2)..]}"
 	return @
 
 Gitteh.Commit = Commit = (@repository, obj) ->
@@ -104,8 +113,8 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	if nativeRemote not instanceof NativeRemote
 		throw new Error "Don't construct me, see Repository.remote()"
-	nativeRemote.fetchSpec = new Refspec nativeRemote.fetchSpec
-	nativeRemote.pushSpec = new Refspec nativeRemote.pushSpec
+	nativeRemote.fetchSpec = new Refspec nativeRemote.fetchSpec.src, nativeRemote.fetchSpec.dst
+	nativeRemote.pushSpec = new Refspec nativeRemote.pushSpec.src, nativeRemote.pushSpec.dst
 	connected = false
 
 	Object.defineProperty @, "connected",
@@ -124,7 +133,17 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			cb: type: "function"
 		dir = if dir is "push" then Gitteh.GIT_DIR_PUSH else Gitteh.GIT_DIR_FETCH
 		nativeRemote.connect dir, wrapCallback cb, (refs) =>
-			immutable(@, {refs}).set("refs")
+			refNames = Object.keys refs
+
+			# Determine symref for HEAD.
+			headOid = refs["HEAD"]
+			for ref, oid of refs
+				continue if ref is "HEAD"
+				if oid is headOid
+					immutable(@, {ref}).set "ref", "HEAD"
+					break
+
+			immutable(@, {refNames}).set "refNames", "refs"
 			connected = true
 			cb()
 	@fetch = =>

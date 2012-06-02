@@ -1,5 +1,8 @@
 #include "remote.h"
 
+using std::map;
+using std::pair;
+
 namespace gitteh {
 	static Persistent<String> class_symbol;
 	static Persistent<String> name_symbol;
@@ -36,7 +39,7 @@ namespace gitteh {
 	class ConnectBaton : public RemoteBaton {
 	public:
 		int direction;
-		std::list<string> refs;
+		map<string, git_oid> refs;
 
 		ConnectBaton(Remote *remote, int direction) :
 				RemoteBaton(remote), direction(direction) { }
@@ -52,7 +55,7 @@ namespace gitteh {
 
 	static int SaveRemoteRef(git_remote_head *head, void *payload) {
 		ConnectBaton *baton = static_cast<ConnectBaton*>(payload);
-		baton->refs.push_back(string(head->name));
+		baton->refs.insert(pair<string, git_oid>(string(head->name), head->oid));
 		return GIT_OK;
 	}
 

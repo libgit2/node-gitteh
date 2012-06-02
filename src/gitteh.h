@@ -114,6 +114,12 @@ namespace cvv8 {
 			git_oid_fmt(oidStr, oid);
 			return CastToJS(oidStr);
 		}
+		Handle<Value> operator() (git_oid const oid) const {
+			char oidStr[41];
+			oidStr[40] = 0;
+			git_oid_fmt(oidStr, &oid);
+			return CastToJS(oidStr);
+		}
 	};
 
 	template<>
@@ -129,7 +135,7 @@ namespace cvv8 {
 		}
 	};
 
-	template<> 
+	template<>
 	struct NativeToJS<git_otype> {
 		Handle<Value> operator() (git_otype const type) const {
 			HandleScope scope;
