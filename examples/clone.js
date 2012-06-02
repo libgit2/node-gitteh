@@ -20,6 +20,6 @@ clone.on("complete", function(repo) {
 });
 
 clone.on("error", function(err) {
-	console.log("\n");
+	console.log("\n... Error during clone!");
 	console.error(err);
 });

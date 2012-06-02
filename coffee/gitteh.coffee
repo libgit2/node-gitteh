@@ -1,5 +1,7 @@
 {EventEmitter} = require "events"
 async = require "async"
+fs = require "fs"
+_path = require "path"
 args = require "./args"
 bindings = require "../build/Debug/gitteh"
 
@@ -48,7 +50,7 @@ Signature = (obj) ->
 
 Gitteh.Refspec = Refspec = (src, dst) ->
 	srcRoot = src
-	srcRoot = srcRoot[0...-1] if srcRoot[-1..] is "*"
+	srcRoot = srcRoot[0...-1] if srcRoot? and srcRoot[-1..] is "*"
 
 	immutable(@, {src, dst})
 		.set("src")
@@ -113,8 +115,7 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	if nativeRemote not instanceof NativeRemote
 		throw new Error "Don't construct me, see Repository.remote()"
-	nativeRemote.fetchSpec = new Refspec nativeRemote.fetchSpec.src, nativeRemote.fetchSpec.dst
-	nativeRemote.pushSpec = new Refspec nativeRemote.pushSpec.src, nativeRemote.pushSpec.dst
+
 	connected = false
 
 	Object.defineProperty @, "connected",
@@ -125,8 +126,13 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	immutable(@, nativeRemote)
 		.set("name")
 		.set("url")
+
+	fetchSpec = new Refspec nativeRemote.fetchSpec.src, nativeRemote.fetchSpec.dst
+	pushSpec = new Refspec nativeRemote.pushSpec.src, nativeRemote.pushSpec.dst
+	immutable(@, {fetchSpec, pushSpec})
 		.set("fetchSpec")
 		.set("pushSpec")
+
 	@connect = =>
 		[dir, cb] = args
 			dir: type: "remoteDir"
@@ -140,7 +146,8 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			for ref, oid of refs
 				continue if ref is "HEAD"
 				if oid is headOid
-					immutable(@, {ref}).set "ref", "HEAD"
+					headRef = fetchSpec.transform ref
+					immutable(@, {headRef}).set "headRef", "HEAD"
 					break
 
 			immutable(@, {refNames}).set "refNames", "refs"
@@ -148,24 +155,24 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			cb()
 	@fetch = =>
 		throw new Error "Remote isn't connected." if not connected
+		[progressCb, cb] = args
+			progressCb: type: "function"
+			cb: type: "function"
 
 		updateTimer = null
 		update = =>
 			{bytes, total, done} = nativeRemote.stats
-			@emit "progress", bytes, total, done
+			progressCb bytes, total, done
 			updateTimer = setTimeout update, 500
 		setTimeout update, 500
 
 		nativeRemote.download (err) =>
 			clearTimeout updateTimer
-			return @emit "error", err if err?
-			nativeRemote.updateTips =>
-				return @emit "error", err if err?
-				@emit "complete"
+			return cb err if err?
+			nativeRemote.updateTips wrapCallback cb, =>
+				cb()
 
 	return @
-
-Remote.prototype = EventEmitter.prototype
 
 wrapCallback = (orig, cb) ->
 	return (err) ->
@@ -250,28 +257,69 @@ Gitteh.clone = =>
 	emitter = new EventEmitter
 
 	async.waterfall [
+		# Initialize a fresh repo in the path specified.
 		(cb) -> Gitteh.initRepository path, false, cb
+
+		# Create the origin remote with provided URL.
 		(repo, cb) ->
 			repo.createRemote "origin", url, wrapCallback cb, (remote) ->
 				cb null, repo, remote
+
+		# Connect to the remote to commence fetch.
 		(repo, remote, cb) ->
 			remote.connect "fetch", wrapCallback cb, ->
 				cb null, repo, remote
-		# TODO: checkout HEAD into working dir.
-	], (err, repo, remote) ->
-		remote.fetch wrapCallback cb, ->
+
+		# Perform the actual fetch, sending progress updates as they come in.
+		(repo, remote, cb) ->
+			emitProgress = (bytes, done, complete) ->
+				emitter.emit "status", bytes, done, complete
+			remote.fetch emitProgress, wrapCallback cb, ->
 				cb null, repo, remote
-		errorHandler = (err) ->
-			emitter.emit "error", err
-		progressHandler = (bytes, done, complete) ->
-			emitter.emit "status", bytes, done, complete
-		completeHandler = () ->
-			remote.removeListener "error", errorHandler
-			remote.removeListener "progress", progressHandler
-			remote.removeListener "complete", completeHandler
-			emitter.emit "complete", repo
-		remote.on "error", errorHandler
-		remote.on "progress", progressHandler
-		remote.on "complete", completeHandler
+
+		# The connect step earlier resolved remote HEAD. Let's fetch that ref.
+		(repo, remote, cb) ->
+			repo.ref remote.HEAD, true, wrapCallback cb, (ref) ->
+				cb null, repo, remote, ref
+
+		# We now have fully resolved OID head ref. Fetch the commit.
+		(repo, remote, headRef, cb) ->
+			repo.commit headRef.target, wrapCallback cb, (commit) ->
+				cb null, repo, remote, commit
+
+		# Now fetch the tree for the commit.
+		(repo, remote, headCommit, cb) ->
+			headCommit.tree wrapCallback cb, (tree) ->
+				cb null, repo, remote, tree
+
+		# Now we can go ahead and checkout this tree into working directory.
+		(repo, remote, headTree, cb) ->
+			handleEntry = (dest, entry, cb) ->
+				if entry.type is "tree"
+					subPath = _path.join dest, entry.name
+					async.series [
+						# TODO: mode?
+						(cb) -> fs.mkdir subPath, cb
+						(cb) ->
+							repo.tree entry.id, wrapCallback cb, (subtree) ->
+								checkoutTree subtree, subPath, cb
+					], cb
+				else if entry.type is "blob"
+					repo.blob entry.id, wrapCallback cb, (blob) ->
+						file = fs.createWriteStream _path.join(dest, entry.name), 
+							mode: entry.attributes
+						file.write blob.data
+						file.end()
+						cb()
+				else
+					cb()
+			checkoutTree = (tree, dest, cb) ->
+				async.forEach tree.entries, handleEntry.bind(null, dest), cb
+			checkoutTree headTree, repo.workingDirectory, wrapCallback cb, ->
+				cb null, repo
+	], (err, repo) ->
+		return emitter.emit "error", err if err?
+
+		emitter.emit "complete", repo
 
 	return emitter
