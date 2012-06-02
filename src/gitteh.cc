@@ -30,6 +30,7 @@
 #include "blob.h"
 #include "tag.h"
 #include "remote.h"
+#include "index.h"
 
 namespace gitteh {
 
@@ -59,6 +60,8 @@ init(Handle<Object> target) {
 	Tree::Init(target);
 	Blob::Init(target);
 	Tag::Init(target);
+	Index::Init(target);
+
 	Remote::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
@@ -66,8 +69,8 @@ init(Handle<Object> target) {
 
 	NODE_DEFINE_CONSTANT(target, GIT_DIR_PUSH);
 	NODE_DEFINE_CONSTANT(target, GIT_DIR_FETCH);
-	
-	/*Index::Init(target);
+
+	/*
 	IndexEntry::Init(target);
 	
 	RevWalker::Init(target);

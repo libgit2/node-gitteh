@@ -26,6 +26,7 @@ public:
 
 	git_repository *repo_;
 	git_odb *odb_;
+	git_index *index_;
 
 protected:
 	static Handle<Value> OpenRepository(const Arguments&);

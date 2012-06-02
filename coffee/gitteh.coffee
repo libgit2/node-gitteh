@@ -23,6 +23,17 @@ remoteDirs = ["push", "fetch"]
 args.validators.remoteDir = (val) ->
 	return remoteDirs.indexOf val > -1
 
+checkOid = (str, allowLookup = true) ->
+	throw new TypeError "OID should be a string" if typeof str isnt "string"
+	throw new TypeError "Invalid OID" if not oidRegex.test str
+	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
+	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
+
+wrapCallback = (orig, cb) ->
+	return (err) ->
+		return orig err if err?
+		cb.apply null, Array.prototype.slice.call arguments, 1
+
 immutable = (obj, src) ->
 	return o = {
 		set: (name, target = name) ->
@@ -119,6 +130,7 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 		@repository.object @targetId, @type, cb
 	return @
 
+<<<<<<< HEAD
 Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	if nativeRemote not instanceof NativeRemote
 		throw new Error "Don't construct me, see Repository.remote()"
@@ -186,7 +198,9 @@ wrapCallback = (orig, cb) ->
 		return orig err if err?
 		cb.apply null, Array.prototype.slice.call arguments, 1
 
-module.exports.Repository = Repository = (nativeRepo) ->
+Gitteh.Index = Index = (nativeIndex) ->
+
+Gitteh.Repository = Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
 		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
 
