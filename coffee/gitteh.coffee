@@ -8,26 +8,20 @@ bindings = require "../build/Debug/gitteh"
 {minOidLength, types, NativeRepository, NativeRemote} = bindings
 module.exports = Gitteh = {}
 
-oidRegex = /^[a-zA-Z0-9]{0,40}$/
-args.validators.oid = (val) ->
-	return false if typeof val isnt "string"
-	return false if not oidRegex.test val
-	return false if val.length < minOidLength
-	return true
+getPrivate = (obj) ->
+	getPrivate.lock++
+	return obj._private
+getPrivate.lock = 0
 
-objectTypes = ["any", "blob", "commit", "tag", "tree"]
-args.validators.objectType = (val) ->
-	return objectTypes.indexOf val > -1
-
-remoteDirs = ["push", "fetch"]
-args.validators.remoteDir = (val) ->
-	return remoteDirs.indexOf val > -1
-
-checkOid = (str, allowLookup = true) ->
-	throw new TypeError "OID should be a string" if typeof str isnt "string"
-	throw new TypeError "Invalid OID" if not oidRegex.test str
-	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
-	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
+createPrivate = (obj) ->
+	_priv = {}
+	Object.defineProperty obj, "_private",
+		enumerable: false
+		configurable: false
+		get: ->
+			throw new Error "Bad request" if not getPrivate.lock--
+			return _priv
+	return _priv
 
 wrapCallback = (orig, cb) ->
 	return (err) ->
@@ -51,7 +45,28 @@ immutable = (obj, src) ->
 			return o
 	}
 
-Signature = (obj) ->
+oidRegex = /^[a-zA-Z0-9]{0,40}$/
+args.validators.oid = (val) ->
+	return false if typeof val isnt "string"
+	return false if not oidRegex.test val
+	return false if val.length < minOidLength
+	return true
+
+objectTypes = ["any", "blob", "commit", "tag", "tree"]
+args.validators.objectType = (val) ->
+	return objectTypes.indexOf val > -1
+
+remoteDirs = ["push", "fetch"]
+args.validators.remoteDir = (val) ->
+	return remoteDirs.indexOf val > -1
+
+checkOid = (str, allowLookup = true) ->
+	throw new TypeError "OID should be a string" if typeof str isnt "string"
+	throw new TypeError "Invalid OID" if not oidRegex.test str
+	throw new Error "OID is too short" if str.length < bindings.minOidLength
+	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
+
+Gitteh.Signature = Signature = (obj) ->
 	immutable(@, obj)
 		.set("name")
 		.set("email")
@@ -60,26 +75,29 @@ Signature = (obj) ->
 	return @
 
 Gitteh.Refspec = Refspec = (src, dst) ->
-	srcRoot = src
-	srcRoot = srcRoot[0...-1] if srcRoot? and srcRoot[-1..] is "*"
-	dstRoot = dst
-	dstRoot = dstRoot[0...-1] if dstRoot? and dstRoot[-1..] is "*"
+	_priv = createPrivate @
+
+	_priv.srcRoot = if src? and src[-1..] is "*" then src[0...-1] else src
+	_priv.dstRoot = if dst? and dst[-1..] is "*" then dst[0...-1] else dst
+
 	immutable(@, {src, dst})
 		.set("src")
 		.set("dst")
-	@matchesSrc = (ref) =>
-		return false if ref.length <= srcRoot.length
-		return ref.indexOf(srcRoot) is 0
-	@matchesDst = (ref) =>
-		return false if ref.length <= dstRoot.length
-		return ref.indexOf(dstRoot) is 0
-	@transformTo = (ref) =>
-		throw new Error "Ref doesn't match src." if not @matchesSrc ref
-		return "#{dst[0...-2]}#{ref[(src.length-2)..]}"
-	@transformFrom = (ref) =>
-		throw new Error "Ref doesn't match dst." if not @matchesDst ref
-		return "#{src[0...-2]}#{ref[(dst.length-2)..]}"
 	return @
+Refspec.prototype.matchesSrc = (ref) ->
+	_priv = getPriv @
+	return false if ref.length <= _priv.srcRoot.length
+	return ref.indexOf(_priv.srcRoot) is 0
+Refspec.prototype.matchesDst = (ref) ->
+	_priv = getPriv @
+	return false if ref.length <= _priv.dstRoot.length
+	return ref.indexOf(_priv.dstRoot) is 0
+Refspec.prototype.transformTo = (ref) ->
+	throw new Error "Ref doesn't match src." if not @matchesSrc ref
+	return "#{@dst[0...-2]}#{ref[(@src.length-2)..]}"
+Refspec.prototype.transformFrom = (ref) ->
+	throw new Error "Ref doesn't match dst." if not @matchesDst ref
+	return "#{@src[0...-2]}#{ref[(@dst.length-2)..]}"
 
 Gitteh.Commit = Commit = (@repository, obj) ->
 	obj.author = new Signature obj.author
@@ -92,9 +110,9 @@ Gitteh.Commit = Commit = (@repository, obj) ->
 		.set("messageEncoding")
 		.set("author")
 		.set("committer")
-	@tree = (cb) =>
-		@repository.tree obj.tree, cb
 	return @
+Commit.prototype.tree = (cb) ->
+	@repository.tree @treeId, cb
 
 Gitteh.Tree = Tree = (@repository, obj) ->
 	obj._entries = obj.entries
@@ -126,19 +144,20 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 		.set("tagger")
 		.set("target", "targetId")
 		.set("type")
-	@target = (cb) =>
-		@repository.object @targetId, @type, cb
 	return @
+Tag.prototype.target = (cb) ->
+	@repository.object @targetId, @type, cb
 
-<<<<<<< HEAD
 Gitteh.Remote = Remote = (@repository, nativeRemote) ->
+	_priv = createPrivate @
+	_priv.native = nativeRemote
+	_priv.connected = false
+
 	if nativeRemote not instanceof NativeRemote
 		throw new Error "Don't construct me, see Repository.remote()"
 
-	connected = false
-
 	Object.defineProperty @, "connected",
-		get: -> return connected
+		get: -> return _priv.connected
 		enumerable: true
 		configurable: false
 
@@ -151,58 +170,56 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 	immutable(@, {fetchSpec, pushSpec})
 		.set("fetchSpec")
 		.set("pushSpec")
-
-	@connect = =>
-		[dir, cb] = args
-			dir: type: "remoteDir"
-			cb: type: "function"
-		dir = if dir is "push" then Gitteh.GIT_DIR_PUSH else Gitteh.GIT_DIR_FETCH
-		nativeRemote.connect dir, wrapCallback cb, (refs) =>
-			refNames = Object.keys refs
-
-			# Determine symref for HEAD.
-			headOid = refs["HEAD"]
-			for ref, oid of refs
-				continue if ref is "HEAD"
-				if oid is headOid
-					headRef = fetchSpec.transformTo ref
-					immutable(@, {headRef}).set "headRef", "HEAD"
-					break
-
-			immutable(@, {refNames}).set "refNames", "refs"
-			connected = true
-			cb()
-	@fetch = =>
-		throw new Error "Remote isn't connected." if not connected
-		[progressCb, cb] = args
-			progressCb: type: "function"
-			cb: type: "function"
-
-		updateTimer = null
-		update = =>
-			{bytes, total, done} = nativeRemote.stats
-			progressCb bytes, total, done
-			updateTimer = setTimeout update, 500
-		setTimeout update, 500
-
-		nativeRemote.download (err) =>
-			clearTimeout updateTimer
-			return cb err if err?
-			nativeRemote.updateTips wrapCallback cb, =>
-				cb()
-
 	return @
 
-wrapCallback = (orig, cb) ->
-	return (err) ->
-		return orig err if err?
-		cb.apply null, Array.prototype.slice.call arguments, 1
+Remote.prototype.connect = ->
+	_priv = getPrivate @
+	[dir, cb] = args
+		dir: type: "remoteDir"
+		cb: type: "function"
+	dir = if dir is "push" then bindings.GIT_DIR_PUSH else bindings.GIT_DIR_FETCH
+	_priv.native.connect dir, wrapCallback cb, (refs) =>
+		refNames = Object.keys refs
+
+		# Determine symref for HEAD.
+		headOid = refs["HEAD"]
+		for ref, oid of refs
+			continue if ref is "HEAD"
+			if oid is headOid
+				headRef = fetchSpec.transformTo ref
+				immutable(@, {headRef}).set "headRef", "HEAD"
+				break
+
+		immutable(@, {refNames}).set "refNames", "refs"
+		_priv.connected = true
+		cb()
+Remote.prototype.fetch = ->
+	_priv = getPrivate @
+	throw new Error "Remote isn't connected." if not connected
+	[progressCb, cb] = args
+		progressCb: type: "function"
+		cb: type: "function"
+
+	updateTimer = null
+	update = =>
+		{bytes, total, done} = _priv.native.stats
+		progressCb bytes, total, done
+		updateTimer = setTimeout update, 500
+	setTimeout update, 500
+
+	_priv.native.download (err) =>
+		clearTimeout updateTimer
+		return cb err if err?
+		_priv.native.updateTips wrapCallback cb, =>
+			cb()
 
 Gitteh.Index = Index = (nativeIndex) ->
 
 Gitteh.Repository = Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
 		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
+	_priv = createPrivate @
+	_priv.native = nativeRepo
 
 	immutable(@, nativeRepo)
 		.set("bare")
@@ -210,50 +227,55 @@ Gitteh.Repository = Repository = (nativeRepo) ->
 		.set("workDir", "workingDirectory")
 		.set("remotes")
 		.set("references")
-	@exists = =>
-		[oid, cb] = args
-			oid: type: "oid"
-			cb: type: "function"
-		nativeRepo.exists oid, cb
-	@object = =>
-		[oid, type, cb] = args
-			oid: type: "oid"
-			type: type: "objectType", default: "any"
-			cb: type: "function"
-		nativeRepo.object oid, type, wrapCallback cb, (object) =>
-			clazz = switch object._type
-				when types.commit then Commit
-				when types.tree then Tree
-				when types.blob then Blob
-				when types.tag then Tag
-				else undefined
-			return cb new TypeError("Unexpected object type") if clazz is undefined
-			return cb null, new clazz @, object
-	@blob = (oid, cb) => @object oid, "blob", cb
-	@commit = (oid, cb) => @object oid, "commit", cb
-	@tag = (oid, cb) => @object oid, "tag", cb
-	@tree = (oid, cb) => @object oid, "tree", cb
-	@reference = =>
-		[name, resolve, cb] = args
-			name: type: "string"
-			resolve: type: "bool"
-			cb: type: "function"
-		nativeRepo.reference name, resolve, cb
-	@ref = @reference
-	@remote = =>
-		[name, cb] = args
-			name: type: "string"
-			cb: type: "function"
-		nativeRepo.remote name, wrapCallback cb, (remote) =>
-			return cb null, new Remote @, remote
-	@createRemote = =>
-		[name, url, cb] = args
-			name: type: "string"
-			url: type: "string"
-			cb: type: "function"
-		nativeRepo.createRemote name, url, wrapCallback cb, (remote) =>
-			return cb null, new Remote @, remote
 	return @
+Repository.prototype.exists = ->
+	_priv = getPrivate @
+	[oid, cb] = args
+		oid: type: "oid"
+		cb: type: "function"
+	_priv.native.exists oid, cb
+Repository.prototype.object = ->
+	_priv = getPrivate @
+	[oid, type, cb] = args
+		oid: type: "oid"
+		type: type: "objectType", default: "any"
+		cb: type: "function"
+	_priv.native.object oid, type, wrapCallback cb, (object) =>
+		clazz = switch object._type
+			when types.commit then Commit
+			when types.tree then Tree
+			when types.blob then Blob
+			when types.tag then Tag
+			else undefined
+		return cb new TypeError("Unexpected object type") if clazz is undefined
+		return cb null, new clazz @, object
+Repository.prototype.blob = (oid, cb) -> @object oid, "blob", cb
+Repository.prototype.commit = (oid, cb) -> @object oid, "commit", cb
+Repository.prototype.tag = (oid, cb) -> @object oid, "tag", cb
+Repository.prototype.tree = (oid, cb) -> @object oid, "tree", cb
+Repository.prototype.reference = ->
+	_priv = getPrivate @
+	[name, resolve, cb] = args
+		name: type: "string"
+		resolve: type: "bool"
+		cb: type: "function"
+	nativeRepo.reference name, resolve, cb
+Repository.prototype.ref = Repository.prototype.reference
+Repository.prototype.remote = ->
+	_priv = getPrivate @
+	[name, cb] = args
+		name: type: "string"
+		cb: type: "function"
+	_priv.native.remote name, wrapCallback cb, (remote) =>
+		return cb null, new Remote @, remote
+Repository.prototype.createRemote = ->
+	_priv = getPrivate @
+	[name, url, cb] = args
+		name: type: "string"
+		url: type: "string"
+		cb: type: "function"
+	_priv.native.createRemote name, url, wrapCallback cb, (remote) =>
+		return cb null, new Remote @, remote
 
 Gitteh.openRepository = ->
 	[path, cb] = args
@@ -261,7 +283,6 @@ Gitteh.openRepository = ->
 		cb: type: "function"
 	bindings.openRepository path, wrapCallback cb, (repo) ->
 		cb null, new Repository repo
-
 Gitteh.initRepository = () ->
 	[path, bare, cb] = args
 		path: type: "string"
@@ -269,7 +290,6 @@ Gitteh.initRepository = () ->
 		cb: type: "function"
 	bindings.initRepository path, bare, wrapCallback cb, (repo) ->
 		cb null, new Repository repo
-
 Gitteh.clone = =>
 	[url, path, cb] = args
 		url: type: "string"
