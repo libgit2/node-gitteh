@@ -51,16 +51,23 @@ Signature = (obj) ->
 Gitteh.Refspec = Refspec = (src, dst) ->
 	srcRoot = src
 	srcRoot = srcRoot[0...-1] if srcRoot? and srcRoot[-1..] is "*"
-
+	dstRoot = dst
+	dstRoot = dstRoot[0...-1] if dstRoot? and dstRoot[-1..] is "*"
 	immutable(@, {src, dst})
 		.set("src")
 		.set("dst")
 	@matchesSrc = (ref) =>
 		return false if ref.length <= srcRoot.length
 		return ref.indexOf(srcRoot) is 0
-	@transform = (ref) =>
+	@matchesDst = (ref) =>
+		return false if ref.length <= dstRoot.length
+		return ref.indexOf(dstRoot) is 0
+	@transformTo = (ref) =>
 		throw new Error "Ref doesn't match src." if not @matchesSrc ref
 		return "#{dst[0...-2]}#{ref[(src.length-2)..]}"
+	@transformFrom = (ref) =>
+		throw new Error "Ref doesn't match dst." if not @matchesDst ref
+		return "#{src[0...-2]}#{ref[(dst.length-2)..]}"
 	return @
 
 Gitteh.Commit = Commit = (@repository, obj) ->
@@ -146,7 +153,7 @@ Gitteh.Remote = Remote = (@repository, nativeRemote) ->
 			for ref, oid of refs
 				continue if ref is "HEAD"
 				if oid is headOid
-					headRef = fetchSpec.transform ref
+					headRef = fetchSpec.transformTo ref
 					immutable(@, {headRef}).set "headRef", "HEAD"
 					break
 
