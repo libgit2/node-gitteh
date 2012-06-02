@@ -11,9 +11,9 @@
 				'src/tree.cc',
 				'src/blob.cc',
 				'src/tag.cc',
+				'src/index.cc',
 			],
 			'todosources': [
-				'src/index.cc',
 				'src/index_entry.cc',
 				'src/tag.cc',
 				'src/rev_walker.cc',

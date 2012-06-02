@@ -29,6 +29,7 @@
 #include "tree.h"
 #include "blob.h"
 #include "tag.h"
+#include "index.h"
 
 namespace gitteh {
 
@@ -58,10 +59,11 @@ init(Handle<Object> target) {
 	Tree::Init(target);
 	Blob::Init(target);
 	Tag::Init(target);
+	Index::Init(target);
 
 	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
 	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
-	/*Index::Init(target);
+	/*
 	IndexEntry::Init(target);
 	
 	RevWalker::Init(target);

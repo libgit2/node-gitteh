@@ -4,6 +4,28 @@ args = require "./args"
 
 module.exports = Gitteh = {}
 
+oidRegex = /^[a-zA-Z0-9]{0,40}$/
+args.validators.oid = (val) ->
+	return false if typeof val isnt "string"
+	return false if not oidRegex.test val
+	return false if val.length < minOidLength
+	return true
+
+objectTypes = ["any", "blob", "commit", "tag", "tree"]
+args.validators.objectType = (val) ->
+	return objectTypes.indexOf val > -1
+
+checkOid = (str, allowLookup = true) ->
+	throw new TypeError "OID should be a string" if typeof str isnt "string"
+	throw new TypeError "Invalid OID" if not oidRegex.test str
+	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
+	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
+
+wrapCallback = (orig, cb) ->
+	return (err) ->
+		return orig err if err?
+		cb.apply null, Array.prototype.slice.call arguments, 1
+
 immutable = (obj, src) ->
 	return o = {
 		set: (name, target = name) ->
@@ -77,29 +99,10 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 		@repository.object @targetId, @type, cb
 	return @
 
-oidRegex = /^[a-zA-Z0-9]{0,40}$/
-args.validators.oid = (val) ->
-	return false if typeof val isnt "string"
-	return false if not oidRegex.test val
-	return false if val.length < minOidLength
-	return true
+Gitteh.Index = Index = (nativeIndex) ->
+	
 
-objectTypes = ["any", "blob", "commit", "tag", "tree"]
-args.validators.objectType = (val) ->
-	return objectTypes.indexOf val > -1
-
-checkOid = (str, allowLookup = true) ->
-	throw new TypeError "OID should be a string" if typeof str isnt "string"
-	throw new TypeError "Invalid OID" if not oidRegex.test str
-	throw new Error "OID is too short" if str.length < Gitteh.minOidLength
-	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
-
-wrapCallback = (orig, cb) ->
-	return (err) ->
-		return orig err if err?
-		cb.apply null, Array.prototype.slice.call arguments, 1
-
-module.exports.Repository = Repository = (nativeRepo) ->
+Gitteh.Repository = Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
 		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
 

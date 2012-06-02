@@ -27,6 +27,7 @@
 #include "tree.h"
 #include "blob.h"
 #include "tag.h"
+#include "index.h"
 
 using std::list;
 
@@ -34,6 +35,7 @@ namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
 static Persistent<String> bare_symbol;
+static Persistent<String> index_symbol;
 
 static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
@@ -149,6 +151,7 @@ void Repository::Init(Handle<Object> target) {
 	object_dir_symbol 	= NODE_PSYMBOL("objectDirectory");
 	index_file_symbol 	= NODE_PSYMBOL("indexFile");
 	work_dir_symbol 	= NODE_PSYMBOL("workDir");
+	index_symbol		= NODE_PSYMBOL("index");
 	references_symbol	= NODE_PSYMBOL("references");
 
 	// Reference symbols
@@ -184,7 +187,11 @@ Handle<Value> Repository::New(const Arguments& args) {
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
 	git_odb *odb;
+	git_index *index;
 	if(git_repository_odb(&odb, repo) != GIT_OK) {
+		return scope.Close(ThrowGitError());
+	}
+	if(git_repository_index(&index, repo) != GIT_OK) {
 		return scope.Close(ThrowGitError());
 	}
 
@@ -193,6 +200,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	repoObj->Wrap(me);
 	repoObj->repo_ = repo;
 	repoObj->odb_ = odb;
+	repoObj->index_ = index;
 
 	bool bare = git_repository_is_bare(repo);
 	ImmutableSet(me, path_symbol, CastToJS(git_repository_path(repo)));
@@ -203,6 +211,14 @@ Handle<Value> Repository::New(const Arguments& args) {
 	Handle<External> refsExternal = Handle<External>::Cast(args[1]);
 	list<string> *refs = static_cast<list<string>*>(refsExternal->Value());
 	if(refs != NULL) me->Set(references_symbol, CastToJS(*refs));
+
+	Handle<Value> constructorArgs[] = {
+		External::New(index)
+	};
+	Local<Object> indexObj = Index::constructor_template->GetFunction()
+			->NewInstance(1, constructorArgs);
+
+	me->Set(index_symbol, indexObj);
 
 	return args.This();
 }
