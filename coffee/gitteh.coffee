@@ -107,6 +107,7 @@ module.exports.Repository = Repository = (nativeRepo) ->
 		.set("bare")
 		.set("path")
 		.set("workDir", "workingDirectory")
+		.set("references")
 	@exists = =>
 		[oid, cb] = args
 			oid: type: "oid"

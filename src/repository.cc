@@ -28,6 +28,8 @@
 #include "blob.h"
 #include "tag.h"
 
+using std::list;
+
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
@@ -36,6 +38,7 @@ static Persistent<String> bare_symbol;
 static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
+static Persistent<String> references_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
@@ -49,6 +52,7 @@ class OpenRepoBaton : public Baton {
 public:
 	string path	;
 	git_repository *repo;
+	list<string> references;
 
 	OpenRepoBaton(string path) : Baton(), path(path) {}	;
 };
@@ -99,6 +103,12 @@ public:
 	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
+int RepositoryRefCallback(const char *ref, void *payload) {
+	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
+	baton->references.push_back(string(ref));
+	return GIT_OK;
+}
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -139,6 +149,7 @@ void Repository::Init(Handle<Object> target) {
 	object_dir_symbol 	= NODE_PSYMBOL("objectDirectory");
 	index_file_symbol 	= NODE_PSYMBOL("indexFile");
 	work_dir_symbol 	= NODE_PSYMBOL("workDir");
+	references_symbol	= NODE_PSYMBOL("references");
 
 	// Reference symbols
 	ref_name_symbol 	= NODE_PSYMBOL("name");
@@ -189,6 +200,10 @@ Handle<Value> Repository::New(const Arguments& args) {
 	const char *workDir = git_repository_workdir(repo);
 	if(workDir) ImmutableSet(me, work_dir_symbol, CastToJS(workDir));
 
+	Handle<External> refsExternal = Handle<External>::Cast(args[1]);
+	list<string> *refs = static_cast<list<string>*>(refsExternal->Value());
+	if(refs != NULL) me->Set(references_symbol, CastToJS(*refs));
+
 	return args.This();
 }
 
@@ -206,7 +221,11 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 void Repository::AsyncOpenRepository(uv_work_t *req) {
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
-	AsyncLibCall(git_repository_open(&baton->repo, baton->path.c_str()), baton);
+	if(AsyncLibCall(git_repository_open(&baton->repo, baton->path.c_str()),
+			baton)) {
+		AsyncLibCall(git_reference_foreach(baton->repo, GIT_REF_LISTALL,
+				RepositoryRefCallback, baton), baton);
+	}
 }
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
@@ -219,9 +238,12 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	}
 	else {
 		// Call the Repository JS constructor to get our JS object.
-		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Handle<Value> constructorArgs[] = {
+			External::New(baton->repo),
+			External::New(&baton->references)
+		};
 		Local<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(1, constructorArgs);
+						->NewInstance(2, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
@@ -257,9 +279,12 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 		FireCallback(baton->callback, 1, argv);
 	}
 	else {
-		Handle<Value> constructorArgs[] = { External::New(baton->repo) };
+		Handle<Value> constructorArgs[] = { 
+			External::New(baton->repo),
+			External::New(NULL)
+		};
 		Handle<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(1, constructorArgs);
+						->NewInstance(2, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
