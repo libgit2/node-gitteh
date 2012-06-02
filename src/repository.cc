@@ -31,6 +31,8 @@
 
 using std::vector;
 
+using std::list;
+
 namespace gitteh {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
@@ -40,6 +42,7 @@ static Persistent<String> object_dir_symbol;
 static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
 static Persistent<String> remotes_symbol;
+static Persistent<String> references_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
@@ -54,6 +57,7 @@ public:
 	string path	;
 	git_repository *repo;
 	vector<string> remotes;
+	list<string> references;
 
 	OpenRepoBaton(string path) : Baton(), path(path) {}	;
 };
@@ -104,6 +108,7 @@ public:
 	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
+<<<<<<< HEAD
 class GetRemoteBaton : public RepositoryBaton {
 public:
 	string name;
@@ -119,6 +124,12 @@ public:
 	git_remote *remote;
 	CreateRemoteBaton(Repository *r) : RepositoryBaton(r) { }
 };
+
+int RepositoryRefCallback(const char *ref, void *payload) {
+	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
+	baton->references.push_back(string(ref));
+	return GIT_OK;
+}
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
@@ -161,6 +172,7 @@ void Repository::Init(Handle<Object> target) {
 	index_file_symbol 	= NODE_PSYMBOL("indexFile");
 	work_dir_symbol 	= NODE_PSYMBOL("workDir");
 	remotes_symbol 		= NODE_PSYMBOL("remotes");
+	references_symbol	= NODE_PSYMBOL("references");
 
 	// Reference symbols
 	ref_name_symbol 	= NODE_PSYMBOL("name");
@@ -193,7 +205,8 @@ Handle<Value> Repository::New(const Arguments& args) {
 	HandleScope scope;
 
 	REQ_EXT_ARG(0, repoArg);
-	REQ_EXT_ARG(1, remotesArg);
+	REQ_EXT_ARG(1, refsArg);
+	REQ_EXT_ARG(2, remotesArg);
 	Handle<Object> me = args.This();
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
@@ -222,6 +235,14 @@ Handle<Value> Repository::New(const Arguments& args) {
 		ImmutableSet(me, remotes_symbol, Array::New());
 	}
 
+	list<string> *refs = static_cast<list<string>*>(refsArg->Value());
+	if(refs != NULL) {
+		me->Set(references_symbol, CastToJS(*refs));
+	}
+	else {
+		me->Set(references_symbol, Array::New());
+	}
+
 	return args.This();
 }
 
@@ -248,6 +269,9 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 			}
 			git_strarray_free(&remotes);
 		}
+
+		AsyncLibCall(git_reference_foreach(baton->repo, GIT_REF_LISTALL,
+				RepositoryRefCallback, baton), baton);
 	}
 }
 
@@ -263,6 +287,7 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 		// Call the Repository JS constructor to get our JS object.
 		Handle<Value> constructorArgs[] = {
 			External::New(baton->repo),
+			External::New(&baton->references),
 			External::New(&baton->remotes)
 		};
 		Local<Object> obj = Repository::constructor_template->GetFunction()
@@ -304,6 +329,7 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 	else {
 		Handle<Value> constructorArgs[] = {
 			External::New(baton->repo),
+			External::New(NULL),
 			External::New(NULL)
 		};
 		Handle<Object> obj = Repository::constructor_template->GetFunction()
