@@ -29,8 +29,6 @@
 #include "tag.h"
 #include "remote.h"
 
-using std::vector;
-
 using std::list;
 
 namespace gitteh {
@@ -56,7 +54,7 @@ class OpenRepoBaton : public Baton {
 public:
 	string path	;
 	git_repository *repo;
-	vector<string> remotes;
+	list<string> remotes;
 	list<string> references;
 
 	OpenRepoBaton(string path) : Baton(), path(path) {}	;
@@ -108,7 +106,6 @@ public:
 	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
 };
 
-<<<<<<< HEAD
 class GetRemoteBaton : public RepositoryBaton {
 public:
 	string name;
@@ -124,12 +121,6 @@ public:
 	git_remote *remote;
 	CreateRemoteBaton(Repository *r) : RepositoryBaton(r) { }
 };
-
-int RepositoryRefCallback(const char *ref, void *payload) {
-	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
-	baton->references.push_back(string(ref));
-	return GIT_OK;
-}
 
 Persistent<FunctionTemplate> Repository::constructor_template;
 
@@ -227,7 +218,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	const char *workDir = git_repository_workdir(repo);
 	if(workDir) ImmutableSet(me, work_dir_symbol, CastToJS(workDir));
 
-	vector<string> *remotes = static_cast<vector<string>*>(remotesArg->Value());
+	list<string> *remotes = static_cast<list<string>*>(remotesArg->Value());
 	if(remotes != NULL) {
 		ImmutableSet(me, remotes_symbol, CastToJS(*remotes));
 	}
@@ -235,9 +226,9 @@ Handle<Value> Repository::New(const Arguments& args) {
 		ImmutableSet(me, remotes_symbol, Array::New());
 	}
 
-	list<string> *refs = static_cast<list<string>*>(refsArg->Value());
-	if(refs != NULL) {
-		me->Set(references_symbol, CastToJS(*refs));
+	list<string> *references = static_cast<list<string>*>(refsArg->Value());
+	if(references != NULL) {
+		me->Set(references_symbol, CastToJS(*references));
 	}
 	else {
 		me->Set(references_symbol, Array::New());
@@ -262,16 +253,21 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 
 	if(AsyncLibCall(git_repository_open(&baton->repo, baton->path.c_str()),
 			baton)) {
-		git_strarray remotes;
-		if(AsyncLibCall(git_remote_list(&remotes, baton->repo), baton)) {
-			for(int i = 0; i < remotes.count; i++) {
-				baton->remotes.push_back(string(remotes.strings[i]));
+		git_strarray strarray;
+		if(AsyncLibCall(git_remote_list(&strarray, baton->repo), baton)) {
+			for(int i = 0; i < strarray.count; i++) {
+				baton->remotes.push_back(string(strarray.strings[i]));
 			}
-			git_strarray_free(&remotes);
+			git_strarray_free(&strarray);
 		}
 
-		AsyncLibCall(git_reference_foreach(baton->repo, GIT_REF_LISTALL,
-				RepositoryRefCallback, baton), baton);
+		if(AsyncLibCall(git_reference_list(&strarray, baton->repo,
+				GIT_REF_LISTALL), baton)) {
+			for(int i = 0; i < strarray.count; i++) {
+				baton->references.push_back(string(strarray.strings[i]));
+			}
+			git_strarray_free(&strarray);
+		}
 	}
 }
 
@@ -291,7 +287,7 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 			External::New(&baton->remotes)
 		};
 		Local<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(2, constructorArgs);
+						->NewInstance(3, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
@@ -333,7 +329,7 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 			External::New(NULL)
 		};
 		Handle<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(2, constructorArgs);
+						->NewInstance(3, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
