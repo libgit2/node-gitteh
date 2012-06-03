@@ -363,7 +363,13 @@ Gitteh.clone = =>
 			repo.ref remote.HEAD, true, wrapCallback cb, (ref) ->
 				cb null, repo, remote, ref
 
-		# We now have fully resolved OID head ref. Fetch the commit.
+		# We now have fully resolved OID head ref. Create a local branch.
+		(repo, remote, headRef, cb) ->
+			refName = remote.fetchSpec.transformFrom remote.HEAD
+			repo.createReference refName, headRef.target, wrapCallback cb, ->
+				cb null, repo, remote, headRef
+
+		# And now fetch the commit.
 		(repo, remote, headRef, cb) ->
 			repo.commit headRef.target, wrapCallback cb, (commit) ->
 				cb null, repo, remote, commit
@@ -397,18 +403,17 @@ Gitteh.clone = =>
 			checkoutTree = (tree, dest, cb) ->
 				async.forEach tree.entries, handleEntry.bind(null, dest), cb
 			checkoutTree headTree, repo.workingDirectory, wrapCallback cb, ->
-				cb null, repo, headTree
+				cb null, repo, remote, headTree
 
 		# Update the git index with the tree we just checked out.
-		(repo, headTree, cb) ->
+		(repo, remote, headTree, cb) ->
 			repo.index.readTree headTree.id, wrapCallback cb, ->
-				cb null, repo
+				cb null, repo, remote
 
 		# Now write the index back to disk.
-		(repo, cb) ->
+		(repo, remote, cb) ->
 			repo.index.write wrapCallback cb, ->
-				cb null, repo
-
+				cb null, repo, remote
 	], (err, repo) ->
 		return emitter.emit "error", err if err?
 
