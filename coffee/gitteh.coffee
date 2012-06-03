@@ -229,6 +229,17 @@ Index.prototype.write = ->
 		cb: type: "function"
 	_priv.native.write cb
 
+Gitteh.Reference = Reference = (repo, nativeRef) ->
+	_priv = createPrivate @
+	_priv.native = nativeRef
+	immutable(@, nativeRef)
+		.set("name")
+		.set("direct")
+		.set("packed")
+		.set("target")
+	immutable(@, {repo}).set "repo", "repository"
+	return @
+
 Gitteh.Repository = Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
 		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
@@ -275,7 +286,8 @@ Repository.prototype.reference = ->
 		name: type: "string"
 		resolve: type: "bool"
 		cb: type: "function"
-	_priv.native.reference name, resolve, cb
+	_priv.native.reference name, resolve, wrapCallback cb, (ref) =>
+		cb null, new Reference @, ref
 Repository.prototype.ref = Repository.prototype.reference
 Repository.prototype.remote = ->
 	_priv = getPrivate @
