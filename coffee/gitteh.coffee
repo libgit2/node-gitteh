@@ -85,11 +85,11 @@ Gitteh.Refspec = Refspec = (src, dst) ->
 		.set("dst")
 	return @
 Refspec.prototype.matchesSrc = (ref) ->
-	_priv = getPriv @
+	_priv = getPrivate @
 	return false if ref.length <= _priv.srcRoot.length
 	return ref.indexOf(_priv.srcRoot) is 0
 Refspec.prototype.matchesDst = (ref) ->
-	_priv = getPriv @
+	_priv = getPrivate @
 	return false if ref.length <= _priv.dstRoot.length
 	return ref.indexOf(_priv.dstRoot) is 0
 Refspec.prototype.transformTo = (ref) ->
@@ -186,7 +186,7 @@ Remote.prototype.connect = ->
 		for ref, oid of refs
 			continue if ref is "HEAD"
 			if oid is headOid
-				headRef = fetchSpec.transformTo ref
+				headRef = @fetchSpec.transformTo ref
 				immutable(@, {headRef}).set "headRef", "HEAD"
 				break
 
@@ -195,7 +195,7 @@ Remote.prototype.connect = ->
 		cb()
 Remote.prototype.fetch = ->
 	_priv = getPrivate @
-	throw new Error "Remote isn't connected." if not connected
+	throw new Error "Remote isn't connected." if not @connected
 	[progressCb, cb] = args
 		progressCb: type: "function"
 		cb: type: "function"
@@ -259,7 +259,7 @@ Repository.prototype.reference = ->
 		name: type: "string"
 		resolve: type: "bool"
 		cb: type: "function"
-	nativeRepo.reference name, resolve, cb
+	_priv.native.reference name, resolve, cb
 Repository.prototype.ref = Repository.prototype.reference
 Repository.prototype.remote = ->
 	_priv = getPrivate @
