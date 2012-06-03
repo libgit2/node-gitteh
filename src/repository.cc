@@ -99,13 +99,59 @@ public:
 	GetObjectBaton(Repository *r, git_oid oid) : RepositoryBaton(r), oid(oid) {}
 };
 
-class GetReferenceBaton : public RepositoryBaton {
+class ReferenceBaton : public RepositoryBaton {
+public:
+	git_reference *ref;
+	ReferenceBaton(Repository *r) : RepositoryBaton(r) {
+		ref = NULL;
+	}
+	~ReferenceBaton() {
+		if(ref) {
+			git_reference_free(ref);
+		}
+	}
+};
+
+class GetReferenceBaton : public ReferenceBaton {
 public:
 	string name;
-	git_reference *ref;
 	bool resolve;
 
-	GetReferenceBaton(Repository *r, string _name) : RepositoryBaton(r), name(_name) {}
+	GetReferenceBaton(Repository *r, string _name) : ReferenceBaton(r), name(_name) {}
+};
+
+class CreateReferenceBaton : public ReferenceBaton {
+public:
+	bool direct_;
+	string name_;
+	git_oid targetId_;
+	string target_;
+	bool force_;
+
+	CreateReferenceBaton(Repository *r, string name, git_oid target,
+			bool force) : ReferenceBaton(r) {
+		name_ = name;
+		targetId_ = target;
+		force_ = force;
+		direct_ = true;
+	}
+
+	CreateReferenceBaton(Repository *r, string name, string target,
+			bool force) : ReferenceBaton(r) {
+		name_ = name;
+		target_ = target;
+		force_ = force;
+		direct_ = false;
+	}
+};
+
+class CreateSymReferenceBaton : public ReferenceBaton {
+public:
+	string name;
+	string target;
+
+	CreateSymReferenceBaton(Repository *r, string name, string target) :
+			ReferenceBaton(r), name(name), target(target) { }
 };
 
 class GetRemoteBaton : public RepositoryBaton {
@@ -191,6 +237,8 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "object", GetObject);
 	NODE_SET_PROTOTYPE_METHOD(t, "exists", Exists);
 	NODE_SET_PROTOTYPE_METHOD(t, "reference", GetReference);
+	NODE_SET_PROTOTYPE_METHOD(t, "createOidReference", CreateOidReference);
+	NODE_SET_PROTOTYPE_METHOD(t, "createSymReference", CreateSymReference);
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
 
@@ -277,7 +325,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 			baton)) {
 		git_strarray strarray;
 		if(AsyncLibCall(git_remote_list(&strarray, baton->repo), baton)) {
-			for(int i = 0; i < strarray.count; i++) {
+			for(unsigned int i = 0; i < strarray.count; i++) {
 				baton->remotes.push_back(string(strarray.strings[i]));
 			}
 			git_strarray_free(&strarray);
@@ -285,7 +333,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 
 		if(AsyncLibCall(git_reference_list(&strarray, baton->repo,
 				GIT_REF_LISTALL), baton)) {
-			for(int i = 0; i < strarray.count; i++) {
+			for(unsigned int i = 0; i < strarray.count; i++) {
 				baton->references.push_back(string(strarray.strings[i]));
 			}
 			git_strarray_free(&strarray);
@@ -442,7 +490,7 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 	baton->setCallback(args[2]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetReference,
-		AsyncAfterGetReference);
+		AsyncReturnReference);
 	return Undefined();
 }
 
@@ -462,9 +510,51 @@ void Repository::AsyncGetReference(uv_work_t *req) {
 	}
 }
 
-void Repository::AsyncAfterGetReference(uv_work_t *req) {
+Handle<Value> Repository::CreateOidReference(const Arguments &args) {
 	HandleScope scope;
-	GetReferenceBaton *baton = GetBaton<GetReferenceBaton>(req);
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+	CreateReferenceBaton *baton = new CreateReferenceBaton(repo,
+			CastFromJS<string>(args[0]), CastFromJS<git_oid>(args[1]),
+			CastFromJS<bool>(args[2]));
+	baton->setCallback(args[3]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
+			AsyncReturnReference);
+
+	return Undefined();
+}
+
+Handle<Value> Repository::CreateSymReference(const Arguments &args) {
+	HandleScope scope;
+	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
+	CreateReferenceBaton *baton = new CreateReferenceBaton(repo,
+			CastFromJS<string>(args[0]), CastFromJS<string>(args[1]),
+			CastFromJS<bool>(args[2]));
+	baton->setCallback(args[3]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
+			AsyncReturnReference);
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateReference(uv_work_t *req) {
+	CreateReferenceBaton *baton = GetBaton<CreateReferenceBaton>(req);
+
+	if(baton->direct_) {
+		AsyncLibCall(git_reference_create_oid(&baton->ref, baton->repo->repo_,
+				baton->name_.c_str(), &baton->targetId_, baton->force_), baton);
+	}
+	else {
+		AsyncLibCall(git_reference_create_symbolic(&baton->ref,
+				baton->repo->repo_, baton->name_.c_str(),
+				baton->target_.c_str(), baton->force_), baton);
+	}
+}
+
+void Repository::AsyncReturnReference(uv_work_t *req) {
+	HandleScope scope;
+	ReferenceBaton *baton = GetBaton<ReferenceBaton>(req);
 
 	if(baton->isErrored()) {
 		Handle<Value> argv[] = { baton->createV8Error() };
@@ -473,9 +563,9 @@ void Repository::AsyncAfterGetReference(uv_work_t *req) {
 	else {
 		Handle<Value> argv[] = { Null(), CreateReferenceObject(baton->ref) };
 		FireCallback(baton->callback, 2, argv);
-		git_reference_free(baton->ref);
 	}
 
+	// Deletion of this baton handles freeing the git_reference.
 	delete baton;
 }
 

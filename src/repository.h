@@ -35,6 +35,8 @@ protected:
 	static Handle<Value> New(const Arguments&);
 	static Handle<Value> GetObject(const Arguments&);
 	static Handle<Value> GetReference(const Arguments&);
+	static Handle<Value> CreateOidReference(const Arguments&);
+	static Handle<Value> CreateSymReference(const Arguments&);
 	static Handle<Value> GetRemote(const Arguments&);
 	static Handle<Value> Exists(const Arguments&);
 	static Handle<Value> CreateRemote(const Arguments&);
@@ -53,7 +55,8 @@ private:
 	static void AsyncGetObject(uv_work_t*);
 	static void AsyncAfterGetObject(uv_work_t*);
 	static void AsyncGetReference(uv_work_t*);
-	static void AsyncAfterGetReference(uv_work_t*);
+	static void AsyncCreateReference(uv_work_t*);
+	static void AsyncReturnReference(uv_work_t*);
 	static void AsyncGetRemote(uv_work_t*);
 	static void AsyncAfterGetRemote(uv_work_t*);
 	static void AsyncCreateRemote(uv_work_t*);
