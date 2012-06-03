@@ -284,11 +284,23 @@ Repository.prototype.reference = ->
 	_priv = getPrivate @
 	[name, resolve, cb] = args
 		name: type: "string"
-		resolve: type: "bool"
+		resolve: type: "bool", default: false
 		cb: type: "function"
 	_priv.native.reference name, resolve, wrapCallback cb, (ref) =>
 		cb null, new Reference @, ref
 Repository.prototype.ref = Repository.prototype.reference
+Repository.prototype.createReference = ->
+	_priv = getPrivate @
+	[name, target, force, cb] = args
+		name: type: "string"
+		target: type: "string"
+		force: type: "bool", default: false
+		cb: type: "function"
+	fn = "createSymReference"
+	if target.length is 40 and oidRegex.test target
+		fn = "createOidReference"
+	_priv.native[fn] name, target, force, wrapCallback cb, (ref) =>
+		cb null, new Reference @, ref
 Repository.prototype.remote = ->
 	_priv = getPrivate @
 	[name, cb] = args

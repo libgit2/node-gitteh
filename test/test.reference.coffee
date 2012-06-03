@@ -5,6 +5,8 @@ gitteh = require "../lib/gitteh"
 utils = require "./utils"
 fixtures = require "./fixtures"
 
+{secondCommit} = fixtures.projectRepo
+
 describe "Reference", ->
 	repo = null
 	ref = null
@@ -43,3 +45,21 @@ describe "Reference", ->
 			repo.ref "HEAD", true, (err, ref) ->
 				should.not.exist err
 				ref.name.should.equal headFile
+	describe "Creating a direct reference to second commit", ->
+		newRef = null
+		after (cb) ->
+			fs.unlink path.join(repo.path, "refs", "heads", "testref"), cb
+		it "works", (done) ->
+			repo.createReference "refs/heads/testref", secondCommit.id, (err, _ref) ->
+				newRef = _ref
+				should.not.exist err
+				newRef.should.be.an.instanceof gitteh.Reference
+				done()
+		it "should have correct data", ->
+			newRef.name.should.equal "refs/heads/testref"
+			newRef.target.should.equal secondCommit.id
+		it "should fail when trying to create ref with same name again", (done) ->
+			repo.createReference "refs/heads/testref", secondCommit.id, (err, _ref) ->
+				should.exist err
+				err.should.be.an.instanceof Error
+				done()
