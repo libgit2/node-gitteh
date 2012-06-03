@@ -29,6 +29,7 @@ public:
 	// Creates an Exception for this error state Baton. DON'T CALL OUTSIDE OF
 	// V8 MAIN THREAD! :)
 	Handle<Object> createV8Error();
+	void defaultCallback();
 };
 
 }; // namespace gitteh

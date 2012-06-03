@@ -139,6 +139,11 @@ Repository::~Repository() {
 		odb_ = NULL;
 	}
 
+	if(index_) {
+		git_index_free(index_);
+		index_ = NULL;
+	}
+
 	if(repo_) {
 		git_repository_free(repo_);
 		repo_ = NULL;
@@ -243,10 +248,11 @@ Handle<Value> Repository::New(const Arguments& args) {
 	}
 
 	Handle<Value> constructorArgs[] = {
+		External::New(repoObj),
 		External::New(index)
 	};
 	Local<Object> indexObj = Index::constructor_template->GetFunction()
-			->NewInstance(1, constructorArgs);
+			->NewInstance(2, constructorArgs);
 
 	me->Set(index_symbol, indexObj);
 

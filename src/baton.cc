@@ -1,4 +1,5 @@
 #include "baton.h"
+#include "gitteh.h"
 #include <iostream>
 
 namespace gitteh {
@@ -38,6 +39,19 @@ Handle<Object> Baton::createV8Error() {
 		String::New(errorString.c_str())));
 	errObj->Set(String::New("code"), Integer::New(errorCode));
 	return scope.Close(errObj);
+}
+
+void Baton::defaultCallback() {
+	HandleScope scope;
+
+	if(isErrored()) {
+		Handle<Value> argv[] = { createV8Error() };
+		FireCallback(callback, 1, argv);
+	}
+	else {
+		Handle<Value> argv[] = { Undefined() };
+		FireCallback(callback, 1, argv);
+	}
 }
 
 }; // namespace gitteh

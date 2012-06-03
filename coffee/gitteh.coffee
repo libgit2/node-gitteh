@@ -214,6 +214,20 @@ Remote.prototype.fetch = ->
 			cb()
 
 Gitteh.Index = Index = (nativeIndex) ->
+	_priv = createPrivate @
+	_priv.native = nativeIndex
+	return @
+Index.prototype.readTree = (treeId) ->
+	_priv = getPrivate @
+	[id, cb] = args
+		id: type: "oid"
+		cb: type: "function"
+	_priv.native.readTree id, cb
+Index.prototype.write = ->
+	_priv = getPrivate @
+	[cb] = args
+		cb: type: "function"
+	_priv.native.write cb
 
 Gitteh.Repository = Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
@@ -227,6 +241,8 @@ Gitteh.Repository = Repository = (nativeRepo) ->
 		.set("workDir", "workingDirectory")
 		.set("remotes")
 		.set("references")
+	index = new Index nativeRepo.index
+	immutable(@, {index}).set "index"
 	return @
 Repository.prototype.exists = ->
 	_priv = getPrivate @
@@ -357,7 +373,18 @@ Gitteh.clone = =>
 			checkoutTree = (tree, dest, cb) ->
 				async.forEach tree.entries, handleEntry.bind(null, dest), cb
 			checkoutTree headTree, repo.workingDirectory, wrapCallback cb, ->
+				cb null, repo, headTree
+
+		# Update the git index with the tree we just checked out.
+		(repo, headTree, cb) ->
+			repo.index.readTree headTree.id, wrapCallback cb, ->
 				cb null, repo
+
+		# Now write the index back to disk.
+		(repo, cb) ->
+			repo.index.write wrapCallback cb, ->
+				cb null, repo
+
 	], (err, repo) ->
 		return emitter.emit "error", err if err?
 
