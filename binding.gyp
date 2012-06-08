@@ -22,34 +22,21 @@
 			],
 
 			'include_dirs': [
-				'deps/v8-convert'
+				'deps/v8-convert',
+				'deps/libgit2/include'
+			],
+
+			'libraries': [
+				'-L/home/sam/personal/node-gitteh/deps/libgit2/build',
+				'-lgit2'
 			],
 
 			'cflags': [
 				'-Wall'
 			],
 
-			'conditions': [
-				[ 'OS=="windows"', {
-
-				}, {
-					'libraries': [
-						'<!@(pkg-config --libs libgit2)'
-					]
-				}],
-				['OS=="mac"', {
-					# cflags on OS X are stupid and have to be defined like this
-					'xcode_settings': {
-					'OTHER_CFLAGS': [
-						'-Wall',
-						'<!@(pkg-config --cflags libgit2)'
-					]
-				  }
-				}, {
-					'cflags': [
-						'<!@(pkg-config --cflags libgit2)'
-					],
-				}]
+			'ldflags': [
+				'-Wl,-rpath,\$$ORIGIN/../../deps/libgit2/build'
 			]
 		}
 	]
