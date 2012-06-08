@@ -8,23 +8,23 @@
     "node": ">= 0.4.0"
   },
   "dependencies": {
-    "vows": ">= 0.5.6",
     "glob": ">= 2.0.6",
-    "async": ">= 0.1.21",
-    "temp": "~0.4.0",
-    "should": "~0.6.3",
+    "async": ">= 0.1.21"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.3.3",
     "mocha": "~1.0.3",
-    "wrench": "~1.3.9",
-    "coffee-script": "~1.3.3"
+    "should": "~0.6.3",
+    "temp": "~0.4.0",
+    "wrench": "~1.3.9"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/libgit2/node-gitteh.git"
   },
   "scripts": {
-    "preinstall": "node-gyp configure",
-    "install": "node-gyp build",
-    "test": "vows test/*.test.js --spec"
+    "preinstall": "node install.js",
+    "test": "mocha"
   },
   "main": "./lib/gitteh"
 }
