@@ -15,7 +15,7 @@ module.exports =
 			callback(code) 
 
 task 'build', 'Compile CoffeeScript to JavaScript.', -> 
-	module.exports.passthru 'coffee', '-o', 'lib/', '-c', 'coffee/' 
+	module.exports.passthru 'coffee', '-o', 'lib/', '-c', 'src/' 
 
 task 'test', 'Run the unit tests.', -> 
 	module.exports.passthru 'mocha' # or your test runner 
@@ -27,4 +27,4 @@ task 'publish', 'Publish the NPM module.', ->
 			module.exports.passthru 'mv', 'index.js', 'NPM-index.js' 
 
 task "watch", "Watch coffee/ for changes and compile them to lib/", ->
-	module.exports.passthru "coffee", "-o", "lib/", "-w", "-c", "coffee/"
+	module.exports.passthru "coffee", "-o", "lib/", "-w", "-c", "src/"
