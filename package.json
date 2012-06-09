@@ -23,7 +23,7 @@
     "url": "https://github.com/libgit2/node-gitteh.git"
   },
   "scripts": {
-    "preinstall": "node install.js",
+    "install": "node install.js",
     "test": "mocha"
   },
   "main": "./lib/gitteh"
