@@ -27,7 +27,7 @@
 			],
 
 			'libraries': [
-				'-L/home/sam/personal/node-gitteh/deps/libgit2/build',
+				'-L<!(pwd)/deps/libgit2/build',
 				'-lgit2'
 			],
 
