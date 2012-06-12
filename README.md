@@ -1,40 +1,35 @@
-# Gitteh
-
-**NOTE: Gitteh is currently undergoing heavy refactoring/rewriting to both not suck and be compatible with v0.17.0. Watch this space!**
+# Gitteh `v0.17.0`
 
 ## What?
 
-Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. The bindings cover *most* of the libgit2 API, however I took some liberties. For example...
+Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. Right now, the bindings cover read only access to raw objects (trees/commits/blobs/tags/references), and basic access to remotes (including basic cloning/fetching support).
 
-* There's no notion of "oids" like in other libraries, all object ids are referenced by their 40 character SHA1 string.
-* I didn't just write some quick bridge code to access libgit2 stuff, I took the time to distill the libgit2 API into an organized, intuitive set of objects you can work with.
-* I avoided calling into C code where possible. This means that when you're composing a new commit for example, you can set most of the properties of the commit on a JS object as standard properties, then call save() when you're ready. Calling into C++ code is inherently expensive with V8.
-* Although some of it is missing from the repo at the moment, I've written lots of little stress tests to make sure this library doesn't go ahead and segfault your server. Libgit2 isn't thread-safe at all. Hey, no need to thank me, it's all part of the job (it's why I get to wear a cape, and you don't). Essentially this means that you, libgit2, Node, and V8's garbage compiler can all play in the sandpit nicely together.
-* I didn't bother wrapping blob API functions, since all they do is offer helper methods to load files into blobs, save blobs out to files etc. You can do all this with a RawObject, it exposes a Buffer with the contents of any objects in a git repo. Node has cooler filesystem stuff anyway.
-* No animals were harmed during development, except that one little hamst... you know what? Never mind.
+Gitteh aims to:
+
+* Be simple and convenient
+* Be as performant as possible - avoids calling into underlying C library as much as possible.
+* Be safe for use in Node's threadpool (read: shouldn't segfault your app)
 
 ## Why?
 
-Why not? Libgit2 is an excellent way to work with a Git repository in a well-defined and speedy manner. 
+There's a few libraries out there that wrap git cli commands, parsing the output and such. This is a perfectly acceptable solution. Node-gitteh provides first-class support to work with a git repository on a low level, and does not require git.git (and its myriad of dependencies) to be installed in the server environment.
 
-Or you could, you know, manually execute `git` CLI commands and parse stdout. Have fun with that. 
+## Installation
 
-## How?
+Gitteh has been written for Node v0.6.x and higher.
 
 Installation can be done via npm.
 
 	npm install gitteh
-	
-Currently, installing Gitteh via NPM will mean that Gitteh will compile it's own
-bundled version of libgit2, even if it's already installed on your system. I've
-done this because libgit2 is releasing quite rapidly and each release is breaking
-functionality. So while libgit2 is in alpha state, I will be forcing a specific
-version of libgit2 with each release of Gitteh.
 
-The current version of Gitteh requires libgit2 v0.11.0.
+Currently, installing gitteh will require CMake 2.6+ to be present on your machine. Ideally gitteh should be able to build the underlying libgit2 dependency using `gyp`, as it ships with all recent versions of npm. If you need this (for example for deployment to Heroku), feel free to contact me, or better yet, contribute it yourself!
 
-[Documentation can be found here.](http://libgit2.github.com/node-gitteh/docs/index.html). You should also check out the examples in the examples/ dir in the repo.
+[Documentation can be found here](http://libgit2.github.com/node-gitteh/docs/index.html). You should also check out the examples in the examples/ dir in the repo.
 
-## Halp?
+## License
 
-Actually, yes. I'd really appreciate any contributions on this project. Check out the TODO to see what still needs to be done, then get in contact with me BEFORE you start coding so I can make sure you're not doubling up work that's already under wraps :)
+Gitteh is MIT licensed to be consistent with libgit2.
+
+## Contributing
+
+Contributions are very welcome. Please feel free to fork this project and hack on it. Go ahead and check out the issues tab to see what needs to be done! Go on! Do it!
