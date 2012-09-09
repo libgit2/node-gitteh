@@ -1,3 +1,4 @@
+
 {EventEmitter} = require "events"
 async = require "async"
 fs = require "fs"
@@ -12,11 +13,17 @@ bindings = require "../build/Debug/gitteh"
 ###
 Gitteh = module.exports = {}
 
+###*
+ * @ignore
+###
 getPrivate = (obj) ->
 	getPrivate.lock++
 	return obj._private
 getPrivate.lock = 0
 
+###*
+ * @ignore
+###
 createPrivate = (obj) ->
 	_priv = {}
 	Object.defineProperty obj, "_private",
@@ -27,11 +34,17 @@ createPrivate = (obj) ->
 			return _priv
 	return _priv
 
+###*
+ * @ignore
+###
 wrapCallback = (orig, cb) ->
 	return (err) ->
 		return orig err if err?
 		cb.apply null, Array.prototype.slice.call arguments, 1
 
+###*
+ * @ignore
+###
 immutable = (obj, src) ->
 	return o = {
 		set: (name, target = name) ->
@@ -74,6 +87,12 @@ checkOid = (str, allowLookup = true) ->
  * @class
  * Contains the name/email/time for a {@link Commit} author/committer or
  * {@link Tag} tagger.
+ * @property {String} name
+ * @property {String} email
+ * @property {Date} time
+ * @property {Integer} offset timezone offset in seconds from GMT.
+ * @see Commit
+ * @see Tag
 ###
 Signature = Gitteh.Signature = (obj) ->
 	immutable(@, obj)
@@ -85,7 +104,12 @@ Signature = Gitteh.Signature = (obj) ->
 
 ###*
  * @class
- * 
+ * Describes the way remote repository references will be mapped to the local
+ * repository.
+ * @param {String} src
+ * @param {String} dst
+ * @see Remote
+ * @see Reference
 ###
 Refspec = Gitteh.Refspec = (src, dst) ->
 	_priv = createPrivate @
@@ -97,25 +121,60 @@ Refspec = Gitteh.Refspec = (src, dst) ->
 		.set("src")
 		.set("dst")
 	return @
-Refspec.prototype.matchesSrc = (ref) ->
+
+###*
+ * Determines if provided reference name matches source of this Refspec.
+ * @param {String} refName
+ * @return {Boolean} true if provided refName matches src of Refspec.
+###
+Refspec.prototype.matchesSrc = (refName) ->
 	_priv = getPrivate @
-	return false if ref.length <= _priv.srcRoot.length
-	return ref.indexOf(_priv.srcRoot) is 0
-Refspec.prototype.matchesDst = (ref) ->
+	return false if refName.length <= _priv.srcRoot.length
+	return refName.indexOf(_priv.srcRoot) is 0
+
+###*
+ * Determines if provided reference name matches destination of this Refspec.
+ * @param {String} refName
+ * @return {Boolean} true if provided refName matches dst of Refspec.
+###
+Refspec.prototype.matchesDst = (refName) ->
 	_priv = getPrivate @
-	return false if ref.length <= _priv.dstRoot.length
-	return ref.indexOf(_priv.dstRoot) is 0
-Refspec.prototype.transformTo = (ref) ->
-	throw new Error "Ref doesn't match src." if not @matchesSrc ref
-	return "#{@dst[0...-2]}#{ref[(@src.length-2)..]}"
-Refspec.prototype.transformFrom = (ref) ->
-	throw new Error "Ref doesn't match dst." if not @matchesDst ref
-	return "#{@src[0...-2]}#{ref[(@dst.length-2)..]}"
+	return false if refName.length <= _priv.dstRoot.length
+	return refName.indexOf(_priv.dstRoot) is 0
+
+###*
+ * Transforms provided refName to destination, provided it matches src pattern.
+ * @param {String} refName
+ * @throws {Error} if refName doesn't match src pattern.
+ * @return {String} transformed reference name.
+###
+Refspec.prototype.transformTo = (refName) ->
+	throw new Error "Ref doesn't match src." if not @matchesSrc refName
+	return "#{@dst[0...-2]}#{refName[(@src.length-2)..]}"
+
+###*
+ * Transforms provided refName from destination back to source, provided it
+ * matches dst pattern. This is the reverse of {@link #transformTo}.
+ * @param {String} refName
+ * @throws {Error} if refName doesn't match dst pattern.
+ * @return {String} (un?)transformed reference name.
+###
+Refspec.prototype.transformFrom = (refName) ->
+	throw new Error "Ref doesn't match dst." if not @matchesDst refName
+	return "#{@src[0...-2]}#{refName[(@dst.length-2)..]}"
 
 ###*
  @class
  * A commit made by a author (and optional different committer), with a message,
  * a {Tree} and zero or more parent {@link Commit} objects.
+ * @property {String} id object id of this Commit.
+ * @property {String} treeId object id of {@link Tree} for this Commit.
+ * @property {Commit[]} parents parent Commits of this Commit (more than one 
+ * means a merge-commit).
+ * @property {String} message
+ * @property {String} messageEncoding
+ * @property {Signature} author
+ * @property {Signature} committer
 ###
 Commit = Gitteh.Commit = (@repository, obj) ->
 	obj.author = new Signature obj.author
@@ -129,6 +188,13 @@ Commit = Gitteh.Commit = (@repository, obj) ->
 		.set("author")
 		.set("committer")
 	return @
+
+###*
+ * Fetches the {@link Tree} object for this Commit. Just a convenience method to
+ * call out to {@link Repository#tree}(commit.treeId).
+ * @param {Function} cb called when Tree has been fetched from repository.
+ * @see Tree
+###
 Commit.prototype.tree = (cb) ->
 	@repository.tree @treeId, cb
 
