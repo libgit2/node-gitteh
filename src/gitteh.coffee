@@ -269,7 +269,22 @@ Index.prototype.write = ->
 		cb: type: "function"
 	_priv.native.write cb
 
-Gitteh.Reference = Reference = (repo, nativeRef) ->
+###*
+ * @class
+ * A Reference is a named pointer to a {@link Commit} object. That is, refs are
+ * the DNS of Git-land. References can either be direct or symbolic. Direct 
+ * references point to the object id of a commit. Symbolic refs point to other
+ * references.
+ * @property {String} name
+ * @property {Boolean} direct true if Reference points directly to an object id.
+ * @property {Boolean} packed true if Reference is in a packfile
+ * @property {String} target object id reference points to, or another reference
+ * name if not a direct reference.
+ * @property {Repository} repository the {@link Repository} that owns this ref.
+ * @see Repository#reference
+ * @see Repository#createReference
+###
+Reference = Gitteh.Reference = (repo, nativeRef) ->
 	_priv = createPrivate @
 	_priv.native = nativeRef
 	immutable(@, nativeRef)
@@ -284,6 +299,18 @@ Gitteh.Reference = Reference = (repo, nativeRef) ->
  * @class
  * Represents a local Git repository that has been opened by Gitteh. Used to get
  * access to any objects contained within it.
+ * 
+ * Repositories can be bare - they will not have a working directory, in this
+ * case the contents of what is usually in a .git subdirectory will be in the
+ * top level.
+ * @property {Boolean} bare true if this repository is bare.
+ * @property {String} path location of the Git metadata directory
+ * @property {String} workingDirectory location of the working directory, if 
+ * applicable (non-bare repository)
+ * @property {Remote[]} remotes List of remotes configured for this repository.
+ * @property {Reference[]} references List of references contained in this 
+ * repository.
+ * @property {Index} index The Git index for this repository.
 ###
 Repository = Gitteh.Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
@@ -300,12 +327,32 @@ Repository = Gitteh.Repository = (nativeRepo) ->
 	index = new Index nativeRepo.index
 	immutable(@, {index}).set "index"
 	return @
+
+###*
+ * Checks if an object with given objectid exists.
+ * @param {String} oid ID of object in question.
+ * @param {Function} cb Called with status of object existence.
+###
 Repository.prototype.exists = ->
 	_priv = getPrivate @
 	[oid, cb] = args
 		oid: type: "oid"
 		cb: type: "function"
 	_priv.native.exists oid, cb
+
+###*
+ * Fetches an object with given ID. The object returned will be a Gitteh wrapper
+ * corresponding to the type of Git object fetched. Alternatively, objects with
+ * an expected type can be fetched using the {@link #blob}, {@link #commit},
+ * {@link #tag}, {@link #tree}, {@link #reference} methods.
+ * @param {String} oid id of object to be fetched.
+ * @param {Function} cb called when object has been fetched.
+ * @see Commit
+ * @see Blob
+ * @see Tag
+ * @see Tree
+ * @see Reference
+###
 Repository.prototype.object = ->
 	_priv = getPrivate @
 	[oid, type, cb] = args
@@ -321,10 +368,50 @@ Repository.prototype.object = ->
 			else undefined
 		return cb new TypeError("Unexpected object type") if clazz is undefined
 		return cb null, new clazz @, object
+
+###*
+ * Fetches a {@link Blob} object from the repository. This is a stricter
+ * variant of {@link #object} - an error will be thrown if object isnt a blob.
+ * @param {String} oid id of blob to be fetched.
+ * @param {Function} cb called when blob has been fetched.
+ * @see #object
+###
 Repository.prototype.blob = (oid, cb) -> @object oid, "blob", cb
+
+###*
+ * Fetches a {@link Commit} object from the repository. This is a stricter
+ * variant of {@link #object} - an error will be thrown if object isnt a commit.
+ * @param {String} oid id of commit to be fetched.
+ * @param {Function} cb called when commit has been fetched.
+ * @see #object
+###
 Repository.prototype.commit = (oid, cb) -> @object oid, "commit", cb
+
+###*
+ * Fetches a {@link Tag} object from the repository. This is a stricter
+ * variant of {@link #object} - an error will be thrown if object isnt a tag.
+ * @param {String} oid id of tag to be fetched.
+ * @param {Function} cb called when tag has been fetched.
+ * @see #object
+###
 Repository.prototype.tag = (oid, cb) -> @object oid, "tag", cb
+
+###*
+ * Fetches a {@link Tree} object from the repository. This is a stricter
+ * variant of {@link #object} - an error will be thrown if object isnt a tree.
+ * @param {String} oid id of tree to be fetched.
+ * @param {Function} cb called when tree has been fetched.
+ * @see #object
+###
 Repository.prototype.tree = (oid, cb) -> @object oid, "tree", cb
+
+###*
+ * Fetches a {@link Reference} object from the repository. This is a stricter 
+ * variant of {@link #object} - an error will be thrown if object isnt a ref.
+ * @param {String} oid id of reference to be fetched.
+ * @param {Function} cb called when reference has been fetched.
+ * @see #object
+###
 Repository.prototype.reference = ->
 	_priv = getPrivate @
 	[name, resolve, cb] = args
@@ -333,7 +420,19 @@ Repository.prototype.reference = ->
 		cb: type: "function"
 	_priv.native.reference name, resolve, wrapCallback cb, (ref) =>
 		cb null, new Reference @, ref
+
+###*
+ * Alias of {@link #reference}.
+ * @param {String} oid id of reference to be fetched.
+ * @param {Function} cb called when reference has been fetched.
+ * @see #reference
+###
 Repository.prototype.ref = Repository.prototype.reference
+
+###*
+ * Creates a new reference, which can either by direct or symbolic.
+ * @see Reference
+###
 Repository.prototype.createReference = ->
 	_priv = getPrivate @
 	[name, target, force, cb] = args
