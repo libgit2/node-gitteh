@@ -363,7 +363,10 @@ Repository.prototype.createRemote = ->
 		return cb null, new Remote @, remote
 
 ###*
- * 
+ * Opens a local Git repository.
+ * @param {String} path The path to the local git repo.
+ * @param {Function} cb Called when {@link Repository} has opened.
+ * @see Repository
 ###
 Gitteh.openRepository = ->
 	[path, cb] = args
@@ -371,6 +374,14 @@ Gitteh.openRepository = ->
 		cb: type: "function"
 	bindings.openRepository path, wrapCallback cb, (repo) ->
 		cb null, new Repository repo
+
+###*
+ * @param {String} path Path where new Git repository should be created.
+ * @param {Boolean} [bare=false] When true creates a bare repo. Bare repositories 
+ have no working directory.
+ * @param {Function} cb Called when {@link Repository} has been created.
+ * Creates a new local Git repository.
+###
 Gitteh.initRepository = () ->
 	[path, bare, cb] = args
 		path: type: "string"
@@ -378,6 +389,13 @@ Gitteh.initRepository = () ->
 		cb: type: "function"
 	bindings.initRepository path, bare, wrapCallback cb, (repo) ->
 		cb null, new Repository repo
+
+###*
+ * Clones a remote Git repository to the local machine. Currently, only HTTP/Git
+ * protocols are supported (no git+ssh yet).
+ * @param {String} url Address of remote Git repository.
+ * @param {String} path Destination path for cloned repository.
+###
 Gitteh.clone = =>
 	[url, path, cb] = args
 		url: type: "string"
