@@ -442,8 +442,8 @@ Reference = Gitteh.Reference = (repo, nativeRef) ->
  * @property {String} path location of the Git metadata directory
  * @property {String} workingDirectory location of the working directory, if 
  * applicable (non-bare repository)
- * @property {Remote[]} remotes List of remotes configured for this repository.
- * @property {Reference[]} references List of references contained in this 
+ * @property {String[]} remotes  names of remotes configured for this repository
+ * @property {String[]} references names of references contained in this 
  * repository.
  * @property {Index} index The Git index for this repository.
 ###
@@ -566,6 +566,11 @@ Repository.prototype.ref = Repository.prototype.reference
 
 ###*
  * Creates a new reference, which can either by direct or symbolic.
+ * @param {String} name
+ * @param {String} target reference/oid targetted by the new reference.
+ * @param {Boolean} [force=false] force creation of this reference, destroying 
+ * the reference with same name, if it exists.
+ * @param {Function} cb called when reference has been created.
  * @see Reference
 ###
 Repository.prototype.createReference = ->
@@ -580,6 +585,12 @@ Repository.prototype.createReference = ->
 		fn = "createOidReference"
 	_priv.native[fn] name, target, force, wrapCallback cb, (ref) =>
 		cb null, new Reference @, ref
+
+###*
+ * Loads a remote with given name.
+ * @param {String} name
+ * @param {Function} cb called when remote has been loaded.
+###
 Repository.prototype.remote = ->
 	_priv = getPrivate @
 	[name, cb] = args
@@ -587,6 +598,14 @@ Repository.prototype.remote = ->
 		cb: type: "function"
 	_priv.native.remote name, wrapCallback cb, (remote) =>
 		return cb null, new Remote @, remote
+
+###*
+ * Create a new {@link Remote} for this repository.
+ * @param {String} name
+ * @param {String} url 
+ * @param {Function} cb called when Remote has been created.
+ * @see Remote
+###
 Repository.prototype.createRemote = ->
 	_priv = getPrivate @
 	[name, url, cb] = args
