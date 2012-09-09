@@ -6,7 +6,11 @@ args = require "./args"
 bindings = require "../build/Debug/gitteh"
 
 {minOidLength, types, NativeRepository, NativeRemote} = bindings
-module.exports = Gitteh = {}
+
+###*
+ * @namespace
+###
+Gitteh = module.exports = {}
 
 getPrivate = (obj) ->
 	getPrivate.lock++
@@ -66,7 +70,12 @@ checkOid = (str, allowLookup = true) ->
 	throw new Error "OID is too short" if str.length < bindings.minOidLength
 	throw new TypeError "Invalid OID" if not allowLookup and str.length isnt 40
 
-Gitteh.Signature = Signature = (obj) ->
+###*
+ * @class
+ * Contains the name/email/time for a {@link Commit} author/committer or
+ * {@link Tag} tagger.
+###
+Signature = Gitteh.Signature = (obj) ->
 	immutable(@, obj)
 		.set("name")
 		.set("email")
@@ -74,7 +83,11 @@ Gitteh.Signature = Signature = (obj) ->
 		.set("offset")
 	return @
 
-Gitteh.Refspec = Refspec = (src, dst) ->
+###*
+ * @class
+ * 
+###
+Refspec = Gitteh.Refspec = (src, dst) ->
 	_priv = createPrivate @
 
 	_priv.srcRoot = if src? and src[-1..] is "*" then src[0...-1] else src
@@ -99,7 +112,12 @@ Refspec.prototype.transformFrom = (ref) ->
 	throw new Error "Ref doesn't match dst." if not @matchesDst ref
 	return "#{@src[0...-2]}#{ref[(@dst.length-2)..]}"
 
-Gitteh.Commit = Commit = (@repository, obj) ->
+###*
+ @class
+ * A commit made by a author (and optional different committer), with a message,
+ * a {Tree} and zero or more parent {@link Commit} objects.
+###
+Commit = Gitteh.Commit = (@repository, obj) ->
 	obj.author = new Signature obj.author
 	obj.committer = new Signature obj.committer
 	immutable(@, obj)
@@ -114,7 +132,15 @@ Gitteh.Commit = Commit = (@repository, obj) ->
 Commit.prototype.tree = (cb) ->
 	@repository.tree @treeId, cb
 
-Gitteh.Tree = Tree = (@repository, obj) ->
+###*
+ * @class
+ * A Tree contains a list of named entries, which can either be {@link Blob}s or
+ * nested {@link Tree}s, each entry is referenced by its oid. A {@link Commit}
+ * owns a single {@link Tree}.
+ * @see Blob
+ * @see Commit
+###
+Tree = Gitteh.Tree = (@repository, obj) ->
 	obj._entries = obj.entries
 	obj.entries = []
 	for origEntry in obj._entries
@@ -129,13 +155,21 @@ Gitteh.Tree = Tree = (@repository, obj) ->
 		.set("entries")
 	return @
 
-Gitteh.Blob = Blob = (@repository, obj) ->
+###*
+ * @class
+ * Contains raw data for a file stored in Git.
+ * @see Tree
+###
+Blob = Gitteh.Blob = (@repository, obj) ->
 	immutable(@, obj)
 		.set("id")
 		.set("data")
 	return @
 
-Gitteh.Tag = Tag = (@repository, obj) ->
+###*
+ * @class
+###
+Tag = Gitteh.Tag = (@repository, obj) ->
 	obj.tagger = new Signature obj.tagger
 	immutable(@, obj)
 		.set("id")
@@ -148,7 +182,10 @@ Gitteh.Tag = Tag = (@repository, obj) ->
 Tag.prototype.target = (cb) ->
 	@repository.object @targetId, @type, cb
 
-Gitteh.Remote = Remote = (@repository, nativeRemote) ->
+###*
+ * @class
+###
+Remote = Gitteh.Remote = (@repository, nativeRemote) ->
 	_priv = createPrivate @
 	_priv.native = nativeRemote
 	_priv.connected = false
@@ -213,7 +250,10 @@ Remote.prototype.fetch = ->
 		_priv.native.updateTips wrapCallback cb, =>
 			cb()
 
-Gitteh.Index = Index = (nativeIndex) ->
+###*
+ * @class
+###
+Index = Gitteh.Index = (nativeIndex) ->
 	_priv = createPrivate @
 	_priv.native = nativeIndex
 	return @
@@ -240,7 +280,12 @@ Gitteh.Reference = Reference = (repo, nativeRef) ->
 	immutable(@, {repo}).set "repo", "repository"
 	return @
 
-Gitteh.Repository = Repository = (nativeRepo) ->
+###*
+ * @class
+ * Represents a local Git repository that has been opened by Gitteh. Used to get
+ * access to any objects contained within it.
+###
+Repository = Gitteh.Repository = (nativeRepo) ->
 	if nativeRepo not instanceof NativeRepository
 		throw new Error "Don't construct me, see gitteh.(open|init)Repository"
 	_priv = createPrivate @
@@ -317,6 +362,9 @@ Repository.prototype.createRemote = ->
 	_priv.native.createRemote name, url, wrapCallback cb, (remote) =>
 		return cb null, new Remote @, remote
 
+###*
+ * 
+###
 Gitteh.openRepository = ->
 	[path, cb] = args
 		path: type: "string"
