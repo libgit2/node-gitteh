@@ -203,6 +203,8 @@ Commit.prototype.tree = (cb) ->
  * A Tree contains a list of named entries, which can either be {@link Blob}s or
  * nested {@link Tree}s, each entry is referenced by its oid. A {@link Commit}
  * owns a single {@link Tree}.
+ * @property {String} id object id of this Tree.
+ * @property {Tree.Entry} entries a list of all entries contained in this Tree.
  * @see Blob
  * @see Commit
 ###
@@ -223,7 +225,18 @@ Tree = Gitteh.Tree = (@repository, obj) ->
 
 ###*
  * @class
+ * @name Tree.Entry
+ * @property {String} id id of object this entry points to.
+ * @property {String} name
+ * @property {String} type kind of object pointed to by this entry (commit/blob)
+ * @property {Integer} attributes UNIX file attributes for this entry.
+###
+
+###*
+ * @class
  * Contains raw data for a file stored in Git.
+ * @property {String} id object id of this Blob.
+ * @property {Buffer} data Node Buffer containing Blob data.
  * @see Tree
 ###
 Blob = Gitteh.Blob = (@repository, obj) ->
@@ -234,6 +247,16 @@ Blob = Gitteh.Blob = (@repository, obj) ->
 
 ###*
  * @class
+ * Git tags are similar to references, and indeed "lightweight" Git tags are 
+ * actually implemented as References with a name prefix of "tags/". When 
+ * additional metadata is needed (message/name/email/GPG signature), a proper
+ * heavyweight Tag object is used.
+ * @property {String} id object id of this Tag.
+ * @property {String} name
+ * @property {String} message
+ * @property {Signature} tagger
+ * @property {String} targetId object id this Tag points to
+ * @property {String} type the type of object this Tag points to.
 ###
 Tag = Gitteh.Tag = (@repository, obj) ->
 	obj.tagger = new Signature obj.tagger
@@ -245,11 +268,31 @@ Tag = Gitteh.Tag = (@repository, obj) ->
 		.set("target", "targetId")
 		.set("type")
 	return @
+
+###*
+ * Convenience method to get the object this Tag points to. Shorthand for 
+ * {@link Repository#object}(tag.targetId)
+ * @param {Function} cb called when target object has been loaded.
+ * @see Repository#object
+###
 Tag.prototype.target = (cb) ->
 	@repository.object @targetId, @type, cb
 
 ###*
  * @class
+ * Remotes designate the location and rules of remote Git repositories. Remotes
+ * can be obtained by using {@link Repository.remote}.
+ * @property {Boolean} connected true if there is an active connection to the
+ * Remotes' endpoint.
+ * @property {String} name
+ * @property {String} url address of Remotes' endpoint
+ * @property {Refspec} fetchSpec Refspec used when fetching from Remote
+ * @property {Refspec} pushSpec Refspec used when pushing to Remote
+ * @property {String} HEAD the remote HEAD reference name (only set after 
+ * connected to Remote)
+ * @property {String[]} refs names of references on remote (only set after 
+ * connected to Remote)
+ * @see Repository.remote
 ###
 Remote = Gitteh.Remote = (@repository, nativeRemote) ->
 	_priv = createPrivate @
@@ -275,6 +318,13 @@ Remote = Gitteh.Remote = (@repository, nativeRemote) ->
 		.set("pushSpec")
 	return @
 
+###*
+ * Opens a connection to the Remote endpoint. This is needed before 
+ * {@link #fetch} or {@link #push} can be called.
+ * @param {String} direction The direction of the connection, must be either
+ * "push" or "fetch".
+ * @param {Function} cb called when connection has been made, or fails.
+###
 Remote.prototype.connect = ->
 	_priv = getPrivate @
 	[dir, cb] = args
@@ -296,6 +346,12 @@ Remote.prototype.connect = ->
 		immutable(@, {refNames}).set "refNames", "refs"
 		_priv.connected = true
 		cb()
+
+###*
+ * Fetches Git objects from remote that do not exist locally.
+ * @param {Function} progressCb called to notify of progress with fetch process.
+ * @param {Function} cb called when fetch has been completed.
+###
 Remote.prototype.fetch = ->
 	_priv = getPrivate @
 	throw new Error "Remote isn't connected." if not @connected
@@ -318,17 +374,30 @@ Remote.prototype.fetch = ->
 
 ###*
  * @class
+ * The Git index is used to stage changed files before they are written to the 
+ * repository proper. Bindings for the Index are currently minimal.
 ###
 Index = Gitteh.Index = (nativeIndex) ->
 	_priv = createPrivate @
 	_priv.native = nativeIndex
 	return @
-Index.prototype.readTree = (treeId) ->
+
+###*
+ * Updates the Git index to reflect the state of provided {@link Tree}.
+ * @param {String} id object id of Tree to be read.
+ * @param {Function} cb called when index update has been completed.
+###
+Index.prototype.readTree = () ->
 	_priv = getPrivate @
 	[id, cb] = args
 		id: type: "oid"
 		cb: type: "function"
 	_priv.native.readTree id, cb
+
+###*
+ * Synchronizes the in-memory Git index with the indexfile located in repository
+ * @param {Function} cb called when synchronization is complete.
+###
 Index.prototype.write = ->
 	_priv = getPrivate @
 	[cb] = args
