@@ -43,6 +43,7 @@ static Persistent<String> index_file_symbol;
 static Persistent<String> work_dir_symbol;
 static Persistent<String> remotes_symbol;
 static Persistent<String> references_symbol;
+static Persistent<String> submodules_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
@@ -58,6 +59,7 @@ public:
 	git_repository *repo;
 	list<string> remotes;
 	list<string> references;
+	list<string> submodules;
 
 	OpenRepoBaton(string path) : Baton(), path(path) {}	;
 };
@@ -218,6 +220,7 @@ void Repository::Init(Handle<Object> target) {
 	remotes_symbol 		= NODE_PSYMBOL("remotes");
 	index_symbol		= NODE_PSYMBOL("index");
 	references_symbol	= NODE_PSYMBOL("references");
+	submodules_symbol 	= NODE_PSYMBOL("submodules");
 
 	// Reference symbols
 	ref_name_symbol 	= NODE_PSYMBOL("name");
@@ -254,6 +257,7 @@ Handle<Value> Repository::New(const Arguments& args) {
 	REQ_EXT_ARG(0, repoArg);
 	REQ_EXT_ARG(1, refsArg);
 	REQ_EXT_ARG(2, remotesArg);
+	REQ_EXT_ARG(3, submodulesArg);
 	Handle<Object> me = args.This();
 
 	git_repository *repo = static_cast<git_repository*>(repoArg->Value());
@@ -295,6 +299,14 @@ Handle<Value> Repository::New(const Arguments& args) {
 		me->Set(references_symbol, Array::New());
 	}
 
+	list<string> *submodules = static_cast<list<string>*>(submodulesArg->Value());
+	if(submodules != NULL) {
+		me->Set(submodules_symbol, CastToJS(*submodules));
+	}
+	else {
+		me->Set(submodules_symbol, Array::New());
+	}
+
 	Handle<Value> constructorArgs[] = {
 		External::New(repoObj),
 		External::New(index)
@@ -318,6 +330,12 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	return Undefined();
 }
 
+int SubmoduleListCallback(const char *name, void *payload) {
+	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
+	baton->submodules.push_back(string(name));
+	return GIT_OK;
+}
+
 void Repository::AsyncOpenRepository(uv_work_t *req) {
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
@@ -338,6 +356,11 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 			}
 			git_strarray_free(&strarray);
 		}
+
+		if(AsyncLibCall(git_submodule_foreach(baton->repo,
+				SubmoduleListCallback, baton), baton)) {
+
+		}
 	}
 }
 
@@ -354,10 +377,11 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 		Handle<Value> constructorArgs[] = {
 			External::New(baton->repo),
 			External::New(&baton->references),
-			External::New(&baton->remotes)
+			External::New(&baton->remotes),
+			External::New(&baton->submodules)
 		};
 		Local<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(3, constructorArgs);
+						->NewInstance(4, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);

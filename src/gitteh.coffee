@@ -459,6 +459,7 @@ Repository = Gitteh.Repository = (nativeRepo) ->
 		.set("workDir", "workingDirectory")
 		.set("remotes")
 		.set("references")
+		.set("submodules")
 	index = new Index nativeRepo.index
 	immutable(@, {index}).set "index"
 	return @
