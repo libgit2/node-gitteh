@@ -31,6 +31,7 @@
 #include "tag.h"
 #include "remote.h"
 #include "index.h"
+#include "submodule.h"
 
 namespace gitteh {
 
@@ -61,6 +62,7 @@ init(Handle<Object> target) {
 	Blob::Init(target);
 	Tag::Init(target);
 	Index::Init(target);
+	Submodule::Init(target);
 
 	Remote::Init(target);
 

@@ -244,6 +244,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymReference", CreateSymReference);
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
+	NODE_SET_PROTOTYPE_METHOD(t, "getSubmodule", GetSubmodule);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);

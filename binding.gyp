@@ -13,6 +13,7 @@
 				'src/tag.cc',
 				'src/remote.cc',
 				'src/index.cc',
+				'src/submodule.cc'
 			],
 			'todosources': [
 				'src/index_entry.cc',

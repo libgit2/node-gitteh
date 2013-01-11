@@ -40,6 +40,7 @@ protected:
 	static Handle<Value> GetRemote(const Arguments&);
 	static Handle<Value> Exists(const Arguments&);
 	static Handle<Value> CreateRemote(const Arguments&);
+	static Handle<Value> GetSubmodule(const Arguments&);
 
 	void close();
 
