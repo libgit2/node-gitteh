@@ -1,10 +1,13 @@
-
 {EventEmitter} = require "events"
 async = require "async"
 fs = require "fs"
 _path = require "path"
 args = require "./args"
-bindings = require "../build/Debug/gitteh"
+
+env = if process.env.npm_lifecycle_event is "test" then "Debug" else "Release"
+bindings = require "../build/#{env}/gitteh"
+
+(require "segfault-handler").registerHandler()
 
 {minOidLength, types, NativeRepository, NativeRemote} = bindings
 
