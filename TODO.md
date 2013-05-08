@@ -1,5 +1,8 @@
 TODO:
 
+* Improve install system. Should probably at least try and check system for a
+  valid libgit2 system - however unlikely. Should also be downloading a tarball
+  of release rather than heavyweight git subdirectory checkout.
 * Lookup lightweight/annotated tag by name.
 * V8 AdjustForMemoryByCompensatingWithAReallyLongMethodName when we allocate libgit2 stuff
 
