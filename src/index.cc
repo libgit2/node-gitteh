@@ -98,7 +98,7 @@ namespace gitteh {
 		baton->repository_->unlockRepository();
 	}
 
-	void Index::AsyncAfterReadTree(uv_work_t *req) {
+	void Index::AsyncAfterReadTree(uv_work_t *req, int status) {
 		HandleScope scope;
 		ReadTreeBaton *baton = GetBaton<ReadTreeBaton>(req);
 
@@ -125,7 +125,7 @@ namespace gitteh {
 		AsyncLibCall(git_index_write(baton->index_->index_), baton);
 	}
 
-	void Index::AsyncAfterWrite(uv_work_t *req) {
+	void Index::AsyncAfterWrite(uv_work_t *req, int status) {
 		HandleScope scope;
 		IndexBaton *baton = GetBaton<IndexBaton>(req);
 

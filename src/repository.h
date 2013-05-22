@@ -47,20 +47,20 @@ private:
 	Handle<Value> wrapObject(git_object*);
 
 	static void AsyncOpenRepository(uv_work_t*);
-	static void AsyncAfterOpenRepository(uv_work_t*);
+	static void AsyncAfterOpenRepository(uv_work_t*, int);
 	static void AsyncExists(uv_work_t*);
-	static void AsyncAfterExists(uv_work_t*);
+	static void AsyncAfterExists(uv_work_t*, int);
 	static void AsyncInitRepository(uv_work_t*);
-	static void AsyncAfterInitRepository(uv_work_t*);
+	static void AsyncAfterInitRepository(uv_work_t*, int);
 	static void AsyncGetObject(uv_work_t*);
-	static void AsyncAfterGetObject(uv_work_t*);
+	static void AsyncAfterGetObject(uv_work_t*, int);
 	static void AsyncGetReference(uv_work_t*);
 	static void AsyncCreateReference(uv_work_t*);
-	static void AsyncReturnReference(uv_work_t*);
+	static void AsyncReturnReference(uv_work_t*, int);
 	static void AsyncGetRemote(uv_work_t*);
-	static void AsyncAfterGetRemote(uv_work_t*);
+	static void AsyncAfterGetRemote(uv_work_t*, int);
 	static void AsyncCreateRemote(uv_work_t*);
-	static void AsyncAfterCreateRemote(uv_work_t*);
+	static void AsyncAfterCreateRemote(uv_work_t*, int);
 
 	static Handle<Object> CreateReferenceObject(git_reference*);
 	

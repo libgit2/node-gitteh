@@ -28,11 +28,11 @@ namespace gitteh {
 
 		static Handle<Value> GetStats(Local<String>, const AccessorInfo&);
 		static void AsyncUpdateTips(uv_work_t*);
-		static void AsyncAfterUpdateTips(uv_work_t*);
+		static void AsyncAfterUpdateTips(uv_work_t*, int);
 		static void AsyncConnect(uv_work_t*);
-		static void AsyncAfterConnect(uv_work_t*);
+		static void AsyncAfterConnect(uv_work_t*, int);
 		static void AsyncDownload(uv_work_t*);
-		static void AsyncAfterDownload(uv_work_t*);
+		static void AsyncAfterDownload(uv_work_t*, int);
 	};
 };
 
