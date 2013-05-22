@@ -135,7 +135,7 @@ namespace gitteh {
 				baton);
 	}
 
-	void Remote::AsyncAfterUpdateTips(uv_work_t *req) {
+	void Remote::AsyncAfterUpdateTips(uv_work_t *req, int status) {
 		HandleScope scope;
 		UpdateTipsBaton *baton = GetBaton<UpdateTipsBaton>(req);
 
@@ -169,7 +169,7 @@ namespace gitteh {
 		}
 	}
 
-	void Remote::AsyncAfterConnect(uv_work_t *req) {
+	void Remote::AsyncAfterConnect(uv_work_t *req, int status) {
 		HandleScope scope;
 		ConnectBaton *baton = GetBaton<ConnectBaton>(req);
 
@@ -211,7 +211,7 @@ namespace gitteh {
 				baton->bytes, baton->stats), baton);
 	}
 
-	void Remote::AsyncAfterDownload(uv_work_t *req) {
+	void Remote::AsyncAfterDownload(uv_work_t *req, int status) {
 		HandleScope scope;
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 

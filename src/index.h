@@ -25,9 +25,9 @@ namespace gitteh {
 		git_index *index_;
 
 		static void AsyncReadTree(uv_work_t*);
-		static void AsyncAfterReadTree(uv_work_t*);
+		static void AsyncAfterReadTree(uv_work_t*, int);
 		static void AsyncWrite(uv_work_t*);
-		static void AsyncAfterWrite(uv_work_t*);
+		static void AsyncAfterWrite(uv_work_t*, int);
 	};
 
 } // namespace gitteh

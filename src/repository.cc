@@ -364,7 +364,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 	}
 }
 
-void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
+void Repository::AsyncAfterOpenRepository(uv_work_t *req, int status) {
 	HandleScope scope;
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
@@ -408,7 +408,7 @@ void Repository::AsyncInitRepository(uv_work_t *req) {
 		baton->bare), baton);
 }
 
-void Repository::AsyncAfterInitRepository(uv_work_t *req) {
+void Repository::AsyncAfterInitRepository(uv_work_t *req, int status) {
 	HandleScope scope;
 	InitRepoBaton *baton = GetBaton<InitRepoBaton>(req);
 
@@ -454,7 +454,7 @@ void Repository::AsyncGetObject(uv_work_t *req) {
 	baton->repo->unlockRepository();
 }
 
-void Repository::AsyncAfterGetObject(uv_work_t *req) {
+void Repository::AsyncAfterGetObject(uv_work_t *req, int status) {
 	HandleScope scope;
 	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
 
@@ -576,7 +576,7 @@ void Repository::AsyncCreateReference(uv_work_t *req) {
 	}
 }
 
-void Repository::AsyncReturnReference(uv_work_t *req) {
+void Repository::AsyncReturnReference(uv_work_t *req, int status) {
 	HandleScope scope;
 	ReferenceBaton *baton = GetBaton<ReferenceBaton>(req);
 
@@ -633,7 +633,7 @@ void Repository::AsyncGetRemote(uv_work_t *req) {
 		baton->name.c_str()), baton);
 }
 
-void Repository::AsyncAfterGetRemote(uv_work_t *req) {
+void Repository::AsyncAfterGetRemote(uv_work_t *req, int status) {
 	HandleScope scope;
 	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
 
@@ -679,7 +679,7 @@ void Repository::AsyncCreateRemote(uv_work_t *req) {
 	}
 }
 
-void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
+void Repository::AsyncAfterCreateRemote(uv_work_t *req, int status) {
 	HandleScope scope;
 	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
 
@@ -716,7 +716,7 @@ void Repository::AsyncExists(uv_work_t *req) {
 	baton->exists = git_odb_exists(baton->repo->odb_, &baton->oid);
 }
 
-void Repository::AsyncAfterExists(uv_work_t *req) {
+void Repository::AsyncAfterExists(uv_work_t *req, int status) {
 	HandleScope scope;
 	ExistsBaton *baton = GetBaton<ExistsBaton>(req);
 
