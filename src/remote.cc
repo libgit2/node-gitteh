@@ -124,7 +124,7 @@ namespace gitteh {
 		UpdateTipsBaton *baton = new UpdateTipsBaton(remote);
 		baton->setCallback(args[0]);
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncUpdateTips, 
-				AsyncAfterUpdateTips);
+				(uv_after_work_cb)AsyncAfterUpdateTips);
 		return Undefined();
 	}
 
@@ -157,7 +157,7 @@ namespace gitteh {
 		ConnectBaton *baton = new ConnectBaton(remote, CastFromJS<int>(args[0]));
 		baton->setCallback(args[1]);
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncConnect, 
-				AsyncAfterConnect);
+				(uv_after_work_cb)AsyncAfterConnect);
 		return Undefined();
 	}
 
@@ -201,7 +201,7 @@ namespace gitteh {
 		remote->handle_->SetAccessor(stats_symbol, GetStats);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncDownload, 
-				AsyncAfterDownload);
+				(uv_after_work_cb)AsyncAfterDownload);
 		return Undefined();
 	}
 
