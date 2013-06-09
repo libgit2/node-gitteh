@@ -32,7 +32,8 @@
 			],
 
 			'cflags': [
-				'-Wall'
+				'-Wall',
+				'-fpermissive'
 			],
 
 			'ldflags': [

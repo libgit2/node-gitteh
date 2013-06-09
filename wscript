@@ -72,6 +72,8 @@ def configure(ctx):
 		
 	if o.debug:
 		ctx.env.append_value("CXXFLAGS", ["-ggdb", "-O0", "-Wall"]) 
+	
+	ctx.env.append_value( "CXXFLAGS", ["-fpermissive"] );
 
 def build(ctx):
 	if(ctx.env.internalLibgit2):
