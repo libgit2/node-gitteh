@@ -7,6 +7,8 @@ var async = require("async"),
 	tar = require('tar'),
 	zlib = require('zlib');
 
+var isWin = !!process.platform.match(/^win/);
+
 function passthru() {
 	var args = Array.prototype.slice.call(arguments);
 	var cb = args.splice(-1)[0];
@@ -38,7 +40,7 @@ async.series([
 		console.log("[gitteh] Downloading libgit2 dependency.");
 		if (fs.existsSync(path.join(__dirname, '.git'))) {
 			console.log("[gitteh] ...using git");
-			envpassthru("git", "submodule", "update", "--init", cb);
+			passthru("git", "submodule", "update", "--init", cb);
 		} else {
 			console.log("[gitteh] ...from GitHub");
 			var libgit2Version = "v0.17.0";
@@ -53,15 +55,19 @@ async.series([
 	},
 	function(cb) {
 		console.log("[gitteh] Building libgit2 dependency.");
-		envpassthru("mkdir", "-p", buildDir, cb);
+		if (isWin && !fs.existsSync(buildDir)) {
+			passthru("mkdir", buildDir, cb);
+		} else {
+			passthru("mkdir", "-p", buildDir, cb);
+		}
 	},
 	function(cb) {
-		envpassthru("cmake", "-DTHREADSAFE=1", "-DBUILD_CLAR=0", "..", {
+		passthru("cmake", "-DTHREADSAFE=1", "-DBUILD_CLAR=0", "..", {
 			cwd: buildDir
 		}, cb);
 	},
 	function(cb) {
-		envpassthru("cmake", "--build", ".", {
+		passthru("cmake", "--build", ".", {
 			cwd: buildDir
 		}, cb);
 	},
