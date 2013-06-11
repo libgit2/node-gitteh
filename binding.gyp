@@ -27,7 +27,7 @@
 			],
 
 			'libraries': [
-				'-L<!(pwd)/deps/libgit2/build',
+				'-L<(module_root_dir)/deps/libgit2/build',
 				'-lgit2'
 			],
 
