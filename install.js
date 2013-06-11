@@ -62,7 +62,7 @@ async.series([
 		}
 	},
 	function(cb) {
-		passthru("cmake", "-DTHREADSAFE=1", "-DBUILD_CLAR=0", "..", {
+		passthru("cmake", "-DBUILD_SHARED_LIBS=OFF", "_DSTDCALL=OFF", "-DTHREADSAFE=ON", "-DBUILD_CLAR=OFF", "..", {
 			cwd: buildDir
 		}, cb);
 	},
