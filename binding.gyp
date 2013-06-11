@@ -39,13 +39,14 @@
 				'-Wl,-rpath,\$$ORIGIN/../../deps/libgit2/build'
 			],
 
-			'conditions': [
-				['OS=="mac"', {
-					'xcode_settings': {
-						'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'
-					}
-				}]
-			]
+			'xcode_settings': {
+				'GCC_ENABLE_CPP_EXCEPTIONS': 'YES'
+			},
+			'msvs_settings': {
+				'VCLinkerTool': {
+					'AdditionalLibraryDirectories': ['<(module_root_dir)\\deps\\libgit2\\build\\debug']
+				}
+			}
 		}
 	]
 }
