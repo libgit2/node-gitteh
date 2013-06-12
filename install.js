@@ -52,7 +52,7 @@ async.series([
 	},
 	function(cb) {
 		console.log("[gitteh] Building native module.");
-		shpassthru("./node_modules/.bin/node-gyp configure --debug", cb);
+		shpassthru("./node_modules/.bin/node-gyp configure", cb);
 	},
 	function(cb) {
 		shpassthru("./node_modules/.bin/node-gyp build", cb);
