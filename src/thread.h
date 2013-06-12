@@ -13,6 +13,16 @@
 // pthread_mutex_unlock? Just in case though I'm setting up macros for them here
 // so I can swap them out or write compiler/platform specific variants later.
 
+#ifdef _MSC_VER
+
+typedef int gitteh_lock;
+#define CREATE_MUTEX(LOCK)
+#define DESTROY_MUTEX(LOCK)
+#define LOCK_MUTEX(LOCK)
+#define UNLOCK_MUTEX(LOCK)
+
+#else // _MSC_VER
+
 typedef pthread_mutex_t gitteh_lock;
 #define CREATE_MUTEX(LOCK)													\
 	pthread_mutex_init (&LOCK, NULL);
@@ -26,5 +36,5 @@ typedef pthread_mutex_t gitteh_lock;
 #define UNLOCK_MUTEX(LOCK)													\
 	pthread_mutex_unlock(&LOCK)
 	
-
+#endif // _MSC_VER
 #endif // GITTEH_THREAD_H

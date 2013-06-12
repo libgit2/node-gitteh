@@ -1,6 +1,6 @@
 var child_process = require("child_process");
 
-child_process.exec("which cmake", function(err) {
+child_process.exec("cmake --version", function(err) {
 	if(err && err.code != 0) {
 		console.error("[ERROR] CMake is required for installation.")
 		console.error("Please ensure CMake is installed to a standard location" +
