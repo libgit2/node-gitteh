@@ -56,6 +56,9 @@ async.series([
 	},
 	function(cb) {
 		shpassthru("./node_modules/.bin/node-gyp build", cb);
+	},
+	function(cb) {
+		shpassthru("./node_modules/.bin/coffee -o lib/ -c src/", cb);
 	}
 ], function(err) {
 	if(err) process.exit(err);
