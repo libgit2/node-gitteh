@@ -26,6 +26,14 @@ using std::string;
 			String::New("Argument " #I " invalid")));						\
 	Local<External> VAR = Local<External>::Cast(args[I]);
 
+// Node version-dependence macros
+#include <node_version.h>
+#if NODE_VERSION_AT_LEAST(0,9,4)
+#define NODE_094_UV_AFTER_WORK_CAST(x) (uv_after_work_cb)(x)
+#else
+#define NODE_094_UV_AFTER_WORK_CAST(x) (x)
+#endif
+
 namespace gitteh {
 	Handle<Object> GetModule();
 
