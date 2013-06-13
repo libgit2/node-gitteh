@@ -326,7 +326,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	OpenRepoBaton *baton = new OpenRepoBaton(path);
 	baton->setCallback(args[1]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
-		AsyncAfterOpenRepository);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterOpenRepository));
 	return Undefined();
 }
 
@@ -397,7 +397,7 @@ Handle<Value> Repository::InitRepository(const Arguments& args) {
 	baton->bare = CastFromJS<bool>(args[1]);
 	baton->setCallback(args[2]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
-		AsyncAfterInitRepository);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterInitRepository));
 	return Undefined();
 }
 
@@ -441,7 +441,7 @@ Handle<Value> Repository::GetObject(const Arguments& args) {
 	baton->oidLength = oidArg->Length();
 	baton->setCallback(args[2]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject, 
-		AsyncAfterGetObject);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterGetObject));
 	return Undefined();
 }
 
@@ -514,7 +514,7 @@ Handle<Value> Repository::GetReference(const Arguments& args) {
 	baton->setCallback(args[2]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetReference,
-		AsyncReturnReference);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
 	return Undefined();
 }
 
@@ -543,7 +543,7 @@ Handle<Value> Repository::CreateOidReference(const Arguments &args) {
 	baton->setCallback(args[3]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
-			AsyncReturnReference);
+			NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
 
 	return Undefined();
 }
@@ -557,7 +557,7 @@ Handle<Value> Repository::CreateSymReference(const Arguments &args) {
 	baton->setCallback(args[3]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
-			AsyncReturnReference);
+			NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
 
 	return Undefined();
 }
@@ -622,7 +622,7 @@ Handle<Value> Repository::GetRemote(const Arguments& args) {
 	baton->setCallback(args[1]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetRemote,
-		AsyncAfterGetRemote);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterGetRemote));
 	return Undefined();
 }
 
@@ -663,7 +663,7 @@ Handle<Value> Repository::CreateRemote(const Arguments &args) {
 	baton->setCallback(args[2]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateRemote,
-			AsyncAfterCreateRemote);
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateRemote));
 
 	return Undefined();
 }
@@ -707,7 +707,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 	baton->setCallback(args[1]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
-		AsyncAfterExists);
+		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterExists));
 	return Undefined();
 }
 
