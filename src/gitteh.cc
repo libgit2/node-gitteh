@@ -84,3 +84,5 @@ Handle<Object> GetModule() {
 }
 
 } // namespace gitteh
+
+NODE_MODULE(gitteh, gitteh::init)

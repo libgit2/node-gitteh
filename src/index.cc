@@ -77,7 +77,7 @@ namespace gitteh {
 		baton->setCallback(args[1]);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncReadTree,
-				AsyncAfterReadTree);
+				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterReadTree));
 
 		return Undefined();
 	}
@@ -114,7 +114,7 @@ namespace gitteh {
 		baton->setCallback(args[0]);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncWrite, 
-				AsyncAfterWrite);
+				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterWrite));
 
 		return Undefined();
 	}
