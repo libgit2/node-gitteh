@@ -1,7 +1,11 @@
 var async = require("async"),
 	child_process = require("child_process"),
 	spawn = child_process.spawn,
-	path = require("path");
+	path = require("path"),
+	request = require('request'),
+	fs = require('fs'),
+	tar = require('tar'),
+	zlib = require('zlib');
 
 function passthru() {
 	var args = Array.prototype.slice.call(arguments);
@@ -27,14 +31,25 @@ function envpassthru() {
 	passthru.apply(null, ["/usr/bin/env"].concat(Array.prototype.slice.call(arguments)));
 }
 
-var buildDir = path.join(__dirname, "deps/libgit2/build");
+var libgit2Dir = path.join(__dirname, "deps/libgit2");
+var buildDir = path.join(libgit2Dir, "build");
 async.series([
 	function(cb) {
 		console.log("[gitteh] Downloading libgit2 dependency.");
-		envpassthru("git", "submodule", "init", cb);
-	},
-	function(cb) {
-		envpassthru("git", "submodule", "update", cb);
+		if (fs.existsSync(path.join(__dirname, '.git'))) {
+			console.log("[gitteh] ...using git");
+			envpassthru("git", "submodule", "update", "--init", cb);
+		} else {
+			console.log("[gitteh] ...from GitHub");
+			var libgit2Version = "v0.17.0";
+			var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
+			request({url: url})
+				.pipe(zlib.createUnzip())
+				.pipe(tar.Extract({
+					path: libgit2Dir,
+					strip: true
+				})).on('end', cb);
+		}
 	},
 	function(cb) {
 		console.log("[gitteh] Building libgit2 dependency.");
