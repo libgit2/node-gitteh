@@ -1,4 +1,4 @@
-# Gitteh `v0.17.0`
+# Gitteh `v0.17.1`
 
 ## What?
 
