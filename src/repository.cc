@@ -420,10 +420,11 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 		Handle<Value> constructorArgs[] = {
 			External::New(baton->repo),
 			External::New(NULL),
+			External::New(NULL),
 			External::New(NULL)
 		};
 		Handle<Object> obj = Repository::constructor_template->GetFunction()
-						->NewInstance(3, constructorArgs);
+						->NewInstance(4, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
 		FireCallback(baton->callback, 2, argv);
