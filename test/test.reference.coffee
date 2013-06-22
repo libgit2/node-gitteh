@@ -5,7 +5,7 @@ gitteh = require "../lib/gitteh"
 utils = require "./utils"
 fixtures = require "./fixtures"
 
-{secondCommit} = fixtures.projectRepo
+secondCommit = fixtures.testRepo.secondCommit
 
 describe "Reference", ->
 	repo = null
@@ -14,7 +14,7 @@ describe "Reference", ->
 
 	describe "Using the project repo...", ->
 		it "can find the HEAD sym reference", (done) ->
-			gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
+			gitteh.openRepository fixtures.testRepo.path, (err, _repo) ->
 				repo = _repo
 
 				# We'll need this later.
