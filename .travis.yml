@@ -1,14 +1,12 @@
 # Travis-CI build for node-gitteh
 # see travis-ci.org for details
 
-language: cpp
+language: node_js
 
 node_js:
   - "0.8"
   - "0.10"
 
-script:
-  - npm install
+before_script:
   - node-gyp build
   - cake build
-  - npm test
