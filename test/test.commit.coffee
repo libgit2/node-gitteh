@@ -4,15 +4,15 @@ gitteh = require "../lib/gitteh"
 utils = require "./utils"
 fixtures = require "./fixtures"
 
-secondCommit = fixtures.projectRepo.secondCommit
+secondCommit = fixtures.testRepo.secondCommit
 
 describe "Commit", ->
 	repo = null
 	commit = null
 
-	describe "Using the project repo...", ->
-		it "can find second commit (8a916d5fbce49f5780668a1ee780e0ef2e89360f)", (done) ->
-			gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
+	describe "Using the test repo...", ->
+		it "can find second commit (#{secondCommit.id})", (done) ->
+			gitteh.openRepository fixtures.testRepo.path, (err, _repo) ->
 				repo = _repo
 				repo.commit secondCommit.id, (err, _commit) ->
 					commit = _commit
@@ -47,19 +47,19 @@ describe "Commit", ->
 			it "is immutable", -> utils.checkImmutable commit, "author"
 			describe "#name", ->
 				it "is valid", ->
-					commit.author.name.should.be.equal "Sam"
+					commit.author.name.should.be.equal secondCommit.author.name
 				it "is immutable", -> utils.checkImmutable commit.author, "name"
 			describe "#email", ->
 				it "is valid", ->
-					commit.author.email.should.be.equal "sam.c.day@gmail.com"
+					commit.author.email.should.be.equal secondCommit.author.email
 				it "is immutable", -> utils.checkImmutable commit.author, "email"
 			describe "#time", ->
 				it "is valid", ->
-					commit.author.time.toUTCString().should.be.equal "Sat, 26 Feb 2011 02:39:48 GMT"
+					commit.author.time.toUTCString().should.be.equal secondCommit.author.time
 				it "is immutable", -> utils.checkImmutable commit.author, "time"
 			describe "#offset", ->
 				it "is valid", ->
-					commit.author.offset.should.equal 600
+					commit.author.offset.should.equal secondCommit.author.offset
 				it "is immutable", -> utils.checkImmutable commit.author, "offset"
 		describe "#committer", ->
 			it "is valid", ->
@@ -72,17 +72,17 @@ describe "Commit", ->
 			it "is immutable", -> utils.checkImmutable commit, "committer"
 			describe "#name", ->
 				it "is valid", ->
-					commit.committer.name.should.be.equal "Sam"
+					commit.committer.name.should.be.equal secondCommit.author.name
 				it "is immutable", -> utils.checkImmutable commit.committer, "name"
 			describe "#email", ->
 				it "is valid", ->
-					commit.committer.email.should.be.equal "sam.c.day@gmail.com"
+					commit.committer.email.should.be.equal secondCommit.author.email
 				it "is immutable", -> utils.checkImmutable commit.committer, "email"
 			describe "#time", ->
 				it "is valid", ->
-					commit.committer.time.toUTCString().should.be.equal "Sat, 26 Feb 2011 02:39:48 GMT"
+					commit.committer.time.toUTCString().should.be.equal secondCommit.author.time
 				it "is immutable", -> utils.checkImmutable commit.committer, "time"
 			describe "#offset", ->
 				it "is valid", ->
-					commit.committer.offset.should.equal 600
+					commit.committer.offset.should.equal secondCommit.author.offset
 				it "is immutable", -> utils.checkImmutable commit.committer, "offset"

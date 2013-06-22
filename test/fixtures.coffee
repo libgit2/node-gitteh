@@ -19,6 +19,11 @@ exports.testRepo =
 		id: "8496071c1b46c854b31185ea97743be6a8774479"
 		message: "testing"
 	secondCommit:
+		author:
+			name: "Scott Chacon"
+			email: "schacon@gmail.com"
+			time: "Tue, 11 May 2010 20:38:42 GMT"
+			offset: -420
 		id: "5b5b025afb0b4c913b4c338a42934a3863bf3644"
 		tree: "f60079018b664e4e79329a7ef9559c8d9e0378d1"
 		parent: "8496071c1b46c854b31185ea97743be6a8774479"
