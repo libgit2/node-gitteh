@@ -14,7 +14,7 @@ describe "Gitteh", ->
 		describe "on project repo", ->
 			repo = null
 			it "should open correctly", (done) ->
-				gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
+				gitteh.openRepository fixtures.testRepo.path, (err, _repo) ->
 					repo = _repo
 					repo.should.be.an.instanceof gitteh.Repository
 					done()
