@@ -6,4 +6,5 @@ language: cpp
 script:
   - npm install
   - node-gyp build
+  - cake build
   - npm test
