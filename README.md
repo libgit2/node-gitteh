@@ -1,5 +1,7 @@
 # Gitteh `v0.17.1`
 
+[![build status](https://secure.travis-ci.org/libgit2/node-gitteh.png)](http://travis-ci.org/libgit2/node-gitteh)
+
 ## What?
 
 Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. Right now, the bindings cover read only access to raw objects (trees/commits/blobs/tags/references), and basic access to remotes (including basic cloning/fetching support).
