@@ -2,6 +2,12 @@
 
 [![build status](https://secure.travis-ci.org/libgit2/node-gitteh.png)](http://travis-ci.org/libgit2/node-gitteh)
 
+## Installation
+
+Gitteh requires `node 0.8`, `CMake 2.6` and `gcc`. Installation via NPM:
+
+	npm install gitteh
+
 ## What?
 
 Node bindings to the excellent [libgit2](http://libgit2.github.com) C library. Right now, the bindings cover read only access to raw objects (trees/commits/blobs/tags/references), and basic access to remotes (including basic cloning/fetching support).
@@ -16,21 +22,11 @@ Gitteh aims to:
 
 There's a few libraries out there that wrap git cli commands, parsing the output and such. This is a perfectly acceptable solution. Node-gitteh provides first-class support to work with a git repository on a low level, and does not require git.git (and its myriad of dependencies) to be installed in the server environment.
 
-## Installation
-
-Gitteh has been written for Node v0.6.x and higher.
-
-Installation can be done via npm.
-
-	npm install gitteh
-
-Currently, installing gitteh will require CMake 2.6+ to be present on your machine. Ideally gitteh should be able to build the underlying libgit2 dependency using `gyp`, as it ships with all recent versions of npm. If you need this (for example for deployment to Heroku), feel free to contact me, or better yet, contribute it yourself!
-
 [Documentation can be found here](http://libgit2.github.com/node-gitteh/docs/index.html). You should also check out the examples in the examples/ dir in the repo.
 
 ## License
 
-Gitteh is MIT licensed to be consistent with libgit2.
+Gitteh is available under the MIT License. See the LICENSE file for more information.
 
 ## Contributing
 
