@@ -1,0 +1,9 @@
+# Travis-CI build for node-gitteh
+# see travis-ci.org for details
+
+language: cpp
+
+script:
+  - npm install
+  - node-gyp build
+  - npm test
