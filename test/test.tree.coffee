@@ -4,15 +4,15 @@ gitteh = require "../lib/gitteh"
 utils = require "./utils"
 fixtures = require "./fixtures"
 
-secondCommit = fixtures.projectRepo.secondCommit
+secondCommit = fixtures.testRepo.secondCommit
 
 describe "Tree", ->
 	repo = null
 	tree = null
 
-	describe "Using the project repo...", ->
+	describe "Using the test repo...", ->
 		it "can find second commit tree (#{secondCommit.tree})", (done) ->
-			gitteh.openRepository fixtures.projectRepo.path, (err, _repo) ->
+			gitteh.openRepository fixtures.testRepo.path, (err, _repo) ->
 				repo = _repo
 
 				repo.tree secondCommit.tree, (err, _tree) ->
@@ -27,4 +27,4 @@ describe "Tree", ->
 			it "is immutable", -> utils.checkImmutable tree, "id"
 		describe "#entries", ->
 			it "are correct", ->
-				
+
