@@ -1,3 +1,0 @@
-This file is staged. It exists in the git indexfile, however it is not committed at all.
-
-Thus, this file does not exist even as a blob in the git repo.
