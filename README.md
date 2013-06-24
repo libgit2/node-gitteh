@@ -1,4 +1,4 @@
-# Gitteh `v0.17.1`
+# Gitteh `v0.17.2`
 
 [![build status](https://secure.travis-ci.org/libgit2/node-gitteh.png)](http://travis-ci.org/libgit2/node-gitteh)
 
