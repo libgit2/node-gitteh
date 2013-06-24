@@ -1,2 +1,14 @@
 build
 vendor/*/build
+deps/libgit2
+.gitignore
+.npmignore
+TODO.md
+.gitmodules
+.travis.yml
+.node-version
+Cakefile
+LIBGIT2_BUGS.md
+test/
+src/*.coffee
+CHANGELOG.md
