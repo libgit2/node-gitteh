@@ -23,6 +23,7 @@
  */
 
 #include "tag.h"
+#include "signature.h"
 
 static Persistent<String> name_symbol;
 static Persistent<String> message_symbol;
