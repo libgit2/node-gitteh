@@ -37,10 +37,10 @@ async.series([
 	function(cb) {
 		console.log("[gitteh] Downloading libgit2 dependency.");
 		if (fs.existsSync(path.join(__dirname, '.git'))) {
-			console.log("[gitteh] ...using git");
+			console.log("[gitteh] ...via git submodule");
 			envpassthru("git", "submodule", "update", "--init", cb);
 		} else {
-			console.log("[gitteh] ...from GitHub");
+			console.log("[gitteh] ...via tarball");
 			var libgit2Version = "v0.19.0";
 			var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
 			request({url: url})
