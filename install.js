@@ -41,7 +41,7 @@ async.series([
 			envpassthru("git", "submodule", "update", "--init", cb);
 		} else {
 			console.log("[gitteh] ...from GitHub");
-			var libgit2Version = "v0.17.0";
+			var libgit2Version = "v0.19.0";
 			var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
 			request({url: url})
 				.pipe(zlib.createUnzip())
