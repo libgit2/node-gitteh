@@ -207,10 +207,19 @@ namespace gitteh {
 		return Undefined();
 	}
 
+	int Remote::DownloadTransferProgressCallback(
+			const git_transfer_progress *stats,
+			void *payload)
+	{
+		DownloadBaton *baton = (DownloadBaton*)payload;
+		*baton->remote_->progress_ = *stats;
+		return 0;
+	}
+
 	void Remote::AsyncDownload(uv_work_t *req) {
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 		AsyncLibCall(git_remote_download(baton->remote_->remote_,
-				baton->bytes, baton->stats), baton);
+				DownloadTransferProgressCallback, baton), baton);
 	}
 
 	void Remote::AsyncAfterDownload(uv_work_t *req) {

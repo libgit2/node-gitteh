@@ -31,6 +31,7 @@ namespace gitteh {
 		static void AsyncAfterUpdateTips(uv_work_t*);
 		static void AsyncConnect(uv_work_t*);
 		static void AsyncAfterConnect(uv_work_t*);
+		static int DownloadTransferProgressCallback(const git_transfer_progress*, void*);
 		static void AsyncDownload(uv_work_t*);
 		static void AsyncAfterDownload(uv_work_t*);
 	};
