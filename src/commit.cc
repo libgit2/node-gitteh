@@ -47,7 +47,7 @@ namespace gitteh {
 		Handle<Object> Create(git_commit *cm) {
 			HandleScope scope;
 			Handle<Object> o = Object::New();
-			o->Set(tree_symbol, CastToJS(git_commit_tree_oid(cm)));
+			o->Set(tree_symbol, CastToJS(git_commit_tree_id(cm)));
 			o->Set(message_symbol, CastToJS(git_commit_message(cm)));
 			const char *encoding = git_commit_message_encoding(cm);
 			if(encoding) {
@@ -56,7 +56,7 @@ namespace gitteh {
 			Handle<Array> parents = Array::New();
 			int parentCount = git_commit_parentcount(cm);
 			for(int i = 0; i < parentCount; i++) {
-				parents->Set(i, CastToJS(git_commit_parent_oid(cm, i)));
+				parents->Set(i, CastToJS(git_commit_parent_id(cm, i)));
 			}
 			o->Set(parents_symbol, parents);
 			o->Set(author_symbol, CastToJS(git_commit_author(cm)));

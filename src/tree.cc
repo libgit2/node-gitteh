@@ -29,14 +29,14 @@ static Persistent<String> entries_symbol;
 static Persistent<String> entry_id_symbol;
 static Persistent<String> entry_name_symbol;
 static Persistent<String> entry_type_symbol;
-static Persistent<String> entry_attributes_symbol;
+static Persistent<String> entry_filemode_symbol;
 
 static Handle<Object> CreateEntry(const git_tree_entry *entry) {
 	HandleScope scope;
 	Handle<Object> o = Object::New();
 	o->Set(entry_id_symbol, CastToJS(git_tree_entry_id(entry)));
 	o->Set(entry_name_symbol, CastToJS(git_tree_entry_name(entry)));
-	o->Set(entry_attributes_symbol, CastToJS(git_tree_entry_attributes(entry)));
+	o->Set(entry_filemode_symbol, CastToJS(git_tree_entry_filemode(entry)));
 	o->Set(entry_type_symbol, CastToJS(git_tree_entry_type(entry)));
 	return scope.Close(o);
 }
@@ -50,7 +50,7 @@ namespace gitteh {
 			entry_id_symbol 		= NODE_PSYMBOL("id");
 			entry_name_symbol 		= NODE_PSYMBOL("name");
 			entry_type_symbol 		= NODE_PSYMBOL("type");
-			entry_attributes_symbol = NODE_PSYMBOL("attributes");
+			entry_filemode_symbol = NODE_PSYMBOL("filemode");
 		}
 
 		Handle<Object> Create(git_tree *tree) {

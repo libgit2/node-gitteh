@@ -330,7 +330,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	return Undefined();
 }
 
-int SubmoduleListCallback(const char *name, void *payload) {
+int SubmoduleListCallback(git_submodule *, const char *name, void *payload) {
 	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
 	baton->submodules.push_back(string(name));
 	return GIT_OK;
@@ -349,8 +349,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 			git_strarray_free(&strarray);
 		}
 
-		if(AsyncLibCall(git_reference_list(&strarray, baton->repo,
-				GIT_REF_LISTALL), baton)) {
+		if(AsyncLibCall(git_reference_list(&strarray, baton->repo), baton)) {
 			for(unsigned int i = 0; i < strarray.count; i++) {
 				baton->references.push_back(string(strarray.strings[i]));
 			}
@@ -567,11 +566,11 @@ void Repository::AsyncCreateReference(uv_work_t *req) {
 	CreateReferenceBaton *baton = GetBaton<CreateReferenceBaton>(req);
 
 	if(baton->direct_) {
-		AsyncLibCall(git_reference_create_oid(&baton->ref, baton->repo->repo_,
+		AsyncLibCall(git_reference_create(&baton->ref, baton->repo->repo_,
 				baton->name_.c_str(), &baton->targetId_, baton->force_), baton);
 	}
 	else {
-		AsyncLibCall(git_reference_create_symbolic(&baton->ref,
+		AsyncLibCall(git_reference_symbolic_create(&baton->ref,
 				baton->repo->repo_, baton->name_.c_str(),
 				baton->target_.c_str(), baton->force_), baton);
 	}
@@ -605,10 +604,10 @@ Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
 	obj->Set(ref_packed_symbol, CastToJS<bool>(git_reference_is_packed(ref)));
 
 	if(refType == GIT_REF_OID) {
-		obj->Set(ref_target_symbol, CastToJS(git_reference_oid(ref)));
+		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
 	}
 	else {
-		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
+		obj->Set(ref_target_symbol, CastToJS(git_reference_symbolic_target(ref)));
 	}
 
 	return scope.Close(obj);

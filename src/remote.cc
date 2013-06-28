@@ -133,7 +133,7 @@ namespace gitteh {
 	void Remote::AsyncUpdateTips(uv_work_t *req) {
 		UpdateTipsBaton *baton = GetBaton<UpdateTipsBaton>(req);
 		// TODO: use the callback to get changed refs once fn accepts a payload
-		AsyncLibCall(git_remote_update_tips(baton->remote_->remote_, NULL),
+		AsyncLibCall(git_remote_update_tips(baton->remote_->remote_),
 				baton);
 	}
 
