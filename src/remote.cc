@@ -9,14 +9,15 @@ namespace gitteh {
 	static Persistent<String> url_symbol;
 	static Persistent<String> fetchspec_symbol;
 	static Persistent<String> pushspec_symbol;
-	static Persistent<String> stats_symbol;
+	static Persistent<String> progress_symbol;
 
 	static Persistent<String> refspec_src_symbol;
 	static Persistent<String> refspec_dst_symbol;
 
-	static Persistent<String> stats_bytes_symbol;
-	static Persistent<String> stats_total_symbol;
-	static Persistent<String> stats_done_symbol;
+	static Persistent<String> progress_total_objects_symbol;
+	static Persistent<String> progress_indexed_objects_symbol;
+	static Persistent<String> progress_received_objects_symbol;
+	static Persistent<String> progress_received_bytes_symbol;
 
 	class RemoteBaton : public Baton {
 	public:
@@ -48,7 +49,7 @@ namespace gitteh {
 	class DownloadBaton : public RemoteBaton {
 	public:
 		git_off_t *bytes;
-		git_indexer_stats *stats;
+		git_transfer_progress *stats;
 		DownloadBaton(Remote *remote) :
 				RemoteBaton(remote) { }
 	};
@@ -80,14 +81,15 @@ namespace gitteh {
 		url_symbol 			= NODE_PSYMBOL("url");
 		fetchspec_symbol 	= NODE_PSYMBOL("fetchSpec");
 		pushspec_symbol 	= NODE_PSYMBOL("pushSpec");
-		stats_symbol 		= NODE_PSYMBOL("stats");
+		progress_symbol 	= NODE_PSYMBOL("progress");
 
 		refspec_src_symbol 	= NODE_PSYMBOL("src");
 		refspec_dst_symbol 	= NODE_PSYMBOL("dst");
 
-		stats_bytes_symbol	= NODE_PSYMBOL("bytes");
-		stats_total_symbol	= NODE_PSYMBOL("total");
-		stats_done_symbol	= NODE_PSYMBOL("done");
+		progress_total_objects_symbol    = NODE_PSYMBOL("totalObjects");
+		progress_indexed_objects_symbol  = NODE_PSYMBOL("indexedObjects");
+		progress_received_objects_symbol = NODE_PSYMBOL("receivedObjects");
+		progress_received_bytes_symbol   = NODE_PSYMBOL("receivedBytes");
 
 		Local<FunctionTemplate> t = FunctionTemplate::New(New);
 		constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -191,14 +193,14 @@ namespace gitteh {
 		DownloadBaton *baton = new DownloadBaton(remote);
 		baton->setCallback(args[0]);
 		baton->bytes = &remote->downloadBytes_;
-		baton->stats = &remote->indexerStats_;
+		baton->stats = &remote->progress_;
 
 		// Re-initialize stat counters.
 		remote->downloadBytes_ = 0;
-		memset(&remote->indexerStats_, 0, sizeof(git_indexer_stats));
+		memset(&remote->progress_, 0, sizeof(git_transfer_progress));
 
 		// Setup download stats accessor.
-		remote->handle_->SetAccessor(stats_symbol, GetStats);
+		remote->handle_->SetAccessor(progress_symbol, GetStats);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncDownload, 
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterDownload));
@@ -215,7 +217,7 @@ namespace gitteh {
 		HandleScope scope;
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 
-		baton->remote_->handle_->Delete(stats_symbol);
+		baton->remote_->handle_->Delete(progress_symbol);
 
 		if(baton->isErrored()) {
 			Handle<Value> argv[] = { baton->createV8Error() };
@@ -233,9 +235,10 @@ namespace gitteh {
 		HandleScope scope;
 		Remote *remote = ObjectWrap::Unwrap<Remote>(info.This());
 		Handle<Object> o = Object::New();
-		o->Set(stats_bytes_symbol, CastToJS(remote->downloadBytes_));
-		o->Set(stats_total_symbol, CastToJS(remote->indexerStats_.total));
-		o->Set(stats_done_symbol, CastToJS(remote->indexerStats_.processed));
+		o->Set(progress_total_objects_symbol, CastToJS(remote->progress_.total_objects));
+		o->Set(progress_indexed_objects_symbol, CastToJS(remote->progress_.indexed_objects));
+		o->Set(progress_received_objects_symbol, CastToJS(remote->progress_.received_objects));
+		o->Set(progress_received_bytes_symbol, CastToJS(remote->progress_.received_bytes));
 		return scope.Close(o);
 	}
 

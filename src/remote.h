@@ -23,7 +23,7 @@ namespace gitteh {
 
 	private:
 		git_remote *remote_;
-		git_indexer_stats indexerStats_;
+		git_transfer_progress progress_;
 		git_off_t downloadBytes_;
 
 		static Handle<Value> GetStats(Local<String>, const AccessorInfo&);
