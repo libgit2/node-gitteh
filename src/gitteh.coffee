@@ -334,7 +334,7 @@ Remote.prototype.connect = ->
 	[dir, cb] = args
 		dir: type: "remoteDir"
 		cb: type: "function"
-	dir = if dir is "push" then bindings.GIT_DIR_PUSH else bindings.GIT_DIR_FETCH
+	dir = if dir is "push" then bindings.GIT_DIRECTION_PUSH else bindings.GIT_DIRECTION_FETCH
 	_priv.native.connect dir, wrapCallback cb, (refs) =>
 		refNames = Object.keys refs
 

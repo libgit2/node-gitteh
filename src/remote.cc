@@ -39,11 +39,11 @@ namespace gitteh {
 
 	class ConnectBaton : public RemoteBaton {
 	public:
-		int direction;
+		git_direction direction;
 		map<string, git_oid> refs;
 
 		ConnectBaton(Remote *remote, int direction) :
-				RemoteBaton(remote), direction(direction) { }
+				RemoteBaton(remote), direction((git_direction)direction) { }
 	};
 
 	class DownloadBaton : public RemoteBaton {
