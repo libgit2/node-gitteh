@@ -47,7 +47,6 @@ static Persistent<String> submodules_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
-static Persistent<String> ref_packed_symbol;
 static Persistent<String> ref_target_symbol;
 
 static Persistent<String> object_id_symbol;
@@ -225,7 +224,6 @@ void Repository::Init(Handle<Object> target) {
 	// Reference symbols
 	ref_name_symbol 	= NODE_PSYMBOL("name");
 	ref_direct_symbol 	= NODE_PSYMBOL("direct");
-	ref_packed_symbol 	= NODE_PSYMBOL("packed");
 	ref_target_symbol 	= NODE_PSYMBOL("target");
 
 	// Object symbols
@@ -601,7 +599,6 @@ Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
 	git_ref_t refType = git_reference_type(ref);
 	obj->Set(ref_name_symbol, CastToJS(git_reference_name(ref)));
 	obj->Set(ref_direct_symbol, CastToJS<bool>(refType == GIT_REF_OID));
-	obj->Set(ref_packed_symbol, CastToJS<bool>(git_reference_is_packed(ref)));
 
 	if(refType == GIT_REF_OID) {
 		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
