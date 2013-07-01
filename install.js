@@ -56,7 +56,7 @@ async.series([
 		envpassthru("mkdir", "-p", buildDir, cb);
 	},
 	function(cb) {
-		envpassthru("cmake", "-DTHREADSAFE=1", "-DBUILD_CLAR=0", "..", {
+		envpassthru("cmake", "-DCMAKE_C_FLAGS='-fPIC'", "-DTHREADSAFE=1", "-DBUILD_CLAR=0", "..", {
 			cwd: buildDir
 		}, cb);
 	},
