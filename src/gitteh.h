@@ -177,6 +177,9 @@ namespace cvv8 {
 			return GIT_OBJ_BAD;
 		}
 	};
+
+	template<>
+	struct NativeToJS<git_filemode_t> : public NativeToJS<long> {};
 }
 
 #endif // GITTEH_H
