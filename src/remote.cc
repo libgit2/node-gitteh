@@ -1,4 +1,5 @@
 #include "remote.h"
+#include "git2/strarray.h"
 
 using std::map;
 using std::pair;
@@ -7,8 +8,8 @@ namespace gitteh {
 	static Persistent<String> class_symbol;
 	static Persistent<String> name_symbol;
 	static Persistent<String> url_symbol;
-	static Persistent<String> fetchspec_symbol;
-	static Persistent<String> pushspec_symbol;
+	static Persistent<String> fetchspecs_symbol;
+	static Persistent<String> pushspecs_symbol;
 	static Persistent<String> progress_symbol;
 
 	static Persistent<String> refspec_src_symbol;
@@ -79,8 +80,8 @@ namespace gitteh {
 		class_symbol 		= NODE_PSYMBOL("NativeRemote");
 		name_symbol 		= NODE_PSYMBOL("name");
 		url_symbol 			= NODE_PSYMBOL("url");
-		fetchspec_symbol 	= NODE_PSYMBOL("fetchSpec");
-		pushspec_symbol 	= NODE_PSYMBOL("pushSpec");
+		fetchspecs_symbol	= NODE_PSYMBOL("fetchSpecs");
+		pushspecs_symbol 	= NODE_PSYMBOL("pushSpecs");
 		progress_symbol 	= NODE_PSYMBOL("progress");
 
 		refspec_src_symbol 	= NODE_PSYMBOL("src");
@@ -112,10 +113,25 @@ namespace gitteh {
 		Remote *remoteObj = new Remote(remote);
 		remoteObj->Wrap(me);
 
+		// Get the fetch- and push-specs
+		Handle<Array> fetchspecsArr = Array::New();
+		git_strarray fetchspecs = {NULL, 0};
+		if (!git_remote_get_fetch_refspecs(&fetchspecs, remote)) {
+			for (size_t i=0; i<fetchspecs.count; i++)
+				fetchspecsArr->Set(i, CastToJS(fetchspecs.strings[i]));
+		}
+		me->Set(fetchspecs_symbol, fetchspecsArr);
+
+		Handle<Array> pushspecsArr = Array::New();
+		git_strarray pushspecs = {NULL, 0};
+		if (!git_remote_get_push_refspecs(&pushspecs, remote)) {
+			for (size_t i=0; i<pushspecs.count; i++)
+				pushspecsArr->Set(i, CastToJS(pushspecs.strings[i]));
+		}
+		me->Set(pushspecs_symbol, pushspecsArr);
+
 		me->Set(name_symbol, CastToJS(git_remote_name(remote)));
 		me->Set(url_symbol, CastToJS(git_remote_url(remote)));
-		me->Set(fetchspec_symbol, CastToJS(git_remote_fetchspec(remote)));
-		me->Set(pushspec_symbol, CastToJS(git_remote_pushspec(remote)));
 
 		return scope.Close(me);
 	}
@@ -212,7 +228,7 @@ namespace gitteh {
 			void *payload)
 	{
 		DownloadBaton *baton = (DownloadBaton*)payload;
-		*baton->remote_->progress_ = *stats;
+		baton->remote_->progress_ = *stats;
 		return 0;
 	}
 
