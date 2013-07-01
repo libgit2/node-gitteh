@@ -671,7 +671,7 @@ Handle<Value> Repository::CreateRemote(const Arguments &args) {
 void Repository::AsyncCreateRemote(uv_work_t *req) {
 	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
 
-	if(AsyncLibCall(git_remote_add(&baton->remote, baton->repo->repo_,
+	if(AsyncLibCall(git_remote_create(&baton->remote, baton->repo->repo_,
 			baton->name.c_str(), baton->url.c_str()), baton)) {
 		if(!AsyncLibCall(git_remote_save(baton->remote), baton)) {
 			git_remote_free(baton->remote);
