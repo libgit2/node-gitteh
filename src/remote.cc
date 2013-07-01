@@ -1,4 +1,5 @@
 #include "remote.h"
+#include "git2/strarray.h"
 
 using std::map;
 using std::pair;
@@ -7,16 +8,17 @@ namespace gitteh {
 	static Persistent<String> class_symbol;
 	static Persistent<String> name_symbol;
 	static Persistent<String> url_symbol;
-	static Persistent<String> fetchspec_symbol;
-	static Persistent<String> pushspec_symbol;
-	static Persistent<String> stats_symbol;
+	static Persistent<String> fetchspecs_symbol;
+	static Persistent<String> pushspecs_symbol;
+	static Persistent<String> progress_symbol;
 
 	static Persistent<String> refspec_src_symbol;
 	static Persistent<String> refspec_dst_symbol;
 
-	static Persistent<String> stats_bytes_symbol;
-	static Persistent<String> stats_total_symbol;
-	static Persistent<String> stats_done_symbol;
+	static Persistent<String> progress_total_objects_symbol;
+	static Persistent<String> progress_indexed_objects_symbol;
+	static Persistent<String> progress_received_objects_symbol;
+	static Persistent<String> progress_received_bytes_symbol;
 
 	class RemoteBaton : public Baton {
 	public:
@@ -38,17 +40,17 @@ namespace gitteh {
 
 	class ConnectBaton : public RemoteBaton {
 	public:
-		int direction;
+		git_direction direction;
 		map<string, git_oid> refs;
 
 		ConnectBaton(Remote *remote, int direction) :
-				RemoteBaton(remote), direction(direction) { }
+				RemoteBaton(remote), direction((git_direction)direction) { }
 	};
 
 	class DownloadBaton : public RemoteBaton {
 	public:
 		git_off_t *bytes;
-		git_indexer_stats *stats;
+		git_transfer_progress *stats;
 		DownloadBaton(Remote *remote) :
 				RemoteBaton(remote) { }
 	};
@@ -78,16 +80,17 @@ namespace gitteh {
 		class_symbol 		= NODE_PSYMBOL("NativeRemote");
 		name_symbol 		= NODE_PSYMBOL("name");
 		url_symbol 			= NODE_PSYMBOL("url");
-		fetchspec_symbol 	= NODE_PSYMBOL("fetchSpec");
-		pushspec_symbol 	= NODE_PSYMBOL("pushSpec");
-		stats_symbol 		= NODE_PSYMBOL("stats");
+		fetchspecs_symbol	= NODE_PSYMBOL("fetchSpecs");
+		pushspecs_symbol 	= NODE_PSYMBOL("pushSpecs");
+		progress_symbol 	= NODE_PSYMBOL("progress");
 
 		refspec_src_symbol 	= NODE_PSYMBOL("src");
 		refspec_dst_symbol 	= NODE_PSYMBOL("dst");
 
-		stats_bytes_symbol	= NODE_PSYMBOL("bytes");
-		stats_total_symbol	= NODE_PSYMBOL("total");
-		stats_done_symbol	= NODE_PSYMBOL("done");
+		progress_total_objects_symbol    = NODE_PSYMBOL("totalObjects");
+		progress_indexed_objects_symbol  = NODE_PSYMBOL("indexedObjects");
+		progress_received_objects_symbol = NODE_PSYMBOL("receivedObjects");
+		progress_received_bytes_symbol   = NODE_PSYMBOL("receivedBytes");
 
 		Local<FunctionTemplate> t = FunctionTemplate::New(New);
 		constructor_template = Persistent<FunctionTemplate>::New(t);
@@ -110,10 +113,25 @@ namespace gitteh {
 		Remote *remoteObj = new Remote(remote);
 		remoteObj->Wrap(me);
 
+		// Get the fetch- and push-specs
+		Handle<Array> fetchspecsArr = Array::New();
+		git_strarray fetchspecs = {NULL, 0};
+		if (!git_remote_get_fetch_refspecs(&fetchspecs, remote)) {
+			for (size_t i=0; i<fetchspecs.count; i++)
+				fetchspecsArr->Set(i, CastToJS(fetchspecs.strings[i]));
+		}
+		me->Set(fetchspecs_symbol, fetchspecsArr);
+
+		Handle<Array> pushspecsArr = Array::New();
+		git_strarray pushspecs = {NULL, 0};
+		if (!git_remote_get_push_refspecs(&pushspecs, remote)) {
+			for (size_t i=0; i<pushspecs.count; i++)
+				pushspecsArr->Set(i, CastToJS(pushspecs.strings[i]));
+		}
+		me->Set(pushspecs_symbol, pushspecsArr);
+
 		me->Set(name_symbol, CastToJS(git_remote_name(remote)));
 		me->Set(url_symbol, CastToJS(git_remote_url(remote)));
-		me->Set(fetchspec_symbol, CastToJS(git_remote_fetchspec(remote)));
-		me->Set(pushspec_symbol, CastToJS(git_remote_pushspec(remote)));
 
 		return scope.Close(me);
 	}
@@ -131,7 +149,7 @@ namespace gitteh {
 	void Remote::AsyncUpdateTips(uv_work_t *req) {
 		UpdateTipsBaton *baton = GetBaton<UpdateTipsBaton>(req);
 		// TODO: use the callback to get changed refs once fn accepts a payload
-		AsyncLibCall(git_remote_update_tips(baton->remote_->remote_, NULL),
+		AsyncLibCall(git_remote_update_tips(baton->remote_->remote_),
 				baton);
 	}
 
@@ -191,31 +209,40 @@ namespace gitteh {
 		DownloadBaton *baton = new DownloadBaton(remote);
 		baton->setCallback(args[0]);
 		baton->bytes = &remote->downloadBytes_;
-		baton->stats = &remote->indexerStats_;
+		baton->stats = &remote->progress_;
 
 		// Re-initialize stat counters.
 		remote->downloadBytes_ = 0;
-		memset(&remote->indexerStats_, 0, sizeof(git_indexer_stats));
+		memset(&remote->progress_, 0, sizeof(git_transfer_progress));
 
 		// Setup download stats accessor.
-		remote->handle_->SetAccessor(stats_symbol, GetStats);
+		remote->handle_->SetAccessor(progress_symbol, GetStats);
 
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncDownload, 
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterDownload));
 		return Undefined();
 	}
 
+	int Remote::DownloadTransferProgressCallback(
+			const git_transfer_progress *stats,
+			void *payload)
+	{
+		DownloadBaton *baton = (DownloadBaton*)payload;
+		baton->remote_->progress_ = *stats;
+		return 0;
+	}
+
 	void Remote::AsyncDownload(uv_work_t *req) {
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 		AsyncLibCall(git_remote_download(baton->remote_->remote_,
-				baton->bytes, baton->stats), baton);
+				DownloadTransferProgressCallback, baton), baton);
 	}
 
 	void Remote::AsyncAfterDownload(uv_work_t *req) {
 		HandleScope scope;
 		DownloadBaton *baton = GetBaton<DownloadBaton>(req);
 
-		baton->remote_->handle_->Delete(stats_symbol);
+		baton->remote_->handle_->Delete(progress_symbol);
 
 		if(baton->isErrored()) {
 			Handle<Value> argv[] = { baton->createV8Error() };
@@ -233,9 +260,10 @@ namespace gitteh {
 		HandleScope scope;
 		Remote *remote = ObjectWrap::Unwrap<Remote>(info.This());
 		Handle<Object> o = Object::New();
-		o->Set(stats_bytes_symbol, CastToJS(remote->downloadBytes_));
-		o->Set(stats_total_symbol, CastToJS(remote->indexerStats_.total));
-		o->Set(stats_done_symbol, CastToJS(remote->indexerStats_.processed));
+		o->Set(progress_total_objects_symbol, CastToJS(remote->progress_.total_objects));
+		o->Set(progress_indexed_objects_symbol, CastToJS(remote->progress_.indexed_objects));
+		o->Set(progress_received_objects_symbol, CastToJS(remote->progress_.received_objects));
+		o->Set(progress_received_bytes_symbol, CastToJS(remote->progress_.received_bytes));
 		return scope.Close(o);
 	}
 

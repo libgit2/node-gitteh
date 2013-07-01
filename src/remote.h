@@ -23,7 +23,7 @@ namespace gitteh {
 
 	private:
 		git_remote *remote_;
-		git_indexer_stats indexerStats_;
+		git_transfer_progress progress_;
 		git_off_t downloadBytes_;
 
 		static Handle<Value> GetStats(Local<String>, const AccessorInfo&);
@@ -31,6 +31,7 @@ namespace gitteh {
 		static void AsyncAfterUpdateTips(uv_work_t*);
 		static void AsyncConnect(uv_work_t*);
 		static void AsyncAfterConnect(uv_work_t*);
+		static int DownloadTransferProgressCallback(const git_transfer_progress*, void*);
 		static void AsyncDownload(uv_work_t*);
 		static void AsyncAfterDownload(uv_work_t*);
 	};

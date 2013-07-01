@@ -48,8 +48,8 @@ namespace gitteh {
 			o->Set(name_symbol, CastToJS(git_tag_name(tag)));
 			o->Set(message_symbol, CastToJS(git_tag_message(tag)));
 			o->Set(tagger_symbol, CastToJS(git_tag_tagger(tag)));
-			o->Set(target_symbol, CastToJS(git_tag_target_oid(tag)));
-			o->Set(type_symbol, CastToJS(git_tag_type(tag)));
+			o->Set(target_symbol, CastToJS(git_tag_target_id(tag)));
+			o->Set(type_symbol, CastToJS(git_tag_target_type(tag)));
 			return scope.Close(o);
 		}
 	}

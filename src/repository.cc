@@ -47,7 +47,6 @@ static Persistent<String> submodules_symbol;
 
 static Persistent<String> ref_name_symbol;
 static Persistent<String> ref_direct_symbol;
-static Persistent<String> ref_packed_symbol;
 static Persistent<String> ref_target_symbol;
 
 static Persistent<String> object_id_symbol;
@@ -225,7 +224,6 @@ void Repository::Init(Handle<Object> target) {
 	// Reference symbols
 	ref_name_symbol 	= NODE_PSYMBOL("name");
 	ref_direct_symbol 	= NODE_PSYMBOL("direct");
-	ref_packed_symbol 	= NODE_PSYMBOL("packed");
 	ref_target_symbol 	= NODE_PSYMBOL("target");
 
 	// Object symbols
@@ -330,7 +328,7 @@ Handle<Value> Repository::OpenRepository(const Arguments& args) {
 	return Undefined();
 }
 
-int SubmoduleListCallback(const char *name, void *payload) {
+int SubmoduleListCallback(git_submodule *, const char *name, void *payload) {
 	OpenRepoBaton *baton = static_cast<OpenRepoBaton*>(payload);
 	baton->submodules.push_back(string(name));
 	return GIT_OK;
@@ -349,8 +347,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 			git_strarray_free(&strarray);
 		}
 
-		if(AsyncLibCall(git_reference_list(&strarray, baton->repo,
-				GIT_REF_LISTALL), baton)) {
+		if(AsyncLibCall(git_reference_list(&strarray, baton->repo), baton)) {
 			for(unsigned int i = 0; i < strarray.count; i++) {
 				baton->references.push_back(string(strarray.strings[i]));
 			}
@@ -567,11 +564,11 @@ void Repository::AsyncCreateReference(uv_work_t *req) {
 	CreateReferenceBaton *baton = GetBaton<CreateReferenceBaton>(req);
 
 	if(baton->direct_) {
-		AsyncLibCall(git_reference_create_oid(&baton->ref, baton->repo->repo_,
+		AsyncLibCall(git_reference_create(&baton->ref, baton->repo->repo_,
 				baton->name_.c_str(), &baton->targetId_, baton->force_), baton);
 	}
 	else {
-		AsyncLibCall(git_reference_create_symbolic(&baton->ref,
+		AsyncLibCall(git_reference_symbolic_create(&baton->ref,
 				baton->repo->repo_, baton->name_.c_str(),
 				baton->target_.c_str(), baton->force_), baton);
 	}
@@ -602,13 +599,12 @@ Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
 	git_ref_t refType = git_reference_type(ref);
 	obj->Set(ref_name_symbol, CastToJS(git_reference_name(ref)));
 	obj->Set(ref_direct_symbol, CastToJS<bool>(refType == GIT_REF_OID));
-	obj->Set(ref_packed_symbol, CastToJS<bool>(git_reference_is_packed(ref)));
 
 	if(refType == GIT_REF_OID) {
-		obj->Set(ref_target_symbol, CastToJS(git_reference_oid(ref)));
+		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
 	}
 	else {
-		obj->Set(ref_target_symbol, CastToJS(git_reference_target(ref)));
+		obj->Set(ref_target_symbol, CastToJS(git_reference_symbolic_target(ref)));
 	}
 
 	return scope.Close(obj);
@@ -672,7 +668,7 @@ Handle<Value> Repository::CreateRemote(const Arguments &args) {
 void Repository::AsyncCreateRemote(uv_work_t *req) {
 	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
 
-	if(AsyncLibCall(git_remote_add(&baton->remote, baton->repo->repo_,
+	if(AsyncLibCall(git_remote_create(&baton->remote, baton->repo->repo_,
 			baton->name.c_str(), baton->url.c_str()), baton)) {
 		if(!AsyncLibCall(git_remote_save(baton->remote), baton)) {
 			git_remote_free(baton->remote);

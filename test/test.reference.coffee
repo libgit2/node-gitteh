@@ -37,9 +37,6 @@ describe "Reference", ->
 		describe "#direct", ->
 			it "should be false", -> ref.direct.should.be.false
 			it "should be immutable", -> utils.checkImmutable ref, "direct"
-		describe "#packed", ->
-			it "should be false", -> ref.packed.should.be.false
-			it "should be immutable", -> utils.checkImmutable ref, "packed"
 	describe "Resolving HEAD", ->
 		it "gives us correct resolved direct ref", ->
 			repo.ref "HEAD", true, (err, ref) ->
