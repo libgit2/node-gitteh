@@ -18,7 +18,7 @@ task 'build', 'Compile CoffeeScript to JavaScript.', ->
 	module.exports.passthru 'coffee', '-o', 'lib/', '-c', 'src/' 
 
 task 'test', 'Run the unit tests.', -> 
-	module.exports.passthru 'mocha' # or your test runner 
+	module.exports.passthru './node_modules/.bin/mocha' # or your test runner 
 
 # exec 'mv NPM-index.js index.js; npm publish; mv index.js NPM-index.js' 
 task 'publish', 'Publish the NPM module.', -> 
