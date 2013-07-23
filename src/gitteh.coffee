@@ -1,5 +1,5 @@
 ###
-Omg gitteh is freakin' sweet!
+Omg gitteh is freakin' sweet! :)
 ###
 
 {EventEmitter} = require "events"
@@ -56,19 +56,18 @@ _immutable = (obj, src) ->
 			return o
 	}
 
-
-###*
- * @class
- * Contains the name/email/time for a {@link Commit} author/committer or
- * {@link Tag} tagger.
- * @property {String} name
- * @property {String} email
- * @property {Date} time
- * @property {Integer} offset timezone offset in seconds from GMT.
- * @see Commit
- * @see Tag
-###
 Gitteh.Signature = class Signature
+	###
+	Contains the name/email/time for a :class:`gitteh::Commit` author/committer
+	or :class:`gitteh::Tag` tagger.
+
+	Signatures contain the following properties:
+
+	* **name**: (String)
+	* **email**: (String)
+	* **time**: (Date)
+	* **offset**: (Number) timezone offset in seconds from GMT.
+	###
 	constructor: (obj) ->
 		_immutable(@, obj)
 			.set("name")
