@@ -46,20 +46,29 @@ module.exports = fn = (params) ->
 			throw new TypeError "#{param.name} (#{argn}) is not a valid #{param.type}"
 		ret.push arg
 	return ret
+
+
+fn.oidRegex = oidRegex = /^[a-zA-Z0-9]{0,40}$/
+objectTypes = ["any", "blob", "commit", "tag", "tree"]
+remoteDirs = ["push", "fetch"]
+
 fn.validators = 
 	string: (val) ->
 		return typeof val is "string"
+
 	function: (val) -> return typeof val is "function"
+
 	bool: (val) ->
 		return typeof val is "boolean"
 
-###
-myfn = ->
-	[path, bare, cb] = fn
-		path: type: "string"
-		bare: type: "bool", default: false
-		cb: type: "function"
-	console.log path, bare, cb
+	oid: (val) ->
+		return false if typeof val isnt "string"
+		return false if not oidRegex.test val
+		return false if val.length < fn.minOidLength
+		return true
 
-myfn "awesome", "zzz"
-###
+	objectType: (val) ->
+		return objectTypes.indexOf val > -1
+
+	remoteDir: (val) ->
+		return remoteDirs.indexOf val > -1

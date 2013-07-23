@@ -1,0 +1,396 @@
+/*
+ * Skeleton V1.1
+ * Copyright 2011, Dave Gamache
+ * www.getskeleton.com
+ * Free to use under the MIT license.
+ * http://www.opensource.org/licenses/mit-license.php
+ * 8/17/2011
+ */
+
+
+/* #Reset & Basics (Inspired by E. Meyers)
+================================================== */
+  html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, img, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, b, u, i, center, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td, article, aside, canvas, details, embed, figure, figcaption, footer, header, hgroup, menu, nav, output, ruby, section, summary, time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline; }
+  article, aside, details, figcaption, figure, footer, header, hgroup, menu, nav, section {
+  display: block; }
+  body {
+  line-height: 1; }
+  ol, ul {
+  list-style: none; }
+  blockquote, q {
+  quotes: none; }
+  blockquote:before, blockquote:after,
+  q:before, q:after {
+  content: '';
+  content: none; }
+  table {
+  border-collapse: collapse;
+  border-spacing: 0; }
+
+
+/* #Basic Styles
+================================================== */
+  body {
+  background: #fff;
+  font: 14px/21px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #444;
+  -webkit-font-smoothing: antialiased; /* Fix for webkit rendering */
+  -webkit-text-size-adjust: 100%;
+ }
+
+
+/* #Typography
+================================================== */
+  h1, h2, h3, h4, h5, h6 {
+  font-family: "Georgia", serif;
+  font-weight: normal; }
+  h1 a, h2 a, h3 a, h4 a, h5 a, h6 a { font-weight: inherit; }
+  h1 { font-size: 34px; line-height: 50px; margin-bottom: 14px;}
+  h2 { font-size: 28px; line-height: 40px; margin-bottom: 10px; }
+  h3 { font-size: 23px; line-height: 34px; margin-bottom: 8px; }
+  h4 { font-size: 19px; line-height: 30px; margin-bottom: 4px; }
+  h5 { font-size: 16px; line-height: 24px; }
+  h6 { font-size: 14px; line-height: 21px; }
+
+  p { margin: 0 0 20px 0; }
+  p img { margin: 0; }
+
+  em { font-style: italic; }
+  strong { font-weight: bold; color: #333; }
+  small { font-size: 80%; }
+
+/*  Blockquotes  */
+  blockquote, blockquote p { font-size: 17px; line-height: 24px; color: #777; font-style: italic; }
+  blockquote { margin: 0 0 20px; padding: 9px 20px 0 19px; border-left: 1px solid #ddd; }
+  blockquote cite { display: block; font-size: 12px; color: #555; }
+  blockquote cite:before { content: "\2014 \0020"; }
+  blockquote cite a, blockquote cite a:visited, blockquote cite a:visited { color: #555; }
+
+  hr { border: solid #ddd; border-width: 1px 0 0; clear: both; margin: 10px 0 30px; height: 0; }
+
+
+/* #Links
+================================================== */
+  a, a:visited {
+    color: #2d81c5;
+    text-decoration: none; outline: 0;
+    -webkit-transition: color 250ms ease-in-out;
+       -moz-transition: color 250ms ease-in-out;
+            transition: color 250ms ease-in-out;
+  }
+  a:hover, a:focus {
+    color: #2569a0;
+  }
+  p a, p a:visited { line-height: inherit; }
+
+
+/* #Lists
+================================================== */
+  ul, ol { margin-bottom: 20px; }
+  ul { list-style: none outside; }
+  ol { list-style: decimal; }
+  ol, ul.square, ul.circle, ul.disc { margin-left: 30px; }
+  ul.square { list-style: square outside; }
+  ul.circle { list-style: circle outside; }
+  ul.disc { list-style: disc outside; }
+  ul ul, ul ol,
+  ol ol, ol ul { margin: 4px 0 5px 30px; font-size: 90%;  }
+  ul ul li, ul ol li,
+  ol ol li, ol ul li { margin-bottom: 6px; }
+  li { line-height: 18px; margin-bottom: 12px; }
+  ul.large li { line-height: 21px; }
+  li p { line-height: 21px; }
+
+
+/* #Images
+================================================== */
+
+  img.scale-with-grid {
+  max-width: 100%;
+  height: auto; }
+
+
+/* #Misc
+================================================== */
+  .remove-bottom { margin-bottom: 0 !important; }
+  .half-bottom { margin-bottom: 10px !important; }
+  .add-bottom { margin-bottom: 20px !important; }
+
+
+/* #Base 960 Grid
+================================================== */
+
+  .container                                  { position: relative; width: 960px; margin: 0 auto; padding: 0; }
+  .container .column                          { float: left; display: inline; margin-left: 10px; margin-right: 10px; }
+  .row                                        { margin-bottom: 20px; }
+
+  /* Base Grid */
+  .container .sidebar.column                  { width: 220px; }
+  .container .content.column                  { width: 700px; }
+
+
+/* #Tablet (Portrait)
+================================================== */
+
+  /* Note: Design for a width of 768px */
+
+  @media only screen and (min-width: 768px) and (max-width: 959px) {
+      .container                                  { width: 768px; }
+      .container .column                          { margin-left: 10px; margin-right: 10px;  }
+
+      .container .sidebar.column                  { width: 172px; }
+      .container .content.column                  { width: 556px; }
+  }
+
+
+/*  #Mobile (Portrait)
+================================================== */
+
+  /* Note: Design for a width of 320px */
+
+  @media only screen and (max-width: 767px) {
+      .container { width: 300px; }
+      .container .column { margin: 0; }
+
+      .container .sidebar.column,
+      .container .content.column   { width: 300px; }
+  }
+
+
+/* #Mobile (Landscape)
+================================================== */
+
+  /* Note: Design for a width of 480px */
+
+  @media only screen and (min-width: 480px) and (max-width: 767px) {
+      .container { width: 420px; }
+      .container .column { margin: 0; }
+
+      .container .sidebar.column,
+      .container .content.column  { width: 420px; }
+  }
+
+
+/* #Clearing
+================================================== */
+
+  /* Self Clearing Goodness */
+  .container:after { content: "\0020"; display: block; height: 0; clear: both; visibility: hidden; }
+
+
+/* #CoffeeDoc styles
+================================================== */
+
+code {
+  color: #000;
+  background: #f6f6f6;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  font-size: 12px; line-height: 18px;
+  font-family: Monaco, Consolas, "Lucida Console", monospace;
+  border-radius: 2px;
+}
+pre code {
+  display: block;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 10px;
+}
+header {
+  width: 100%;
+  border-bottom: 1px solid #bbb;
+  margin-bottom: 20px;
+  background-image: -webkit-linear-gradient(top, #fff, #d0d0d0);
+  background-image:    -moz-linear-gradient(top, #fff, #d0d0d0);
+  background-image:         linear-gradient(top, #fff, #d0d0d0);
+}
+header h1 {
+  margin: 0;
+  line-height: 50px;
+  font-size: 20px;
+  text-align: center;
+}
+h1, h2 {
+  border-bottom: 1px solid #ccc;
+}
+h3 {
+  border-bottom: 1px solid #ddd;
+}
+
+
+/* #Module index
+================================================== */
+
+.module {
+  margin-bottom: 25px;
+}
+.module .header h1 {
+  margin-bottom: 20px;
+  border-bottom: none;
+  box-shadow: 0 5px 5px -6px rgba(45, 129, 197, 0.4);
+  -webkit-transition: box-shadow 250ms ease-in-out;
+     -moz-transition: box-shadow 250ms ease-in-out;
+          transition: box-shadow 250ms ease-in-out;
+}
+.module .header h1:hover {
+  box-shadow: 0 5px 5px -6px rgb(45, 129, 197);
+}
+.module-content h1 {
+  font-size: 30px;
+  line-height: 44px;
+}
+
+
+/* #Module pages
+================================================== */
+
+.function, .class {
+  margin-bottom: 30px;
+}
+.method {
+  margin-bottom: 20px;
+}
+.class .header {
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 10px;
+}
+.class .header h3 {
+  display: inline;
+  border: none;
+}
+.class .header .parent {
+  color: #aaa;
+}
+.class .header .parent:hover {
+  color: #2569a0;
+}
+
+
+/* #Syntax highlighting
+============================================================== */
+
+/* github.com style (c) Vasily Polovnyov <vast@whiteants.net> */
+
+pre .comment,
+pre .template_comment,
+pre .diff .header,
+pre .javadoc {
+  color: #998;
+  font-style: italic
+}
+
+pre .keyword,
+pre .css .rule .keyword,
+pre .winutils,
+pre .javascript .title,
+pre .lisp .title,
+pre .subst {
+  color: #000;
+  font-weight: bold
+}
+
+pre .number,
+pre .hexcolor {
+  color: #40a070
+}
+
+pre .string,
+pre .tag .value,
+pre .phpdoc,
+pre .tex .formula {
+  color: #d14
+}
+
+pre .title,
+pre .id {
+  color: #900;
+  font-weight: bold
+}
+
+pre .javascript .title,
+pre .lisp .title,
+pre .subst {
+  font-weight: normal
+}
+
+pre .class .title,
+pre .haskell .label,
+pre .tex .command {
+  color: #458;
+  font-weight: bold
+}
+
+pre .tag,
+pre .tag .title,
+pre .rules .property,
+pre .django .tag .keyword {
+  color: #000080;
+  font-weight: normal
+}
+
+pre .attribute,
+pre .variable,
+pre .instancevar,
+pre .lisp .body {
+  color: #008080
+}
+
+pre .regexp {
+  color: #009926
+}
+
+pre .class {
+  color: #458;
+  font-weight: bold
+}
+
+pre .symbol,
+pre .ruby .symbol .string,
+pre .ruby .symbol .keyword,
+pre .ruby .symbol .keymethods,
+pre .lisp .keyword,
+pre .tex .special,
+pre .input_number {
+  color: #990073
+}
+
+pre .builtin,
+pre .built_in,
+pre .lisp .title {
+  color: #0086b3
+}
+
+pre .preprocessor,
+pre .pi,
+pre .doctype,
+pre .shebang,
+pre .cdata {
+  color: #999;
+  font-weight: bold
+}
+
+pre .deletion {
+  background: #fdd
+}
+
+pre .addition {
+  background: #dfd
+}
+
+pre .diff .change {
+  background: #0086b3
+}
+
+pre .chunk {
+  color: #aaa
+}
+
+pre .tex .formula {
+  opacity: 0.5;
+}
