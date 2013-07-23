@@ -56,18 +56,20 @@ _immutable = (obj, src) ->
 			return o
 	}
 
+
 Gitteh.Signature = class Signature
 	###
 	Contains the name/email/time for a :class:`gitteh::Commit` author/committer
 	or :class:`gitteh::Tag` tagger.
 
-	Signatures contain the following properties:
+	Signatures contain the following *immutable* properties:
 
-	* **name**: (String)
-	* **email**: (String)
-	* **time**: (Date)
-	* **offset**: (Number) timezone offset in seconds from GMT.
+	* **name**: *(String)*
+	* **email**: *(String)*
+	* **time**: *(Date)*
+	* **offset**: *(Number)* timezone offset in seconds from GMT.
 	###
+
 	constructor: (obj) ->
 		_immutable(@, obj)
 			.set("name")
@@ -75,16 +77,15 @@ Gitteh.Signature = class Signature
 			.set("time")
 			.set("offset")
 
-###*
- * @class
- * Describes the way remote repository references will be mapped to the local
- * repository.
- * @param {String} src
- * @param {String} dst
- * @see Remote
- * @see Reference
-###
+
 Gitteh.Refspec = class Refspec
+	###
+	Describes the way remote repository references will be mapped to the local
+	repository. 
+
+	For more information refer to http://git-scm.com/book/ch9-5.html
+	###
+
 	constructor: (src, dst) ->
 		_priv = _createPrivate @
 
@@ -94,11 +95,10 @@ Gitteh.Refspec = class Refspec
 		_immutable(@, {src, dst})
 			.set("src")
 			.set("dst")
+
 	matchesSrc: (refName) ->
 		###
-		 * Determines if provided reference name matches source of this Refspec.
-		 * @param {String} refName
-		 * @return {Boolean} true if provided refName matches src of Refspec.
+		Returns true/false if given `refName` matches source of this Refspec.
 		###
 		_priv = _getPrivate @
 		return false if refName.length <= _priv.srcRoot.length
@@ -106,9 +106,8 @@ Gitteh.Refspec = class Refspec
 
 	matchesDst: (refName) ->
 		###
-		 * Determines if provided reference name matches destination of this Refspec.
-		 * @param {String} refName
-		 * @return {Boolean} true if provided refName matches dst of Refspec.
+		Returns true/false if given `refName` matches destination of this
+		Refspec.
 		###
 		_priv = _getPrivate @
 		return false if refName.length <= _priv.dstRoot.length
@@ -116,38 +115,41 @@ Gitteh.Refspec = class Refspec
 
 	transformTo: (refName) ->
 		###
-		 * Transforms provided refName to destination, provided it matches src pattern.
-		 * @param {String} refName
-		 * @throws {Error} if refName doesn't match src pattern.
-		 * @return {String} transformed reference name.
+		Transforms given `refName` to destination, provided it matches src
+		pattern, and throws an error if it doesn't.
 		###
 		throw new Error "Ref doesn't match src." if not @matchesSrc refName
 		return "#{@dst[0...-2]}#{refName[(@src.length-2)..]}"
 
 	transformFrom: (refName) ->
 		###
-		 * Transforms provided refName from destination back to source, provided it
-		 * matches dst pattern. This is the reverse of {@link #transformTo}.
-		 * @param {String} refName
-		 * @throws {Error} if refName doesn't match dst pattern.
-		 * @return {String} (un?)transformed reference name.
+		Transforms provided refName from destination back to source, provided it
+		matches dst pattern, and throws an Error if it doesn't. This is the
+		reverse of :func:`gitteh::Refspec.transformTo`
 		###
 		throw new Error "Ref doesn't match dst." if not @matchesDst refName
 		return "#{@src[0...-2]}#{refName[(@dst.length-2)..]}"
 
+
 Gitteh.Commit = class Commit
 	###
-	A commit made by a author (and optional different committer) with a message,
-	a {Tree} and zero or more parent {@link Commit} objects.
-	@property {String} id object id of this Commit.
-	@property {String} treeId object id of {@link Tree} for this Commit.
-	@property {Commit[]} parents parent Commits of this Commit (more than one 
-	means a merge-commit).
-	@property {String} message
-	@property {String} messageEncoding
-	@property {Signature} author
-	@property {Signature} committer
+	Commits, made by an author, and an optional different committer, contain a
+	message, an associated :class:`gitteh::Tree`, and zero or more parent
+	:class:`gitteh::Commit` objects. Zero parents generally indicate the initial 
+	commit for the repository. More than one parent commits indicate a merge
+	commit.
+
+	Properties:
+
+	* **id**: *(String)* OID of this commit (SHA1 hash)
+	* **treeId**: *(String)* OID of associated :class:`gitteh::Tree`
+	* **parents**: *(String[]) list of parent commit OIDs
+	* **message**: *(String)*
+	* **messageEncoding**: *(???)* ??? TODO:
+	* **author**: (:class:`gitteh::Signature`)
+	* **committer**: (:class:`gitteh::Signature`)
 	###
+
 	constructor: (@repository, obj) ->
 		obj.author = new Signature obj.author
 		obj.committer = new Signature obj.committer
@@ -159,34 +161,36 @@ Gitteh.Commit = class Commit
 			.set("messageEncoding")
 			.set("author")
 			.set("committer")
+
 	tree: (cb) ->
-		###*
-		 * Fetches the {@link Tree} object for this Commit. Just a convenience method to
-		 * call out to {@link Repository#tree}(commit.treeId).
-		 * @param {Function} cb called when Tree has been fetched from repository.
-		 * @see Tree
+		###
+		Fetches the :class:`gitteh::Tree` for this Commit. Shortcut for calling
+		:func:`gitteh::Repository.tree` with this commits `treeId`.
 		###
 		@repository.tree @treeId, cb	
 
+
 Gitteh.Tree = class Tree
-	###*
-	 * @class
-	 * A Tree contains a list of named entries, which can either be {@link Blob}s or
-	 * nested {@link Tree}s, each entry is referenced by its oid. A {@link Commit}
-	 * owns a single {@link Tree}.
-	 * @property {String} id object id of this Tree.
-	 * @property {Tree.Entry} entries a list of all entries contained in this Tree.
-	 * @see Blob
-	 * @see Commit
 	###
-	###*
-	 * @class
-	 * @name Tree.Entry
-	 * @property {String} id id of object this entry points to.
-	 * @property {String} name
-	 * @property {String} type kind of object pointed to by this entry (commit/blob)
-	 * @property {Integer} attributes UNIX file attributes for this entry.
+	A Tree contains a list of named entries, which can either be
+	:class:`gitteh::Blob` objects or nested :class:`gitteh::Tree` objects. Each
+	entry is referenced by its OID.
+
+	Properties:
+
+	* **id**: *(String)* OID of this Tree.
+	* **entries**: *(TreeEntry[])* 
+
+	## Tree Entries
+	
+	Each element of a Tree contains the following properties:
+
+	* **id**: *(String)* OID this entry points to.
+	* **name**: *(String)* file name of this entry.
+	* **type**: *(String)* kind of object pointed to by this entry
+	* **attributes**: *(Number)* UNIX file attributes for this entry.
 	###
+
 	constructor: (@repository, obj) ->
 		obj._entries = obj.entries
 		obj.entries = []
@@ -201,18 +205,22 @@ Gitteh.Tree = class Tree
 			.set("id")
 			.set("entries")
 
+
 Gitteh.Blob = class Blob
-	###*
-	 * @class
-	 * Contains raw data for a file stored in Git.
-	 * @property {String} id object id of this Blob.
-	 * @property {Buffer} data Node Buffer containing Blob data.
-	 * @see Tree
 	###
+	Contains raw data for a file stored in Git.
+
+	Properties:
+
+	* **id**: *(String)* OID of this Blob.
+	* **data**: *(Buffer)* a standard Node buffer containing binary data.
+	###
+
 	constructor: (@repository, obj) ->
 		_immutable(@, obj)
 			.set("id")
 			.set("data")
+
 
 Gitteh.Tag = class Tag
 	###*
