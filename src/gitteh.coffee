@@ -558,9 +558,7 @@ Gitteh.Repository = class Repository
 
 	remote: ->
 		###*
-		 * Loads a remote with given name.
-		 * @param {String} name
-		 * @param {Function} cb called when remote has been loaded.
+		Loads a remote with given `name`.
 		###
 		_priv = _getPrivate @
 		[name, cb] = args
@@ -571,11 +569,8 @@ Gitteh.Repository = class Repository
 
 	createRemote: ->
 		###*
-		 * Create a new {@link Remote} for this repository.
-		 * @param {String} name
-		 * @param {String} url 
-		 * @param {Function} cb called when Remote has been created.
-		 * @see Remote
+		Create a new :class:`gitteh::Remote` for this repository with the given
+		`name` and `url`. Calls `cb` when the operation has completed.
 		###
 		_priv = _getPrivate @
 		[name, url, cb] = args
@@ -595,11 +590,9 @@ Repository.prototype.ref = Repository.prototype.reference
 
 
 Gitteh.openRepository = ->
-	###*
-	 * Opens a local Git repository.
-	 * @param {String} path The path to the local git repo.
-	 * @param {Function} cb Called when {@link Repository} has opened.
-	 * @see Repository
+	###
+	Opens a local Git repository with the given `path`. Calls `cb` once
+	a :class:`gitteh::Repository` has been opened.
 	###
 	[path, cb] = args
 		path: type: "string"
@@ -608,12 +601,13 @@ Gitteh.openRepository = ->
 		cb null, new Repository repo
 
 Gitteh.initRepository = () ->
-	###*
-	 * @param {String} path Path where new Git repository should be created.
-	 * @param {Boolean} [bare=false] When true creates a bare repo. Bare repositories 
-	 have no working directory.
-	 * @param {Function} cb Called when {@link Repository} has been created.
-	 * Creates a new local Git repository.
+	###
+	Creates a new Git repository at `path`, and calls `cb` providing the new 
+	:class:`gitteh::Repository` when operation has completed.
+
+	If `bare` is specified as true the repository will be created without a
+	working directory. For more information see (TODO: link to page describing
+	bare repositories.)
 	###
 	[path, bare, cb] = args
 		path: type: "string"
@@ -623,11 +617,16 @@ Gitteh.initRepository = () ->
 		cb null, new Repository repo
 
 Gitteh.clone = =>
-	###*
-	 * Clones a remote Git repository to the local machine. Currently, only HTTP/Git
-	 * protocols are supported (no git+ssh yet).
-	 * @param {String} url Address of remote Git repository.
-	 * @param {String} path Destination path for cloned repository.
+	###
+	Provides high level "git clone" functionality.
+
+	Creates a new repository on the local filesystem at `path`, creates a 
+	default "origin" :class:`gitteh::Remote` with the provided `url`, fetches
+	the references from the remote, checks out the master branch into the
+	working directory.
+
+	Currently, libgit2 only supports HTTP/Git protocols - there is no support
+	for git+ssh yet.
 	###
 	[url, path, cb] = args
 		url: type: "string"
