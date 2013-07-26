@@ -64,10 +64,10 @@ Gitteh.Signature = class Signature
 
 	Signatures contain the following *immutable* properties:
 
-	* **name**: *(String)*
-	* **email**: *(String)*
-	* **time**: *(Date)*
-	* **offset**: *(Number)* timezone offset in seconds from GMT.
+	- **name**: *(String)*
+	- **email**: *(String)*
+	- **time**: *(Date)*
+	- **offset**: *(Number)* timezone offset in seconds from GMT.
 	###
 
 	constructor: (obj) ->
@@ -223,19 +223,22 @@ Gitteh.Blob = class Blob
 
 
 Gitteh.Tag = class Tag
-	###*
-	 * @class
-	 * Git tags are similar to references, and indeed "lightweight" Git tags are 
-	 * actually implemented as References with a name prefix of "tags/". When 
-	 * additional metadata is needed (message/name/email/GPG signature), a proper
-	 * heavyweight Tag object is used.
-	 * @property {String} id object id of this Tag.
-	 * @property {String} name
-	 * @property {String} message
-	 * @property {Signature} tagger
-	 * @property {String} targetId object id this Tag points to
-	 * @property {String} type the type of object this Tag points to.
 	###
+	Git tags are similar to references, and indeed "lightweight" Git tags are 
+	actually implemented as :class:`gitteh::Reference` with a name prefix
+	of "tags/". When additional metadata is needed (message/name/email/GPG
+	signature), a proper heavyweight Tag object is used.
+
+	Properties:
+
+	* **id**: *(String)* OID of this Tag.
+	* **name**: *(String)*
+	* **message**: *(String)*
+	* **tagger**: *(Signature)*
+	* **targetId**: *(String)* OID this Tag points to
+	* **type**: *(String)* the type of object this Tag points to.
+	###
+
 	constructor: (@repository, obj) ->
 		obj.tagger = new Signature obj.tagger
 		_immutable(@, obj)
@@ -245,32 +248,31 @@ Gitteh.Tag = class Tag
 			.set("tagger")
 			.set("target", "targetId")
 			.set("type")
+
 	target: (cb) ->
-		###*
-		 * Convenience method to get the object this Tag points to. Shorthand for 
-		 * {@link Repository#object}(tag.targetId)
-		 * @param {Function} cb called when target object has been loaded.
-		 * @see Repository#object
+		###
+		Convenience method to get the object this Tag points to. Shorthand for
+		calling :func:`gitteh::Repository.object` with this *targetId*
 		###
 		@repository.object @targetId, @type, cb
 
+
 Gitteh.Remote = class Remote
-	###*
-	 * @class
-	 * Remotes designate the location and rules of remote Git repositories. Remotes
-	 * can be obtained by using {@link Repository.remote}.
-	 * @property {Boolean} connected true if there is an active connection to the
-	 * Remotes' endpoint.
-	 * @property {String} name
-	 * @property {String} url address of Remotes' endpoint
-	 * @property {Refspec} fetchSpec Refspec used when fetching from Remote
-	 * @property {Refspec} pushSpec Refspec used when pushing to Remote
-	 * @property {String} HEAD the remote HEAD reference name (only set after 
-	 * connected to Remote)
-	 * @property {String[]} refs names of references on remote (only set after 
-	 * connected to Remote)
-	 * @see Repository.remote
 	###
+	Remotes designate the location and rules of remote Git repositories. Remotes
+	can be obtained by using :func:`gitteh::Repository.remote`
+
+	Properties:
+
+	* **connected**: *(Boolean)* true if there is an active connection to the Remotes' endpoint.
+	* **name**: *(String)*
+	* **url**: *(String)* address of Remotes' endpoint
+	* **fetchSpec**: (:class:`gitteh::Refspec`) Refspec used when fetching from Remote
+	* **pushSpec**: (:class:`gitteh::Refspec`) Refspec used when pushing to Remote
+	* **HEAD**: *(String)* the remote HEAD reference name (only set after connected to Remote)
+	* **refs**: *(String[])* names of references on remote (only set after connected to Remote)
+	###
+
 	constructor: (@repository, nativeRemote) ->
 		_priv = _createPrivate @
 		_priv.native = nativeRemote
@@ -295,12 +297,11 @@ Gitteh.Remote = class Remote
 			.set("pushSpec")
 
 	connect: ->
-		###*
-		 * Opens a connection to the Remote endpoint. This is needed before 
-		 * {@link #fetch} or {@link #push} can be called.
-		 * @param {String} direction The direction of the connection, must be either
-		 * "push" or "fetch".
-		 * @param {Function} cb called when connection has been made, or fails.
+		###
+		Opens a connection to the :class:`gitteh::Remote` endpoint. This is
+		needed before :func:`gitteh::Remote.fetch` or :func:`gitteh::Remote.push`
+		can be called. `direction` must be supplied as either "push" or "fetch"
+		and `cb` will be called once Remote is connected.
 		###
 		_priv = _getPrivate @
 		[dir, cb] = args
@@ -324,10 +325,10 @@ Gitteh.Remote = class Remote
 			cb()
 
 	fetch: ->
-		###*
-		 * Fetches Git objects from remote that do not exist locally.
-		 * @param {Function} progressCb called to notify of progress with fetch process.
-		 * @param {Function} cb called when fetch has been completed.
+		###
+		Fetches Git objects from remote that do not exist locally. `progressCb`
+		will be called regularly to notify callers of fetch progress and `cb`
+		will be called once fetch has completed.
 		###
 		_priv = _getPrivate @
 		throw new Error "Remote isn't connected." if not @connected
@@ -348,21 +349,23 @@ Gitteh.Remote = class Remote
 			_priv.native.updateTips _wrapCallback cb, =>
 				cb()
 
+
 Gitteh.Index = class Index
+	###
+	The Git index is used to stage changed files before they are written to the 
+	repository proper. Bindings for the Index are currently minimal, expect
+	this to change in a newer version.
+	###
+
 	constructor: (nativeIndex) ->
-		###
-		 * @class
-		 * The Git index is used to stage changed files before they are written to the 
-		 * repository proper. Bindings for the Index are currently minimal.
-		###
 		_priv = _createPrivate @
 		_priv.native = nativeIndex
 
 	readTree: ->
 		###
-		 * Updates the Git index to reflect the state of provided {@link Tree}.
-		 * @param {String} id object id of Tree to be read.
-		 * @param {Function} cb called when index update has been completed.
+		Updates the Git index to reflect the state of provided
+		:class:`gitteh::Tree` (using OID passed from `id` parameter). `cb` will
+		be called once index update has completed.
 		###
 		_priv = _getPrivate @
 		[id, cb] = args
@@ -372,8 +375,8 @@ Gitteh.Index = class Index
 
 	write = ->
 		###
-		 * Synchronizes the in-memory Git index with the indexfile located in repository
-		 * @param {Function} cb called when synchronization is complete.
+		Synchronizes the in-memory Git index with the indexfile located in
+		repository, and calls `cb` once synchronization is complete.
 		###
 		_priv = _getPrivate @
 		[cb] = args
@@ -382,20 +385,23 @@ Gitteh.Index = class Index
 
 
 Gitteh.Reference = class Reference
-	###*
-	 * @class
-	 * A Reference is a named pointer to a {@link Commit} object. That is, refs are
-	 * the DNS of Git-land. References can either be direct or symbolic. Direct 
-	 * references point to the object id of a commit. Symbolic refs point to other
-	 * references.
-	 * @property {String} name
-	 * @property {Boolean} direct true if Reference points directly to an object id.
-	 * @property {Boolean} packed true if Reference is in a packfile
-	 * @property {String} target object id reference points to, or another reference
-	 * name if not a direct reference.
-	 * @property {Repository} repository the {@link Repository} that owns this ref.
-	 * @see Repository#reference
-	 * @see Repository#createReference
+	###
+	A Reference is a named pointer to a :class:`gitteh::Commit` object. That is,
+	refs are the DNS of Git-land. References can either be direct or symbolic.
+	Direct references point to the object id of a commit. Symbolic refs point
+	to other references.
+
+	References can be obtained using :func:`gitteh::Repository.reference` and
+	created using :func:`gitteh::Repository.createReference`.
+
+	Properties:
+
+	* **name**: *(String)*
+	* **direct**: *(Boolean)* true if Reference points directly to an object id.
+	* **packed**: *(Boolean)* true if Reference is in a packfile
+	* **target**: *(String)* object id reference points to, or another reference
+	name if not a direct reference.
+	* **repository**: (:class:`gitteh::Repository`) owner of this Reference.
 	###
 
 	constructor: (repo, nativeRef) ->
@@ -410,22 +416,23 @@ Gitteh.Reference = class Reference
 
 
 Gitteh.Repository = class Repository
-	###*
-	 * @class
-	 * Represents a local Git repository that has been opened by Gitteh. Used to get
-	 * access to any objects contained within it.
-	 * 
-	 * Repositories can be bare - they will not have a working directory, in this
-	 * case the contents of what is usually in a .git subdirectory will be in the
-	 * top level.
-	 * @property {Boolean} bare true if this repository is bare.
-	 * @property {String} path location of the Git metadata directory
-	 * @property {String} workingDirectory location of the working directory, if 
-	 * applicable (non-bare repository)
-	 * @property {String[]} remotes  names of remotes configured for this repository
-	 * @property {String[]} references names of references contained in this 
-	 * repository.
-	 * @property {Index} index The Git index for this repository.
+	###
+	Represents a local Git repository that has been opened by Gitteh. Objects
+	such as :class:`gitteh::Commit`, :class:`gitteh.Tree` and 
+	:class:`gitteh.Reference` can be obtained and created from a Repository.
+	
+	Repositories can be *bare* - they will not have a working directory, in this
+	case the contents of what is usually in a .git subdirectory will be in the
+	top level.
+
+	Properties:
+
+	* **bare**: *(Boolean)* true if this repository is bare.
+	* **path**: *(String)* location of the Git metadata directory
+	* **workingDirectory**: *(String)* location of the working directory, if applicable (non-bare repository)
+	* **remotes**: *(String[])*  names of remotes configured for this repository
+	* **references**: *(String[])* names of references contained in this repository.
+	* **index**: (:class:`gitteh::Index`) The Git index for this repository.
 	###
 
 	constructor: (nativeRepo) ->
@@ -443,11 +450,10 @@ Gitteh.Repository = class Repository
 			.set("submodules")
 		index = new Index nativeRepo.index
 		_immutable(@, {index}).set "index"
-	exists: ->
-		###*
-		 * Checks if an object with given objectid exists.
-		 * @param {String} oid ID of object in question.
-		 * @param {Function} cb Called with status of object existence.
+
+	exists: (oid, cb) ->
+		###
+		Checks if an object with given `oid` exists. Calls `cb` with result.
 		###
 		_priv = _getPrivate @
 		[oid, cb] = args
@@ -457,17 +463,14 @@ Gitteh.Repository = class Repository
 
 	object: ->
 		###
-		 * Fetches an object with given ID. The object returned will be a Gitteh wrapper
-		 * corresponding to the type of Git object fetched. Alternatively, objects with
-		 * an expected type can be fetched using the {@link #blob}, {@link #commit},
-		 * {@link #tag}, {@link #tree}, {@link #reference} methods.
-		 * @param {String} oid id of object to be fetched.
-		 * @param {Function} cb called when object has been fetched.
-		 * @see Commit
-		 * @see Blob
-		 * @see Tag
-		 * @see Tree
-		 * @see Reference
+		Fetches an object with given `oid` and returns the result to provided 
+		`cb`. The object returned will be a Gitteh wrapper corresponding to the
+		type of Git object fetched.
+
+		Alternatively, objects with an expected type can be fetched using the
+		:func:`gitteh::Repository.blob` :func:`gitteh::Repository.commit`
+		:func:`gitteh::Repository.tag` :func:`gitteh::Repository.tree` and
+		:func:`gitteh::Repository.reference` methods.
 		###
 		_priv = _getPrivate @
 		[oid, type, cb] = args
@@ -486,51 +489,41 @@ Gitteh.Repository = class Repository
 
 	blob: (oid, cb) ->
 		###
-		 * Fetches a {@link Blob} object from the repository. This is a stricter
-		 * variant of {@link #object} - an error will be thrown if object isnt a blob.
-		 * @param {String} oid id of blob to be fetched.
-		 * @param {Function} cb called when blob has been fetched.
-		 * @see #object
+		Fetches a :class:`gitteh::Blob` object with given `oid` from the
+		repository. This is a stricter variant of :func:`gitteh::Repository.object`
+		- an error will be thrown if requested object isnt a Blob.
 		###
 		@object oid, "blob", cb
 
 	commit: (oid, cb) ->
-		###*
-		 * Fetches a {@link Commit} object from the repository. This is a stricter
-		 * variant of {@link #object} - an error will be thrown if object isnt a commit.
-		 * @param {String} oid id of commit to be fetched.
-		 * @param {Function} cb called when commit has been fetched.
-		 * @see #object
+		###
+		Fetches a :class:`gitteh::Commit` object with given `oid` from the
+		repository. This is a stricter variant of :func:`gitteh::Repository.object`
+		- an error will be thrown if requested object isnt a Commit.
 		###
 		@object oid, "commit", cb
 
 	tag: (oid, cb) ->
-		###*
-		 * Fetches a {@link Tag} object from the repository. This is a stricter
-		 * variant of {@link #object} - an error will be thrown if object isnt a tag.
-		 * @param {String} oid id of tag to be fetched.
-		 * @param {Function} cb called when tag has been fetched.
-		 * @see #object
+		###
+		Fetches a :class:`gitteh::Tag` object with given `oid` from the
+		repository. This is a stricter variant of :func:`gitteh::Repository.object`
+		- an error will be thrown if requested object isnt a Tag.
 		###
 		@object oid, "tag", cb
 
 	tree: (oid, cb) ->
-		###*
-		 * Fetches a {@link Tree} object from the repository. This is a stricter
-		 * variant of {@link #object} - an error will be thrown if object isnt a tree.
-		 * @param {String} oid id of tree to be fetched.
-		 * @param {Function} cb called when tree has been fetched.
-		 * @see #object
+		###
+		Fetches a :class:`gitteh::Tree` object with given `oid` from the
+		repository. This is a stricter variant of :func:`gitteh::Repository.object`
+		- an error will be thrown if requested object isnt a Tree.
 		###
 		@object oid, "tree", cb
 
 	reference: ->
-		###*
-		 * Fetches a {@link Reference} object from the repository. This is a stricter 
-		 * variant of {@link #object} - an error will be thrown if object isnt a ref.
-		 * @param {String} oid id of reference to be fetched.
-		 * @param {Function} cb called when reference has been fetched.
-		 * @see #object
+		###
+		Fetches a :class:`gitteh::Reference` object with given `oid` from the
+		repository. This is a stricter variant of :func:`gitteh::Repository.object`
+		- an error will be thrown if requested object isnt a Reference.
 		###
 		_priv = _getPrivate @
 		[name, resolve, cb] = args
@@ -541,14 +534,15 @@ Gitteh.Repository = class Repository
 			cb null, new Reference @, ref
 
 	createReference: ->
-		###*
-		 * Creates a new reference, which can either by direct or symbolic.
-		 * @param {String} name
-		 * @param {String} target reference/oid targetted by the new reference.
-		 * @param {Boolean} [force=false] force creation of this reference, destroying 
-		 * the reference with same name, if it exists.
-		 * @param {Function} cb called when reference has been created.
-		 * @see Reference
+		###
+		Creates a new reference, which can either by direct or symbolic.
+
+		Parameters:
+
+		* **name**: *(String)*
+		* **target**: *(String)* reference/oid targetted by the new reference.
+		* **[force=false]**: *(String)* force creation of this reference, destroying the reference with same name, if it exists.
+		* **cb**: *(String)* called when reference has been created.
 		###
 		_priv = _getPrivate @
 		[name, target, force, cb] = args

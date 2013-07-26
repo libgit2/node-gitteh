@@ -1,0 +1,4 @@
+Reference
+=========
+
+.. autoclass:: gitteh::Reference

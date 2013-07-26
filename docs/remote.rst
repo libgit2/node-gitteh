@@ -1,0 +1,4 @@
+Remote
+======
+
+.. autoclass:: gitteh::Remote

@@ -1,0 +1,4 @@
+Tree
+====
+
+.. autoclass:: gitteh::Tree
