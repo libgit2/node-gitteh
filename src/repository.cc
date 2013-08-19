@@ -171,6 +171,13 @@ public:
 	CreateRemoteBaton(Repository *r) : RepositoryBaton(r) { }
 };
 
+class CreateBlobFromDiskBaton : public RepositoryBaton {
+public:
+	string path;
+	git_oid id;
+	CreateBlobFromDiskBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -242,6 +249,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymReference", CreateSymReference);
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromDisk", CreateBlobFromDisk);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -690,6 +698,45 @@ void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
 						->NewInstance(1, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateBlobFromDisk(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateBlobFromDiskBaton *baton = new CreateBlobFromDiskBaton(repository);
+	baton->path = CastFromJS<string>(args[0]);
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateBlobFromDisk,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateBlobFromDisk));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateBlobFromDisk(uv_work_t *req) {
+	CreateBlobFromDiskBaton *baton = GetBaton<CreateBlobFromDiskBaton>(req);
+
+	if(AsyncLibCall(git_blob_create_fromdisk(&baton->id, baton->repo->repo_,
+			baton->path.c_str()), baton)) {
+	}
+}
+
+void Repository::AsyncAfterCreateBlobFromDisk(uv_work_t *req) {
+	HandleScope scope;
+	CreateBlobFromDiskBaton *baton = GetBaton<CreateBlobFromDiskBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> id = CastToJS(baton->id);
+		Handle<Value> argv[] = { Null(), id };
 		FireCallback(baton->callback, 2, argv);
 	}
 
