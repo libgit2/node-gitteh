@@ -52,6 +52,9 @@ static Persistent<String> ref_target_symbol;
 static Persistent<String> object_id_symbol;
 static Persistent<String> object_type_symbol;
 
+static Persistent<String> tree_entry_name_symbol;
+static Persistent<String> tree_entry_mode_symbol;
+
 class OpenRepoBaton : public Baton {
 public:
 	string path	;
@@ -178,6 +181,19 @@ public:
 	CreateBlobFromDiskBaton(Repository *r) : RepositoryBaton(r) { }
 };
 
+class TreeEntry {
+public:
+	string filename;
+	git_oid blobid;
+	git_filemode_t filemode;
+};
+class CreateTreeBaton : public RepositoryBaton {
+public:
+	list<TreeEntry> entries;
+	git_oid treeid;
+	CreateTreeBaton(Repository *r) : RepositoryBaton(r), entries() { }
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -237,6 +253,10 @@ void Repository::Init(Handle<Object> target) {
 	object_id_symbol	= NODE_PSYMBOL("id");
 	object_type_symbol	= NODE_PSYMBOL("_type");
 
+	// Tree Entry symbols
+	tree_entry_name_symbol	= NODE_PSYMBOL("name");
+	tree_entry_mode_symbol	= NODE_PSYMBOL("mode");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(repo_class_symbol);
@@ -250,6 +270,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromDisk", CreateBlobFromDisk);
+	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -737,6 +758,66 @@ void Repository::AsyncAfterCreateBlobFromDisk(uv_work_t *req) {
 	else {
 		Handle<Value> id = CastToJS(baton->id);
 		Handle<Value> argv[] = { Null(), id };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateTree(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateTreeBaton *baton = new CreateTreeBaton(repository);
+	Handle<Array> jsentries = args[0].As<Array>();
+	for(unsigned int i=0;i<jsentries->Length();i++) {
+		TreeEntry entry;
+		Handle<Object> jsentry = jsentries->Get(i)->ToObject();
+		entry.filename = CastFromJS<string>(jsentry->Get(tree_entry_name_symbol));
+		entry.blobid = CastFromJS<git_oid>(jsentry->Get(object_id_symbol));
+		entry.filemode = (git_filemode_t)CastFromJS<uint16_t>(jsentry->Get(tree_entry_mode_symbol));
+		baton->entries.push_back(entry);
+	}
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateTree,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateTree));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateTree(uv_work_t *req) {
+	CreateTreeBaton *baton = GetBaton<CreateTreeBaton>(req);
+	git_treebuilder *treebuilder;
+	if(AsyncLibCall(git_treebuilder_create(&treebuilder, NULL), baton)) {
+		for(list<TreeEntry>::iterator i = baton->entries.begin();
+			i != baton->entries.end(); ++i) {
+			if(!AsyncLibCall(git_treebuilder_insert(NULL, treebuilder,
+				i->filename.c_str(), &i->blobid, i->filemode), baton)) {
+				break;
+			}
+		}
+		if (git_treebuilder_entrycount(treebuilder) == baton->entries.size()) {
+			AsyncLibCall(git_treebuilder_write(&baton->treeid,baton->repo->repo_,
+				treebuilder), baton);
+		}
+		
+	}
+
+	git_treebuilder_free(treebuilder);
+}
+
+void Repository::AsyncAfterCreateTree(uv_work_t *req) {
+	HandleScope scope;
+	CreateTreeBaton *baton = GetBaton<CreateTreeBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> treeid = CastToJS(baton->treeid);
+		Handle<Value> argv[] = { Null(), treeid };
 		FireCallback(baton->callback, 2, argv);
 	}
 
