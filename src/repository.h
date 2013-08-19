@@ -42,6 +42,7 @@ protected:
 	static Handle<Value> CreateRemote(const Arguments&);
 	static Handle<Value> CreateBlobFromDisk(const Arguments&);
 	static Handle<Value> CreateTree(const Arguments&);
+	static Handle<Value> CreateCommit(const Arguments&);
 
 	void close();
 
@@ -67,6 +68,8 @@ private:
 	static void AsyncAfterCreateBlobFromDisk(uv_work_t*);
 	static void AsyncCreateTree(uv_work_t*);
 	static void AsyncAfterCreateTree(uv_work_t*);
+	static void AsyncCreateCommit(uv_work_t*);
+	static void AsyncAfterCreateCommit(uv_work_t*);
 
 	static Handle<Object> CreateReferenceObject(git_reference*);
 	
