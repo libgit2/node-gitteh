@@ -72,3 +72,9 @@ fn.validators =
 
 	remoteDir: (val) ->
 		return remoteDirs.indexOf val > -1
+
+	array: (val) ->
+		return val instanceof Array
+
+	object: (val) ->
+		return typeof val is "object"

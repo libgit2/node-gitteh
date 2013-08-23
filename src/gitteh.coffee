@@ -580,6 +580,58 @@ Gitteh.Repository = class Repository
 		_priv.native.createRemote name, url, _wrapCallback cb, (remote) =>
 			return cb null, new Remote @, remote
 
+	createBlobFromDisk: ->
+		###
+		Creates a new Blob for this repository from the file-content loaded
+		from `path`. Calls `cb` when the operation has completed.
+		###
+		_priv = _getPrivate @
+		[path, cb] = args
+			path: type: "string"
+			cb: type: "function"
+		_priv.native.createBlobFromDisk path, _wrapCallback cb, (blob) =>
+			return cb null, blob
+
+	createTree: ->
+		###
+		Creates a new Tree for this repository from the `entities`
+		that contain the content (as a blob), the name and the filemode
+		of the tree-entities that will be in the new Tree.
+		Calls `cb` when the operation has completed.
+		###
+		_priv = _getPrivate @
+		[entities, cb] = args
+			entities: type: "array"
+			cb: type: "function"
+		_priv.native.createTree entities, _wrapCallback cb, (tree) =>
+			return cb null, tree
+
+	createCommit: ->
+		###
+		Creates a new Commit for this repository from `data`.
+		`data` should contain the following keys:
+
+		* **updateref**: updates this reference to the new commit. (optional, default: do not update any refs)
+		* **author**: a signature of the author (optional, default: committer is used)
+		* **committer**: a signature of the committer
+		* **message**: the message of the commit
+		* **tree**: the id of a tree object
+		* **parents**: an array of parents.
+
+		A signature has the following keys:
+
+		* **name**: the name of the author/committer
+		* **email**: the email of the author/committer
+		* **time**: the time of the commit (optional)
+		* **offset**: timezone offset of the commit-time (optional)
+		###
+		_priv = _getPrivate @
+		[data, cb] = args
+			data: type: "object"
+			cb: type: "function"
+		_priv.native.createCommit data, _wrapCallback cb, (commit) =>
+			return cb null, commit
+
 ###*
  * Alias of {@link #reference}.
  * @param {String} oid id of reference to be fetched.
