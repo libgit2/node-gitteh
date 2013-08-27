@@ -32,7 +32,7 @@
 
 using std::list;
 
-namespace gitteh {
+namespace sgit {
 static Persistent<String> repo_class_symbol;
 static Persistent<String> path_symbol;
 static Persistent<String> bare_symbol;
@@ -731,4 +731,4 @@ void Repository::unlockRepository() {
 	UNLOCK_MUTEX(gitLock_);
 }
 
-} // namespace gitteh
+} // namespace sgit

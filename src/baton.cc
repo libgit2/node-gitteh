@@ -1,8 +1,8 @@
 #include "baton.h"
-#include "gitteh.h"
+#include "sgit.h"
 #include <iostream>
 
-namespace gitteh {
+namespace sgit {
 
 Baton::Baton() {
 	errorCode = 0;
@@ -54,4 +54,4 @@ void Baton::defaultCallback() {
 	}
 }
 
-}; // namespace gitteh
+}; // namespace sgit

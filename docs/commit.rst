@@ -1,4 +1,0 @@
-Commit
-======
-
-.. autoclass:: gitteh::Commit

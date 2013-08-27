@@ -1,4 +1,0 @@
-Blob
-====
-
-.. autoclass:: gitteh::Blob

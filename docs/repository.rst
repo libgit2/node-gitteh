@@ -1,4 +1,0 @@
-Repository
-==========
-
-.. autoclass:: gitteh::Repository

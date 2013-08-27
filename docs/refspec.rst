@@ -1,4 +1,0 @@
-Refspec
-=======
-
-.. autoclass:: gitteh::Refspec
