@@ -52,8 +52,9 @@ static Persistent<String> ref_target_symbol;
 static Persistent<String> object_id_symbol;
 static Persistent<String> object_type_symbol;
 
+static Persistent<String> tree_entry_id_symbol;
 static Persistent<String> tree_entry_name_symbol;
-static Persistent<String> tree_entry_mode_symbol;
+static Persistent<String> tree_entry_filemode_symbol;
 
 static Persistent<String> signature_name_symbol;
 static Persistent<String> signature_email_symbol;
@@ -195,8 +196,8 @@ public:
 
 class TreeEntry {
 public:
-	string filename;
-	git_oid blobid;
+	git_oid id;
+	string name;
 	git_filemode_t filemode;
 };
 class CreateTreeBaton : public RepositoryBaton {
@@ -285,8 +286,9 @@ void Repository::Init(Handle<Object> target) {
 	object_type_symbol	= NODE_PSYMBOL("_type");
 
 	// Tree Entry symbols
+	tree_entry_id_symbol	= NODE_PSYMBOL("id");
 	tree_entry_name_symbol	= NODE_PSYMBOL("name");
-	tree_entry_mode_symbol	= NODE_PSYMBOL("mode");
+	tree_entry_filemode_symbol	= NODE_PSYMBOL("filemode");
 
 	// Signature symbols
 	signature_name_symbol	= NODE_PSYMBOL("name");
@@ -819,9 +821,9 @@ Handle<Value> Repository::CreateTree(const Arguments &args) {
 	for(unsigned int i=0;i<jsentries->Length();i++) {
 		TreeEntry entry;
 		Handle<Object> jsentry = jsentries->Get(i)->ToObject();
-		entry.filename = CastFromJS<string>(jsentry->Get(tree_entry_name_symbol));
-		entry.blobid = CastFromJS<git_oid>(jsentry->Get(object_id_symbol));
-		entry.filemode = (git_filemode_t)CastFromJS<uint16_t>(jsentry->Get(tree_entry_mode_symbol));
+		entry.id = CastFromJS<git_oid>(jsentry->Get(tree_entry_id_symbol));
+		entry.name = CastFromJS<string>(jsentry->Get(tree_entry_name_symbol));
+		entry.filemode = (git_filemode_t)CastFromJS<uint16_t>(jsentry->Get(tree_entry_filemode_symbol));
 		baton->entries.push_back(entry);
 	}
 	baton->setCallback(args[1]);
@@ -839,7 +841,7 @@ void Repository::AsyncCreateTree(uv_work_t *req) {
 		for(list<TreeEntry>::iterator i = baton->entries.begin();
 			i != baton->entries.end(); ++i) {
 			if(!AsyncLibCall(git_treebuilder_insert(NULL, treebuilder,
-				i->filename.c_str(), &i->blobid, i->filemode), baton)) {
+				i->name.c_str(), &i->id, i->filemode), baton)) {
 				break;
 			}
 		}
