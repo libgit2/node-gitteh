@@ -188,7 +188,7 @@ Gitteh.Tree = class Tree
 	* **id**: *(String)* OID this entry points to.
 	* **name**: *(String)* file name of this entry.
 	* **type**: *(String)* kind of object pointed to by this entry
-	* **attributes**: *(Number)* UNIX file attributes for this entry.
+	* **filemode**: *(Number)* UNIX file filemode for this entry.
 	###
 
 	constructor: (@repository, obj) ->
@@ -200,7 +200,7 @@ Gitteh.Tree = class Tree
 				.set("id")
 				.set("name")
 				.set("type")
-				.set("attributes")
+				.set("filemode")
 		_immutable(@, obj)
 			.set("id")
 			.set("entries")
@@ -743,7 +743,7 @@ Gitteh.clone = =>
 				else if entry.type is "blob"
 					repo.blob entry.id, _wrapCallback cb, (blob) ->
 						file = fs.createWriteStream _path.join(dest, entry.name), 
-							mode: entry.attributes
+							mode: entry.filemode
 						file.write blob.data
 						file.end()
 						cb()
