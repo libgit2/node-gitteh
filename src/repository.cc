@@ -194,6 +194,14 @@ public:
 	CreateBlobFromDiskBaton(Repository *r) : RepositoryBaton(r) { }
 };
 
+class CreateBlobFromBufferBaton : public RepositoryBaton {
+public:
+	void *data;
+	int length;
+	git_oid id;
+	CreateBlobFromBufferBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
 class TreeEntry {
 public:
 	git_oid id;
@@ -317,6 +325,7 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromDisk", CreateBlobFromDisk);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromBuffer", CreateBlobFromBuffer);
 	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
 	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 
@@ -798,6 +807,46 @@ void Repository::AsyncCreateBlobFromDisk(uv_work_t *req) {
 void Repository::AsyncAfterCreateBlobFromDisk(uv_work_t *req) {
 	HandleScope scope;
 	CreateBlobFromDiskBaton *baton = GetBaton<CreateBlobFromDiskBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> id = CastToJS(baton->id);
+		Handle<Value> argv[] = { Null(), id };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateBlobFromBuffer(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateBlobFromBufferBaton *baton = new CreateBlobFromBufferBaton(repository);
+	baton->data = Buffer::Data(args[0]);
+	baton->length = Buffer::Length(args[0]);
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateBlobFromBuffer,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateBlobFromBuffer));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateBlobFromBuffer(uv_work_t *req) {
+	CreateBlobFromBufferBaton *baton = GetBaton<CreateBlobFromBufferBaton>(req);
+
+	if(AsyncLibCall(git_blob_create_frombuffer(&baton->id, baton->repo->repo_,
+			baton->data, baton->length), baton)) {
+	}
+}
+
+void Repository::AsyncAfterCreateBlobFromBuffer(uv_work_t *req) {
+	HandleScope scope;
+	CreateBlobFromBufferBaton *baton = GetBaton<CreateBlobFromBufferBaton>(req);
 
 	if(baton->isErrored()) {
 		Handle<Value> argv[] = { baton->createV8Error() };

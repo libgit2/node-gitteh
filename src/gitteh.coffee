@@ -592,6 +592,18 @@ Gitteh.Repository = class Repository
 		_priv.native.createBlobFromDisk path, _wrapCallback cb, (blob) =>
 			return cb null, blob
 
+	createBlobFromBuffer: ->
+		###
+		Creates a new Blob for this repository from the data supplied
+		as `buffer`. Calls `cb` when the operation has completed.
+		###
+		_priv = _getPrivate @
+		[buffer, cb] = args
+			buffer: type: "object"
+			cb: type: "function"
+		_priv.native.createBlobFromBuffer buffer, _wrapCallback cb, (blob) =>
+			return cb null, blob
+
 	createTree: ->
 		###
 		Creates a new Tree for this repository from the `entities`
