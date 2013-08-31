@@ -1,5 +1,5 @@
-#ifndef GITTEH_THREAD_H
-#define GITTEH_THREAD_H
+#ifndef SGIT_THREAD_H
+#define SGIT_THREAD_H
 
 // I honestly have no clue what the fuck I'm doing. Libgit2 doesn't seem to be
 // thread-safe, so I need an object to synchronize with to prevent crazy shit
@@ -13,7 +13,7 @@
 // pthread_mutex_unlock? Just in case though I'm setting up macros for them here
 // so I can swap them out or write compiler/platform specific variants later.
 
-typedef pthread_mutex_t gitteh_lock;
+typedef pthread_mutex_t sgit_lock;
 #define CREATE_MUTEX(LOCK)													\
 	pthread_mutex_init (&LOCK, NULL);
 
@@ -27,4 +27,4 @@ typedef pthread_mutex_t gitteh_lock;
 	pthread_mutex_unlock(&LOCK)
 	
 
-#endif // GITTEH_THREAD_H
+#endif // SGIT_THREAD_H

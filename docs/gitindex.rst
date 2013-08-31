@@ -1,4 +1,0 @@
-Index
-=====
-
-.. autoclass:: gitteh::Index

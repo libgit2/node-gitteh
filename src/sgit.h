@@ -1,5 +1,5 @@
-#ifndef GITTEH_H
-#define GITTEH_H
+#ifndef SGIT_H
+#define SGIT_H
 
 #include <v8.h>
 #include "cvv8/convert.hpp"
@@ -39,7 +39,7 @@ using std::string;
 #define NODE_094_UV_AFTER_WORK_CAST(x) (x)
 #endif
 
-namespace gitteh {
+namespace sgit {
 	Handle<Object> GetModule();
 
 	static inline Handle<Value> CreateGitError() {  
@@ -116,7 +116,7 @@ namespace gitteh {
 		return scope.Close(fastBuffer);
 	}
 
-} // namespace gitteh
+} // namespace sgit
 
 namespace cvv8 {
 	template<>
@@ -182,4 +182,4 @@ namespace cvv8 {
 	struct NativeToJS<git_filemode_t> : public NativeToJS<long> {};
 }
 
-#endif // GITTEH_H
+#endif // SGIT_H

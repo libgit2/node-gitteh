@@ -1,9 +1,9 @@
-#ifndef GITTEH_REPO_H
-#define GITTEH_REPO_H
+#ifndef SGIT_REPO_H
+#define SGIT_REPO_H
 
-#include "gitteh.h"
+#include "sgit.h"
 
-namespace gitteh {
+namespace sgit {
 
 class RepositoryBaton;
 
@@ -71,16 +71,16 @@ private:
 	// example. However for now I want this thing to *just work*, I'll worry 
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
-	gitteh_lock gitLock_;
+	sgit_lock gitLock_;
 
 	// This lock is used during ref packing. The problem is ref packing will
 	// invalidate our previously cached pointers. Ugh. So what we do is update
 	// those pointers after we pack references right? Cool. Only thing is with
 	// async that process might get fucked if we don't stop any more refs from
 	// being opened created while we're in the process of packing. Hence this lock.
-	// gitteh_lock refLock_;
+	// sgit_lock refLock_;
 };
 
-} // namespace gitteh
+} // namespace sgit
 
-#endif // GITTEH_REPO_H
+#endif // SGIT_REPO_H

@@ -1,5 +1,5 @@
-#ifndef GITTEH_BATON_H
-#define GITTEH_BATON_H
+#ifndef SGIT_BATON_H
+#define SGIT_BATON_H
 
 #include <v8.h>
 #include <node.h>
@@ -9,7 +9,7 @@
 using namespace v8;
 using std::string;
 
-namespace gitteh {
+namespace sgit {
 /**
 	A Baton class specifically for libgit2 work.
 	Users of this Baton are expected to copy a git_error into this class.
@@ -32,6 +32,6 @@ public:
 	void defaultCallback();
 };
 
-}; // namespace gitteh
+}; // namespace sgit
 
-#endif // GITTEH_BATON_H
+#endif // SGIT_BATON_H

@@ -1,9 +1,9 @@
-#ifndef GITTEH_ERROR_H
-#define GITTEH_ERROR_H
+#ifndef SGIT_ERROR_H
+#define SGIT_ERROR_H
 
-#include "gitteh.h"
+#include "sgit.h"
 
-namespace gitteh {
+namespace sgit {
 	static inline void ErrorInit(Handle<Object> target) {
 		HandleScope scope;
 
@@ -37,4 +37,4 @@ namespace gitteh {
 	}
 }
 
-#endif // GITTEH_ERROR_H
+#endif // SGIT_ERROR_H

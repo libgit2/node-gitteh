@@ -1,4 +1,0 @@
-Tag
-===
-
-.. autoclass:: gitteh::Tag

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include "gitteh.h"
+#include "sgit.h"
 #include "repository.h"
 #include "commit.h"
 #include "signature.h"
@@ -32,7 +32,7 @@
 #include "remote.h"
 #include "index.h"
 
-namespace gitteh {
+namespace sgit {
 
 Persistent<Object> module;
 
@@ -83,6 +83,6 @@ Handle<Object> GetModule() {
 	return module;
 }
 
-} // namespace gitteh
+} // namespace sgit
 
-NODE_MODULE(gitteh, gitteh::init)
+NODE_MODULE(sgit, sgit::init)

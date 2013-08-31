@@ -1,4 +1,0 @@
-Signature
-=========
-
-.. autoclass:: gitteh::Signature
