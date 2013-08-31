@@ -2,6 +2,8 @@
 
 [![build status](https://secure.travis-ci.org/libgit2/node-gitteh.png)](http://travis-ci.org/libgit2/node-gitteh)
 
+## Gitteh needs a new daddy (or mommy): See [Issue #68](https://github.com/libgit2/node-gitteh/issues/68).
+
 ## Installation
 
 Gitteh requires `node 0.8`, `CMake 2.6` and `gcc`. Installation via NPM:
