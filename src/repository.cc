@@ -52,6 +52,22 @@ static Persistent<String> ref_target_symbol;
 static Persistent<String> object_id_symbol;
 static Persistent<String> object_type_symbol;
 
+static Persistent<String> tree_entry_id_symbol;
+static Persistent<String> tree_entry_name_symbol;
+static Persistent<String> tree_entry_filemode_symbol;
+
+static Persistent<String> signature_name_symbol;
+static Persistent<String> signature_email_symbol;
+static Persistent<String> signature_time_symbol;
+static Persistent<String> signature_offset_symbol;
+
+static Persistent<String> commit_updateref_symbol;
+static Persistent<String> commit_author_symbol;
+static Persistent<String> commit_committer_symbol;
+static Persistent<String> commit_message_symbol;
+static Persistent<String> commit_parents_symbol;
+static Persistent<String> commit_tree_symbol;
+
 class OpenRepoBaton : public Baton {
 public:
 	string path	;
@@ -171,6 +187,53 @@ public:
 	CreateRemoteBaton(Repository *r) : RepositoryBaton(r) { }
 };
 
+class CreateBlobFromDiskBaton : public RepositoryBaton {
+public:
+	string path;
+	git_oid id;
+	CreateBlobFromDiskBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
+class CreateBlobFromBufferBaton : public RepositoryBaton {
+public:
+	void *data;
+	int length;
+	git_oid id;
+	CreateBlobFromBufferBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
+class TreeEntry {
+public:
+	git_oid id;
+	string name;
+	git_filemode_t filemode;
+};
+class CreateTreeBaton : public RepositoryBaton {
+public:
+	list<TreeEntry> entries;
+	git_oid treeid;
+	CreateTreeBaton(Repository *r) : RepositoryBaton(r), entries() { }
+};
+
+class CommitSignature {
+public:
+	string name;
+	string email;
+	git_time_t time;
+	int offset;
+};
+class CreateCommitBaton : public RepositoryBaton {
+public:
+	string update_ref;
+	CommitSignature author;
+	CommitSignature committer;
+	string message;
+	list<git_oid> parents;
+	git_oid treeid;
+	git_oid commitid;
+	CreateCommitBaton(Repository *r) : RepositoryBaton(r) { }
+};
+
 Persistent<FunctionTemplate> Repository::constructor_template;
 
 Repository::Repository() {
@@ -230,6 +293,25 @@ void Repository::Init(Handle<Object> target) {
 	object_id_symbol	= NODE_PSYMBOL("id");
 	object_type_symbol	= NODE_PSYMBOL("_type");
 
+	// Tree Entry symbols
+	tree_entry_id_symbol	= NODE_PSYMBOL("id");
+	tree_entry_name_symbol	= NODE_PSYMBOL("name");
+	tree_entry_filemode_symbol	= NODE_PSYMBOL("filemode");
+
+	// Signature symbols
+	signature_name_symbol	= NODE_PSYMBOL("name");
+	signature_email_symbol	= NODE_PSYMBOL("email");
+	signature_time_symbol	= NODE_PSYMBOL("time");
+	signature_offset_symbol	= NODE_PSYMBOL("offset");
+
+	// Commit symbols
+	commit_updateref_symbol	= NODE_PSYMBOL("updateref");
+	commit_author_symbol	= NODE_PSYMBOL("author");
+	commit_committer_symbol	= NODE_PSYMBOL("committer");
+	commit_message_symbol	= NODE_PSYMBOL("message");
+	commit_parents_symbol	= NODE_PSYMBOL("parents");
+	commit_tree_symbol	= NODE_PSYMBOL("tree");
+
 	Local<FunctionTemplate> t = FunctionTemplate::New(New);
 	constructor_template = Persistent<FunctionTemplate>::New(t);
 	constructor_template->SetClassName(repo_class_symbol);
@@ -242,6 +324,10 @@ void Repository::Init(Handle<Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(t, "createSymReference", CreateSymReference);
 	NODE_SET_PROTOTYPE_METHOD(t, "remote", GetRemote);
 	NODE_SET_PROTOTYPE_METHOD(t, "createRemote", CreateRemote);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromDisk", CreateBlobFromDisk);
+	NODE_SET_PROTOTYPE_METHOD(t, "createBlobFromBuffer", CreateBlobFromBuffer);
+	NODE_SET_PROTOTYPE_METHOD(t, "createTree", CreateTree);
+	NODE_SET_PROTOTYPE_METHOD(t, "createCommit", CreateCommit);
 
 	NODE_SET_METHOD(target, "openRepository", OpenRepository);
 	NODE_SET_METHOD(target, "initRepository", InitRepository);
@@ -690,6 +776,249 @@ void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
 						->NewInstance(1, constructorArgs);
 
 		Handle<Value> argv[] = { Null(), obj };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateBlobFromDisk(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateBlobFromDiskBaton *baton = new CreateBlobFromDiskBaton(repository);
+	baton->path = CastFromJS<string>(args[0]);
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateBlobFromDisk,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateBlobFromDisk));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateBlobFromDisk(uv_work_t *req) {
+	CreateBlobFromDiskBaton *baton = GetBaton<CreateBlobFromDiskBaton>(req);
+
+	if(AsyncLibCall(git_blob_create_fromdisk(&baton->id, baton->repo->repo_,
+			baton->path.c_str()), baton)) {
+	}
+}
+
+void Repository::AsyncAfterCreateBlobFromDisk(uv_work_t *req) {
+	HandleScope scope;
+	CreateBlobFromDiskBaton *baton = GetBaton<CreateBlobFromDiskBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> id = CastToJS(baton->id);
+		Handle<Value> argv[] = { Null(), id };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateBlobFromBuffer(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateBlobFromBufferBaton *baton = new CreateBlobFromBufferBaton(repository);
+	baton->data = Buffer::Data(args[0]);
+	baton->length = Buffer::Length(args[0]);
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateBlobFromBuffer,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateBlobFromBuffer));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateBlobFromBuffer(uv_work_t *req) {
+	CreateBlobFromBufferBaton *baton = GetBaton<CreateBlobFromBufferBaton>(req);
+
+	if(AsyncLibCall(git_blob_create_frombuffer(&baton->id, baton->repo->repo_,
+			baton->data, baton->length), baton)) {
+	}
+}
+
+void Repository::AsyncAfterCreateBlobFromBuffer(uv_work_t *req) {
+	HandleScope scope;
+	CreateBlobFromBufferBaton *baton = GetBaton<CreateBlobFromBufferBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> id = CastToJS(baton->id);
+		Handle<Value> argv[] = { Null(), id };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateTree(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateTreeBaton *baton = new CreateTreeBaton(repository);
+	Handle<Array> jsentries = args[0].As<Array>();
+	for(unsigned int i=0;i<jsentries->Length();i++) {
+		TreeEntry entry;
+		Handle<Object> jsentry = jsentries->Get(i)->ToObject();
+		entry.id = CastFromJS<git_oid>(jsentry->Get(tree_entry_id_symbol));
+		entry.name = CastFromJS<string>(jsentry->Get(tree_entry_name_symbol));
+		entry.filemode = (git_filemode_t)CastFromJS<uint16_t>(jsentry->Get(tree_entry_filemode_symbol));
+		baton->entries.push_back(entry);
+	}
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateTree,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateTree));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateTree(uv_work_t *req) {
+	CreateTreeBaton *baton = GetBaton<CreateTreeBaton>(req);
+	git_treebuilder *treebuilder;
+	if(AsyncLibCall(git_treebuilder_create(&treebuilder, NULL), baton)) {
+		for(list<TreeEntry>::iterator i = baton->entries.begin();
+			i != baton->entries.end(); ++i) {
+			if(!AsyncLibCall(git_treebuilder_insert(NULL, treebuilder,
+				i->name.c_str(), &i->id, i->filemode), baton)) {
+				break;
+			}
+		}
+		if (git_treebuilder_entrycount(treebuilder) == baton->entries.size()) {
+			AsyncLibCall(git_treebuilder_write(&baton->treeid,baton->repo->repo_,
+				treebuilder), baton);
+		}
+		
+	}
+
+	git_treebuilder_free(treebuilder);
+}
+
+void Repository::AsyncAfterCreateTree(uv_work_t *req) {
+	HandleScope scope;
+	CreateTreeBaton *baton = GetBaton<CreateTreeBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> treeid = CastToJS(baton->treeid);
+		Handle<Value> argv[] = { Null(), treeid };
+		FireCallback(baton->callback, 2, argv);
+	}
+
+	delete baton;
+}
+
+Handle<Value> Repository::CreateCommit(const Arguments &args) {
+	HandleScope scope;
+	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
+
+	CreateCommitBaton *baton = new CreateCommitBaton(repository);
+	Handle<Object> options = args[0].As<Object>();
+
+	baton->update_ref = options->Has(commit_updateref_symbol)
+		? CastFromJS<string>(options->Get(commit_updateref_symbol))
+		: "";
+
+	Handle<Object> committer = options->Get(commit_committer_symbol).As<Object>();
+	baton->committer.name = CastFromJS<string>(committer->Get(signature_name_symbol));
+	baton->committer.email = CastFromJS<string>(committer->Get(signature_email_symbol));
+	baton->committer.time = CastFromJS<git_time_t>(committer->Get(signature_time_symbol));
+	baton->committer.offset = CastFromJS<int>(committer->Get(signature_offset_symbol));
+
+	if (options->Has(commit_author_symbol)) {
+		Handle<Object> author = options->Get(commit_author_symbol).As<Object>();
+		baton->author.name = CastFromJS<string>(author->Get(signature_name_symbol));
+		baton->author.email = CastFromJS<string>(author->Get(signature_email_symbol));
+		baton->author.time = CastFromJS<git_time_t>(author->Get(signature_time_symbol));
+		baton->author.offset = CastFromJS<int>(author->Get(signature_offset_symbol));
+	} else {
+		baton->author = baton->committer;
+	}
+
+	baton->message = CastFromJS<string>(options->Get(commit_message_symbol));
+	if (options->Has(commit_parents_symbol)) {
+		baton->parents = CastFromJS< list<git_oid> >(options->Get(commit_parents_symbol));
+	}
+	baton->treeid = CastFromJS<git_oid>(options->Get(commit_tree_symbol));
+	baton->setCallback(args[1]);
+
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateCommit,
+			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateCommit));
+
+	return Undefined();
+}
+
+void Repository::AsyncCreateCommit(uv_work_t *req) {
+	CreateCommitBaton *baton = GetBaton<CreateCommitBaton>(req);
+
+	git_tree *tree;
+	std::vector<git_commit*> parents;
+	for(list<git_oid>::iterator i = baton->parents.begin();
+		i != baton->parents.end(); ++i) {
+		git_commit *commit;
+		if (AsyncLibCall(git_commit_lookup(&commit, baton->repo->repo_,
+			&(*i)), baton)) {
+			parents.push_back(commit);
+		} else {
+			break;
+		}
+	}
+
+	if(parents.size() == baton->parents.size()) {
+		git_signature *committer;
+		if (AsyncLibCall(baton->committer.time == 0
+			? git_signature_now(&committer, baton->committer.name.c_str(), baton->committer.email.c_str())
+			: git_signature_new(&committer, baton->committer.name.c_str(), baton->committer.email.c_str(),
+				baton->committer.time, baton->committer.offset), baton)) {
+			git_signature *author;
+			if (AsyncLibCall(baton->author.time == 0
+				? git_signature_now(&author, baton->author.name.c_str(), baton->author.email.c_str())
+				: git_signature_new(&author, baton->author.name.c_str(), baton->author.email.c_str(),
+					baton->author.time, baton->author.offset), baton)) {
+				if(AsyncLibCall(git_tree_lookup(&tree,baton->repo->repo_,
+					&baton->treeid), baton)) {
+					if(AsyncLibCall(git_commit_create(&baton->commitid,baton->repo->repo_,
+						baton->update_ref.empty() ? NULL : baton->update_ref.c_str(),
+						author, committer, NULL, baton->message.c_str(), tree,
+						parents.size(), (const git_commit**)&(parents[0])), baton)) {
+
+					}
+				}
+				git_signature_free(author);
+			}
+			git_signature_free(committer);
+		}
+	}
+
+	for(std::vector<git_commit*>::iterator i = parents.begin(); i != parents.end(); ++i) {
+		git_commit_free(*i);
+	}
+}
+
+void Repository::AsyncAfterCreateCommit(uv_work_t *req) {
+	HandleScope scope;
+	CreateCommitBaton *baton = GetBaton<CreateCommitBaton>(req);
+
+	if(baton->isErrored()) {
+		Handle<Value> argv[] = { baton->createV8Error() };
+		FireCallback(baton->callback, 1, argv);
+	}
+	else {
+		Handle<Value> commitid = CastToJS(baton->commitid);
+		Handle<Value> argv[] = { Null(), commitid };
 		FireCallback(baton->callback, 2, argv);
 	}
 
