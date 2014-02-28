@@ -15,7 +15,7 @@ module.exports =
 			callback(code) 
 
 task 'build', 'Compile CoffeeScript to JavaScript.', -> 
-	module.exports.passthru 'coffee', '-o', 'lib/', '-c', 'src/' 
+	module.exports.passthru './node_modules/.bin/coffee', '-o', 'lib/', '-c', 'src/' 
 
 task 'test', 'Run the unit tests.', -> 
 	module.exports.passthru './node_modules/.bin/mocha' # or your test runner 

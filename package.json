@@ -2,18 +2,21 @@
   "name": "gitteh",
   "version": "0.17.2",
   "description": "Bindings to libgit2.",
-  "keywords": ["git", "libgit2", "bindings"],
+  "keywords": [
+    "git",
+    "libgit2",
+    "bindings"
+  ],
   "author": "Sam Day <sam.c.day@gmail.com>",
   "engines": {
     "node": ">= 0.4.0"
   },
   "dependencies": {
-    "glob": ">= 2.0.6",
-    "async": ">= 0.1.21",
-    "node-gyp": "~0.8.2",
-    "zlib": "~1.0.x",
-    "tar": "~0.1.x",
-    "request": "~2.x.x"
+    "async": "~0.2.10",
+    "shelljs": "~0.2.6",
+    "download": "~0.1.7",
+    "bindings": "~1.1.1",
+    "nan": "~0.8.0"
   },
   "devDependencies": {
     "coffee-script": "~1.3.3",
@@ -21,15 +24,16 @@
     "should": "~1.2.1",
     "temp": "~0.4.0",
     "wrench": "~1.3.9",
-    "segfault-handler": "git+https://github.com/ddopson/node-segfault-handler#master"
+    "segfault-handler": "git+https://github.com/ddopson/node-segfault-handler#master",
+    "node-gyp": "~0.8.2"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/libgit2/node-gitteh.git"
   },
   "scripts": {
-    "preinstall": "node preinstall.js",
     "install": "node install.js",
+    "postinstall": "./node_modules/.bin/node-gyp rebuild",
     "test": "mocha"
   },
   "main": "./lib/gitteh"
