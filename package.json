@@ -30,7 +30,8 @@
     "grunt-jscs-checker": "~0.4.1",
     "load-grunt-tasks": "~0.4.0",
     "grunt-contrib-coffee": "~0.10.1",
-    "grunt-cli": "~0.1.13"
+    "grunt-cli": "~0.1.13",
+    "should": "~3.3.0"
   },
   "repository": {
     "type": "git",
