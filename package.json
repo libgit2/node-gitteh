@@ -38,7 +38,7 @@
   },
   "scripts": {
     "install": "node install.js",
-    "postinstall": "node-gyp rebuild"
+    "postinstall": "node-gyp rebuild",
     "test": "./node_modules/.bin/grunt"
   },
   "main": "./lib/gitteh",
