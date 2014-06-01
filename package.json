@@ -20,17 +20,16 @@
   },
   "devDependencies": {
     "coffee-script": "~1.3.3",
-    "temp": "~0.4.0",
-    "wrench": "~1.3.9",
-    "grunt-simple-mocha": "~0.4.0",
-    "grunt-contrib-jshint": "~0.10.0",
     "grunt": "~0.4.4",
+    "grunt-cli": "~0.1.13",
     "grunt-coffeelint": "0.0.10",
+    "grunt-contrib-coffee": "~0.10.1",
+    "grunt-contrib-jshint": "~0.10.0",
     "grunt-jscs-checker": "~0.4.1",
     "load-grunt-tasks": "~0.4.0",
-    "grunt-contrib-coffee": "~0.10.1",
-    "grunt-cli": "~0.1.13",
-    "should": "~3.3.0"
+    "tape": "^2.13.1",
+    "temp": "^0.7.0",
+    "wrench": "~1.3.9"
   },
   "repository": {
     "type": "git",
@@ -39,7 +38,7 @@
   "scripts": {
     "install": "node install.js",
     "postinstall": "node-gyp rebuild",
-    "test": "./node_modules/.bin/grunt"
+    "test": "./node_modules/.bin/tape test/runner.js"
   },
   "main": "./lib/gitteh",
   "gypfile": true

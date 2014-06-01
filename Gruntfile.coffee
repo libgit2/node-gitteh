@@ -13,19 +13,6 @@ module.exports = (grunt) ->
     files:
       server: ['lib/**/*.js']
 
-    test:
-      unit: 'simplemocha:unit'
-
-    simplemocha:
-      options:
-        globals: ['should']
-        ui: 'bdd'
-        reporter: 'dot'
-      unit:
-        src: [
-          'test/**/*.coffee'
-        ]
-
     coffee:
       glob_to_multiple:
         expand: true
@@ -67,22 +54,13 @@ module.exports = (grunt) ->
         maxlen: 100
         globals: {}
 
-    # CoffeeLint options
-    # http://www.coffeelint.org/#options
-    coffeelint:
-      unittests: files: src: ['test/**/*.coffee']
-      options:
-        max_line_length:
-          value: 100
-
     jscs:
       server: files: src: '<%= files.server %>'
       options:
         config: '.jscs.json'
 
-  grunt.loadTasks 'tasks'
   require('load-grunt-tasks') grunt
 
   grunt.registerTask 'build', ['coffee']
-  grunt.registerTask 'default', ['build', 'test']
-  grunt.registerTask 'lint', ['jshint', 'jscs', 'coffeelint']
+  grunt.registerTask 'default', ['build']
+  grunt.registerTask 'lint', ['jshint', 'jscs']
