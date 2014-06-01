@@ -2,7 +2,7 @@ const test               = require('tape')
         , testCommon = require('./test-common')
         , gitteh            = require('../lib/gitteh');
 
-var testFiles = ['gitteh', 'tree', 'reference'];
+var testFiles = ['gitteh', 'tree', 'reference', 'commit'];
 
 test('setup common', testCommon.setUp);
 
