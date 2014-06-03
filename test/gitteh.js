@@ -9,7 +9,7 @@ module.exports.all = function (gitteh, test) {
       t.end();
     });
   });
-
+/*
   test('opening an invalid repo...', function (t) {
     gitteh.openRepository("/i/shouldnt/exist", function (err) {
       t.throws(err, 'throws an error');
@@ -23,7 +23,7 @@ module.exports.all = function (gitteh, test) {
       t.end();
     });
   });
-
+*/
   test('initialising a bare repo...', function (t) {
     var tempPath = temp.path();
 

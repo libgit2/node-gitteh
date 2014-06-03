@@ -1,0 +1,17 @@
+## DNT config file
+## see https://github.com/rvagg/dnt
+
+ NODE_VERSIONS="\
+   v0.10.22 \
+   v0.8.26  \
+ "
+ OUTPUT_PREFIX="gitteh-"
+ TEST_CMD="\
+   cd /dnt/ &&                                                    \
+   npm install &&                                                 \
+   node_modules/.bin/node-gyp --nodedir /usr/src/node/ rebuild && \
+   node_modules/.bin/grunt &&                            \
+   node_modules/.bin/tape test/runner.js;                             \
+ "
+ COPY_CMD="rsync -aAXx /dnt-src/ /dnt/"
+ LOG_OK_CMD="grep '.' | sed '/#\sok/ a ok' | tail -n1"

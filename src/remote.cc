@@ -75,7 +75,7 @@ namespace gitteh {
 	}
 
 	void Remote::Init(Handle<Object> target) {
-		HandleScope scope;
+		NanScope();
 
 		class_symbol 		= NODE_PSYMBOL("NativeRemote");
 		name_symbol 		= NODE_PSYMBOL("name");
@@ -92,8 +92,8 @@ namespace gitteh {
 		progress_received_objects_symbol = NODE_PSYMBOL("receivedObjects");
 		progress_received_bytes_symbol   = NODE_PSYMBOL("receivedBytes");
 
-		Local<FunctionTemplate> t = FunctionTemplate::New(New);
-		constructor_template = Persistent<FunctionTemplate>::New(t);
+		Local<FunctionTemplate> t = NanNew<FunctionTemplate>(New);
+		NanAssignPersistent(constructor_template, t);
 		constructor_template->SetClassName(class_symbol);
 		t->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -104,8 +104,8 @@ namespace gitteh {
 		target->Set(class_symbol, constructor_template->GetFunction());
 	}
 
-	Handle<Value> Remote::New(const Arguments& args) {
-		HandleScope scope;
+	NAN_METHOD(Remote::New) {
+		NanEscapableScope();
 		REQ_EXT_ARG(0, remoteArg);
 		Handle<Object> me = args.This();
 
@@ -114,7 +114,7 @@ namespace gitteh {
 		remoteObj->Wrap(me);
 
 		// Get the fetch- and push-specs
-		Handle<Array> fetchspecsArr = Array::New();
+		Handle<Array> fetchspecsArr = NanNew<Array>();
 		git_strarray fetchspecs = {NULL, 0};
 		if (!git_remote_get_fetch_refspecs(&fetchspecs, remote)) {
 			for (size_t i=0; i<fetchspecs.count; i++)
@@ -122,7 +122,7 @@ namespace gitteh {
 		}
 		me->Set(fetchspecs_symbol, fetchspecsArr);
 
-		Handle<Array> pushspecsArr = Array::New();
+		Handle<Array> pushspecsArr = NanNew<Array>();
 		git_strarray pushspecs = {NULL, 0};
 		if (!git_remote_get_push_refspecs(&pushspecs, remote)) {
 			for (size_t i=0; i<pushspecs.count; i++)
@@ -133,17 +133,17 @@ namespace gitteh {
 		me->Set(name_symbol, CastToJS(git_remote_name(remote)));
 		me->Set(url_symbol, CastToJS(git_remote_url(remote)));
 
-		return scope.Close(me);
+		return NanEscapeScope(me);
 	}
 
-	Handle<Value> Remote::UpdateTips(const Arguments& args) {
-		HandleScope scope;
+	NAN_METHOD(Remote::UpdateTips) {
+		NanScope();
 		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
 		UpdateTipsBaton *baton = new UpdateTipsBaton(remote);
 		baton->setCallback(args[0]);
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncUpdateTips, 
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncUpdateTips,
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterUpdateTips));
-		return Undefined();
+		return NanUndefined();
 	}
 
 	void Remote::AsyncUpdateTips(uv_work_t *req) {
@@ -154,7 +154,7 @@ namespace gitteh {
 	}
 
 	void Remote::AsyncAfterUpdateTips(uv_work_t *req) {
-		HandleScope scope;
+		NanScope();
 		UpdateTipsBaton *baton = GetBaton<UpdateTipsBaton>(req);
 
 		if(baton->isErrored()) {
@@ -169,14 +169,14 @@ namespace gitteh {
 		delete baton;
 	}
 
-	Handle<Value> Remote::Connect(const Arguments& args) {
-		HandleScope scope;
+	NAN_METHOD(Remote::Connect) {
+		NanScope();
 		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
 		ConnectBaton *baton = new ConnectBaton(remote, CastFromJS<int>(args[0]));
 		baton->setCallback(args[1]);
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncConnect, 
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncConnect,
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterConnect));
-		return Undefined();
+		return NanUndefined();
 	}
 
 	void Remote::AsyncConnect(uv_work_t *req) {
@@ -203,8 +203,8 @@ namespace gitteh {
 		delete baton;
 	}
 
-	Handle<Value> Remote::Download(const Arguments &args) {
-		HandleScope scope;
+	NAN_METHOD(Remote::Download) {
+		NanScope();
 		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
 		DownloadBaton *baton = new DownloadBaton(remote);
 		baton->setCallback(args[0]);
@@ -218,9 +218,9 @@ namespace gitteh {
 		// Setup download stats accessor.
 		remote->handle_->SetAccessor(progress_symbol, GetStats);
 
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncDownload, 
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncDownload,
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterDownload));
-		return Undefined();
+		return NanUndefined();
 	}
 
 	int Remote::DownloadTransferProgressCallback(
@@ -256,29 +256,29 @@ namespace gitteh {
 		delete baton;
 	}
 
-	Handle<Value> Remote::GetStats(Local<String> property, const AccessorInfo &info) {
-		HandleScope scope;
-		Remote *remote = ObjectWrap::Unwrap<Remote>(info.This());
-		Handle<Object> o = Object::New();
+	NAN_GETTER(Remote::GetStats) {
+		NanEscapableScope();
+		Remote *remote = ObjectWrap::Unwrap<Remote>(args.This());
+		Handle<Object> o = NanNew<Object>();
 		o->Set(progress_total_objects_symbol, CastToJS(remote->progress_.total_objects));
 		o->Set(progress_indexed_objects_symbol, CastToJS(remote->progress_.indexed_objects));
 		o->Set(progress_received_objects_symbol, CastToJS(remote->progress_.received_objects));
 		o->Set(progress_received_bytes_symbol, CastToJS(remote->progress_.received_bytes));
-		return scope.Close(o);
+		return NanEscapeScope(o);
 	}
 
 };	// namespace gitteh
 
 
 namespace cvv8 {
-	template<> 
+	template<>
 	struct NativeToJS<git_refspec> {
 		Handle<Value> operator() (git_refspec const *refspec) const {
-			HandleScope scope;
-			Handle<Object> o = Object::New();
+			NanEscapableScope();
+			Handle<Object> o = NanNew<Object>();
 			o->Set(gitteh::refspec_src_symbol, CastToJS(git_refspec_src(refspec)));
 			o->Set(gitteh::refspec_dst_symbol, CastToJS(git_refspec_dst(refspec)));
-			return scope.Close(o);
+			return NanEscapeScope(o);
 		}
 	};
 }

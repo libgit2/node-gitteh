@@ -23,7 +23,8 @@
 
 			'include_dirs': [
 				'deps/v8-convert',
-				'deps/libgit2/include'
+				'deps/libgit2/include',
+				"<!(node -e \"require('nan')\")"
 			],
 
 			'libraries': [

@@ -1,6 +1,7 @@
 #ifndef GITTEH_BLOB_H
 #define GITTEH_BLOB_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {

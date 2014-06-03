@@ -35,7 +35,7 @@ static Persistent<String> parents_symbol;
 namespace gitteh {
 	namespace Commit {
 		void Init(Handle<Object> target) {
-			HandleScope scope;
+			NanScope();
 			message_symbol = 			NODE_PSYMBOL("message");
 			message_encoding_symbol = 	NODE_PSYMBOL("messageEncoding");
 			author_symbol = 			NODE_PSYMBOL("author");
@@ -45,15 +45,15 @@ namespace gitteh {
 		}
 
 		Handle<Object> Create(git_commit *cm) {
-			HandleScope scope;
-			Handle<Object> o = Object::New();
+			NanEscapableScope();
+			Handle<Object> o = NanNew<Object>();
 			o->Set(tree_symbol, CastToJS(git_commit_tree_id(cm)));
 			o->Set(message_symbol, CastToJS(git_commit_message(cm)));
 			const char *encoding = git_commit_message_encoding(cm);
 			if(encoding) {
 				o->Set(message_encoding_symbol, CastToJS(encoding));
 			}
-			Handle<Array> parents = Array::New();
+			Handle<Array> parents = NanNew<Array>();
 			int parentCount = git_commit_parentcount(cm);
 			for(int i = 0; i < parentCount; i++) {
 				parents->Set(i, CastToJS(git_commit_parent_id(cm, i)));
@@ -62,7 +62,7 @@ namespace gitteh {
 			o->Set(author_symbol, CastToJS(git_commit_author(cm)));
 			o->Set(committer_symbol, CastToJS(git_commit_committer(cm)));
 
-			return scope.Close(o);
+			return NanEscapeScope(o);
 		}
 	};
 };

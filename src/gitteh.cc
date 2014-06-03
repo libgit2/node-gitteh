@@ -37,19 +37,19 @@ namespace gitteh {
 Persistent<Object> module;
 
 static Handle<Object> CreateTypeObject() {
-	HandleScope scope;
-	Handle<Object> o = Object::New();
-	ImmutableSet(o, String::NewSymbol("commit"), Integer::New(GIT_OBJ_COMMIT));
-	ImmutableSet(o, String::NewSymbol("tree"), Integer::New(GIT_OBJ_TREE));
-	ImmutableSet(o, String::NewSymbol("blob"), Integer::New(GIT_OBJ_BLOB));
-	ImmutableSet(o, String::NewSymbol("tag"), Integer::New(GIT_OBJ_TAG));
-	return scope.Close(o);
+	NanEscapableScope();
+	Handle<Object> o = NanNew<Object>();
+	ImmutableSet(o, NanNew<String>("commit"), NanNew<Number>(GIT_OBJ_COMMIT));
+	ImmutableSet(o, NanNew<String>("tree"), NanNew<Number>(GIT_OBJ_TREE));
+	ImmutableSet(o, NanNew<String>("blob"), NanNew<Number>(GIT_OBJ_BLOB));
+	ImmutableSet(o, NanNew<String>("tag"), NanNew<Number>(GIT_OBJ_TAG));
+	return NanEscapeScope(o);
 }
 
 extern "C" void
 init(Handle<Object> target) {
-	HandleScope scope;
-	module = Persistent<Object>::New(target);
+	NanScope();
+  module = Persistent<Object>::New(target);
 
 	// Initialize libgit2's thread system.
 	git_threads_init();
@@ -64,15 +64,15 @@ init(Handle<Object> target) {
 
 	Remote::Init(target);
 
-	ImmutableSet(target, String::NewSymbol("minOidLength"), Integer::New(GIT_OID_MINPREFIXLEN));
-	ImmutableSet(target, String::NewSymbol("types"), CreateTypeObject());
+	ImmutableSet(target, NanNew<String>("minOidLength"), NanNew<Number>(GIT_OID_MINPREFIXLEN));
+	ImmutableSet(target, NanNew<String>("types"), CreateTypeObject());
 
 	NODE_DEFINE_CONSTANT(target, GIT_DIRECTION_PUSH);
 	NODE_DEFINE_CONSTANT(target, GIT_DIRECTION_FETCH);
 
 	/*
 	IndexEntry::Init(target);
-	
+
 	RevWalker::Init(target);
 	Reference::Init(target);
 

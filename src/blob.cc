@@ -30,17 +30,17 @@ static Persistent<String> data_symbol;
 namespace gitteh {
 	namespace Blob {
 		void Init(Handle<Object> target) {
-			HandleScope scope;
+			NanScope();
 			data_symbol = 	NODE_PSYMBOL("data");
 		}
 
 		Handle<Object> Create(git_blob *blob) {
-			HandleScope scope;
-			Handle<Object> o = Object::New();
+			NanEscapableScope();
+			Handle<Object> o = NanNew<Object>();
 			int len = git_blob_rawsize(blob);
 			Buffer *buffer = Buffer::New((char*)git_blob_rawcontent(blob), len);
 			o->Set(data_symbol, MakeFastBuffer(buffer, len));
-			return scope.Close(o);
+			return NanEscapeScope(o);
 		}
 	}
 };
