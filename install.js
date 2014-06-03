@@ -1,7 +1,9 @@
-var async = require("async"),
-  path = require('path'),
-  fs = require('fs'),
-  download = require('download');
+var async    = require("async")
+    , path      = require('path')
+    , fs          = require('fs')
+    , request = require('request')
+    , zlib        = require('zlib')
+    , tar         = require('tar');
 
 require('shelljs/global');
 
@@ -34,7 +36,7 @@ async.series([
       console.log("[gitteh] ...via tarball");
       var libgit2Version = "v0.19.0";
       var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
-      download({ url: url}, 'libgit2Dir', { extract: true }).on('end', cb);
+      request.get(url).pipe(zlib.createUnzip()).pipe(tar.Extract({path: libgit2Dir})).on('end', cb);
     }
   },
   function(cb) {
