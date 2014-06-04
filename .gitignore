@@ -1,6 +1,5 @@
 build/
 node_modules/
-lib/gitteh.js
 lib/args.js
 test/repo/
 *.*~
