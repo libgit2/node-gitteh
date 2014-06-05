@@ -2,11 +2,9 @@
 
 [![build status](https://secure.travis-ci.org/libgit2/node-gitteh.png)](http://travis-ci.org/libgit2/node-gitteh)
 
-## Gitteh needs a new daddy (or mommy): See [Issue #68](https://github.com/libgit2/node-gitteh/issues/68).
-
 ## Installation
 
-Gitteh requires `node 0.8`, `CMake 2.6` and `gcc`. Installation via NPM:
+Gitteh requires `node 0.8 or 0.10`, `CMake 2.6` and `gcc`. Installation via NPM:
 
 	npm install gitteh
 
@@ -36,19 +34,9 @@ Contributions are very welcome. Please feel free to fork this project and hack o
 
 ### Building
 
-In order to build Gitteh, you first need to install coffee-script.
-[Coffee-script](http://coffeescript.org/) is not needed to use the library, only to 
-work with the source.
+```
+git clone https://github.com/libgit2/node-gitteh
+cd node-gitteh && npm install
+```
 
-    npm install -g coffee-script
-
-Next, you need to install gitteh's dependencies. In gitteh's root directory, run:
-
-    npm install
-
-Lastly, you need to compile and build gitteh
-
-    cake build
-
-It should generate `lib/gitteh.js` for you to use. Happy hacking!
-
+Happy hacking!
