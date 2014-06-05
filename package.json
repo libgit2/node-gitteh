@@ -33,7 +33,7 @@
   "scripts": {
     "lint": "jshint lib/",
     "install": "node install.js",
-    "postinstall": "node-gyp rebuild && ./node_modules/.bin/coffee -o lib/ -c src/",
+    "postinstall": "node-gyp rebuild",
     "test": "./node_modules/.bin/tape test/runner.js"
   },
   "main": "./lib/gitteh",

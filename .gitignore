@@ -1,5 +1,4 @@
 build/
 node_modules/
-lib/args.js
 test/repo/
 *.*~
