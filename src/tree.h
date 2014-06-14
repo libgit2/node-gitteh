@@ -1,6 +1,7 @@
 #ifndef GITTEH_TREE_H
 #define GITTEH_TREE_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {

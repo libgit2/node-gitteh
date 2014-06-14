@@ -32,19 +32,19 @@ static Persistent<String> entry_type_symbol;
 static Persistent<String> entry_filemode_symbol;
 
 static Handle<Object> CreateEntry(const git_tree_entry *entry) {
-	HandleScope scope;
-	Handle<Object> o = Object::New();
+	NanEscapableScope();
+	Handle<Object> o = NanNew<Object>();
 	o->Set(entry_id_symbol, CastToJS(git_tree_entry_id(entry)));
 	o->Set(entry_name_symbol, CastToJS(git_tree_entry_name(entry)));
 	o->Set(entry_filemode_symbol, CastToJS(git_tree_entry_filemode(entry)));
 	o->Set(entry_type_symbol, CastToJS(git_tree_entry_type(entry)));
-	return scope.Close(o);
+	return NanEscapeScope(o);
 }
 
 namespace gitteh {
 	namespace Tree {
 		void Init(Handle<Object> target) {
-			HandleScope scope;
+			NanScope();
 			id_symbol 				= NODE_PSYMBOL("id");
 			entries_symbol 			= NODE_PSYMBOL("entries");
 			entry_id_symbol 		= NODE_PSYMBOL("id");
@@ -54,17 +54,17 @@ namespace gitteh {
 		}
 
 		Handle<Object> Create(git_tree *tree) {
-			HandleScope scope;
-			Handle<Object> o = Object::New();
+			NanEscapableScope();
+			Handle<Object> o = NanNew<Object>();
 
-			Handle<Array> entries = Array::New();
+			Handle<Array> entries = NanNew<Array>();
 			int entryCount = git_tree_entrycount(tree);
 			for(int i = 0; i < entryCount; i++) {
 				entries->Set(i, CreateEntry(git_tree_entry_byindex(tree, i)));
 			}
 			o->Set(entries_symbol, entries);
 
-			return scope.Close(o);
+			return NanEscapeScope(o);
 		}
 	};
 };

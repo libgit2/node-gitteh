@@ -1,6 +1,7 @@
 #ifndef GITTEH_INDEX_H
 #define GITTEH_INDEX_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {
@@ -17,9 +18,9 @@ namespace gitteh {
 		~Index();
 		static void Init(Handle<Object>);
 	protected:
-		static Handle<Value> New(const Arguments&);
-		static Handle<Value> ReadTree(const Arguments&);
-		static Handle<Value> Write(const Arguments&);
+		static NAN_METHOD(New);
+		static NAN_METHOD(ReadTree);
+		static NAN_METHOD(Write);
 	private:
 		Repository *repository_;
 		git_index *index_;

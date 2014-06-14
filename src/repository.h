@@ -1,6 +1,7 @@
 #ifndef GITTEH_REPO_H
 #define GITTEH_REPO_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {
@@ -29,17 +30,17 @@ public:
 	git_index *index_;
 
 protected:
-	static Handle<Value> OpenRepository(const Arguments&);
-	static Handle<Value> InitRepository(const Arguments&);
+	static NAN_METHOD(OpenRepository);
+	static NAN_METHOD(InitRepository);
 
-	static Handle<Value> New(const Arguments&);
-	static Handle<Value> GetObject(const Arguments&);
-	static Handle<Value> GetReference(const Arguments&);
-	static Handle<Value> CreateOidReference(const Arguments&);
-	static Handle<Value> CreateSymReference(const Arguments&);
-	static Handle<Value> GetRemote(const Arguments&);
-	static Handle<Value> Exists(const Arguments&);
-	static Handle<Value> CreateRemote(const Arguments&);
+	static NAN_METHOD(New);
+	static NAN_METHOD(GetObject);
+	static NAN_METHOD(GetReference);
+	static NAN_METHOD(CreateOidReference);
+	static NAN_METHOD(CreateSymReference);
+	static NAN_METHOD(GetRemote);
+	static NAN_METHOD(Exists);
+	static NAN_METHOD(CreateRemote);
 
 	void close();
 
@@ -63,12 +64,12 @@ private:
 	static void AsyncAfterCreateRemote(uv_work_t*);
 
 	static Handle<Object> CreateReferenceObject(git_reference*);
-	
+
 	// For now, I'm using one lock for anything that calls a git_* api function.
 	// I could probably have different locks for different sections of libgit2,
 	// as I'm sure working on the index file or working on a specific ref isn't
 	// going to step on the toes of a simultaneous call to get a tree entry for
-	// example. However for now I want this thing to *just work*, I'll worry 
+	// example. However for now I want this thing to *just work*, I'll worry
 	// about making it a speed demon later. Ideally libgit2 will become thread
 	// safe internally, then I can remove all this shit!
 	gitteh_lock gitLock_;

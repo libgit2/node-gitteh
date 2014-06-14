@@ -29,7 +29,7 @@ namespace gitteh {
 
 	Persistent<FunctionTemplate> Index::constructor_template;
 
-	Index::Index(Repository *repository, git_index *index) : 
+	Index::Index(Repository *repository, git_index *index) :
 			repository_(repository), index_(index) {
 
 	}
@@ -39,12 +39,12 @@ namespace gitteh {
 	}
 
 	void Index::Init(Handle<Object> module) {
-		HandleScope scope;
+		NanScope();
 
 		class_symbol = NODE_PSYMBOL("NativeIndex");
 
-		Local<FunctionTemplate> t = FunctionTemplate::New(New);
-		constructor_template = Persistent<FunctionTemplate>::New(t);
+		Local<FunctionTemplate> t = NanNew<FunctionTemplate>(New);
+		NanAssignPersistent(constructor_template, t);
 		constructor_template->SetClassName(class_symbol);
 		t->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -54,8 +54,8 @@ namespace gitteh {
 		module->Set(class_symbol, constructor_template->GetFunction());
 	}
 
-	Handle<Value> Index::New(const Arguments &args) {
-		HandleScope scope;
+	NAN_METHOD(Index::New) {
+		NanEscapableScope();
 		REQ_EXT_ARG(0, repoArg);
 		REQ_EXT_ARG(1, indexArg);
 		Handle<Object> me = args.This();
@@ -65,11 +65,11 @@ namespace gitteh {
 		Index *index = new Index(repository, rawIndex);
 		index->Wrap(me);
 
-		return scope.Close(me);
+		return NanEscapeScope(me);
 	}
 
-	Handle<Value> Index::ReadTree(const Arguments &args) {
-		HandleScope scope;
+	NAN_METHOD(Index::ReadTree) {
+		NanScope();
 		Index *index = ObjectWrap::Unwrap<Index>(args.This());
 
 		ReadTreeBaton *baton = new ReadTreeBaton(index);
@@ -79,7 +79,7 @@ namespace gitteh {
 		uv_queue_work(uv_default_loop(), &baton->req, AsyncReadTree,
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterReadTree));
 
-		return Undefined();
+		return NanUndefined();
 	}
 
 	void Index::AsyncReadTree(uv_work_t *req) {
@@ -107,16 +107,16 @@ namespace gitteh {
 		delete baton;
 	}
 
-	Handle<Value> Index::Write(const Arguments &args) {
-		HandleScope scope;
+	NAN_METHOD(Index::Write) {
+		NanScope();
 		Index *index = ObjectWrap::Unwrap<Index>(args.This());
 		IndexBaton *baton = new IndexBaton(index);
 		baton->setCallback(args[0]);
 
-		uv_queue_work(uv_default_loop(), &baton->req, AsyncWrite, 
+		uv_queue_work(uv_default_loop(), &baton->req, AsyncWrite,
 				NODE_094_UV_AFTER_WORK_CAST(AsyncAfterWrite));
 
-		return Undefined();
+		return NanUndefined();
 	}
 
 	void Index::AsyncWrite(uv_work_t *req) {

@@ -4,9 +4,8 @@
 language: node_js
 
 node_js:
-  - "0.8"
-  - "0.10"
+  - 0.10
+  - 0.8
 
-before_script:
-  - node-gyp build
-  - cake build
+script:
+  - npm test

@@ -12,6 +12,7 @@
 #include <cstring>
 #include <cstdlib>
 
+#include "nan.h"
 #include "thread.h"
 #include "baton.h"
 
@@ -42,7 +43,7 @@ using std::string;
 namespace gitteh {
 	Handle<Object> GetModule();
 
-	static inline Handle<Value> CreateGitError() {  
+	static inline Handle<Value> CreateGitError() {
 		const git_error *err = giterr_last();
 		Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
 				String::New(err->message)));
@@ -63,7 +64,7 @@ namespace gitteh {
 	Invokes provided callback with given parameters, handles catching user-land
 	exceptions and propagating them to top of Node's event loop
 	*/
-	static inline bool FireCallback(Handle<Function> callback, int argc, 
+	static inline bool FireCallback(Handle<Function> callback, int argc,
 		Handle<Value> argv[]) {
 		TryCatch tryCatch;
 		callback->Call(Context::GetCurrent()->Global(), argc, argv);

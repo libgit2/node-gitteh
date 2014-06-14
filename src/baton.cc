@@ -17,7 +17,7 @@ Baton::~Baton() {
 }
 
 void Baton::setCallback(Handle<Value> val) {
-	HandleScope scope;
+	NanScope();
 
 	callback = Persistent<Function>::New(Handle<Function>::Cast(val));
 }
@@ -32,17 +32,17 @@ void Baton::setError(const git_error *err) {
 }
 
 Handle<Object> Baton::createV8Error() {
-	HandleScope scope;
+	NanEscapableScope();
 
 	assert(errorCode != 0);
-	Handle<Object> errObj = Handle<Object>::Cast(Exception::Error(
-		String::New(errorString.c_str())));
-	errObj->Set(String::New("code"), Integer::New(errorCode));
-	return scope.Close(errObj);
+	Handle<Object> errObj = Handle<Object>::Cast(NanThrowError(
+		NanNew<String>(errorString.c_str())));
+	errObj->Set(NanNew<String>("code"), NanNew<Number>(errorCode));
+	return NanEscapeScope(errObj);
 }
 
 void Baton::defaultCallback() {
-	HandleScope scope;
+	NanScope();
 
 	if(isErrored()) {
 		Handle<Value> argv[] = { createV8Error() };

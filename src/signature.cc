@@ -18,12 +18,12 @@ namespace gitteh {
 
 namespace cvv8 {
 	Handle<Value> NativeToJS<git_signature>::operator() (git_signature const *sig) const {
-		HandleScope scope;
-		Handle<Object> o = Object::New();
+		NanEscapableScope();
+		Handle<Object> o = NanNew<Object>();
 		o->Set(name_symbol, CastToJS(sig->name));
 		o->Set(email_symbol, CastToJS(sig->email));
 		o->Set(time_symbol, Date::New(sig->when.time * 1000));
 		o->Set(offset_symbol, CastToJS(sig->when.offset));
-		return scope.Close(o);
+		return NanEscapeScope(o);
 	}
 };

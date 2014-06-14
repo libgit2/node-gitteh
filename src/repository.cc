@@ -208,7 +208,7 @@ Repository::~Repository() {
 }
 
 void Repository::Init(Handle<Object> target) {
-	HandleScope scope;
+	NanScope();
 
 	repo_class_symbol 	= NODE_PSYMBOL("NativeRepository");
 	path_symbol 		= NODE_PSYMBOL("path");
@@ -230,8 +230,8 @@ void Repository::Init(Handle<Object> target) {
 	object_id_symbol	= NODE_PSYMBOL("id");
 	object_type_symbol	= NODE_PSYMBOL("_type");
 
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
+	Local<FunctionTemplate> t = NanNew<FunctionTemplate>(New);
+	NanAssignPersistent(constructor_template, t);
 	constructor_template->SetClassName(repo_class_symbol);
 	t->InstanceTemplate()->SetInternalFieldCount(1);
 
@@ -249,8 +249,8 @@ void Repository::Init(Handle<Object> target) {
 	target->Set(repo_class_symbol, constructor_template->GetFunction());
 }
 
-Handle<Value> Repository::New(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::New) {
+	NanEscapableScope();
 
 	REQ_EXT_ARG(0, repoArg);
 	REQ_EXT_ARG(1, refsArg);
@@ -262,10 +262,10 @@ Handle<Value> Repository::New(const Arguments& args) {
 	git_odb *odb;
 	git_index *index;
 	if(git_repository_odb(&odb, repo) != GIT_OK) {
-		return scope.Close(ThrowGitError());
+		return NanEscapeScope(ThrowGitError());
 	}
 	if(git_repository_index(&index, repo) != GIT_OK) {
-		return scope.Close(ThrowGitError());
+		return NanEscapeScope(ThrowGitError());
 	}
 
 	// Initialize our wrapped Repository class, which will then be wrapped in JS
@@ -317,15 +317,15 @@ Handle<Value> Repository::New(const Arguments& args) {
 	return args.This();
 }
 
-Handle<Value> Repository::OpenRepository(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::OpenRepository) {
+	NanScope();
 
 	string path = CastFromJS<string>(args[0]);
 	OpenRepoBaton *baton = new OpenRepoBaton(path);
 	baton->setCallback(args[1]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncOpenRepository,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterOpenRepository));
-	return Undefined();
+	return NanUndefined();
 }
 
 int SubmoduleListCallback(git_submodule *, const char *name, void *payload) {
@@ -362,7 +362,7 @@ void Repository::AsyncOpenRepository(uv_work_t *req) {
 }
 
 void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
 	OpenRepoBaton *baton = GetBaton<OpenRepoBaton>(req);
 
 	if(baton->isErrored()) {
@@ -387,21 +387,21 @@ void Repository::AsyncAfterOpenRepository(uv_work_t *req) {
 	delete baton;
 }
 
-Handle<Value> Repository::InitRepository(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::InitRepository) {
+	NanScope();
 	InitRepoBaton *baton = new InitRepoBaton;
 	baton->path = CastFromJS<string>(args[0]);
 	baton->bare = CastFromJS<bool>(args[1]);
 	baton->setCallback(args[2]);
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncInitRepository,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterInitRepository));
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncInitRepository(uv_work_t *req) {
 	InitRepoBaton *baton = GetBaton<InitRepoBaton>(req);
 
-	AsyncLibCall(git_repository_init(&baton->repo, baton->path.c_str(), 
+	AsyncLibCall(git_repository_init(&baton->repo, baton->path.c_str(),
 		baton->bare), baton);
 }
 
@@ -430,24 +430,24 @@ void Repository::AsyncAfterInitRepository(uv_work_t *req) {
 	delete baton;
 }
 
-Handle<Value> Repository::GetObject(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::GetObject) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 	Handle<String> oidArg = Handle<String>::Cast(args[0]);
 	GetObjectBaton *baton = new GetObjectBaton(repo, CastFromJS<git_oid>(args[0]));
 	baton->type = CastFromJS<git_otype>(args[1]);
 	baton->oidLength = oidArg->Length();
 	baton->setCallback(args[2]);
-	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject, 
+	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetObject,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterGetObject));
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncGetObject(uv_work_t *req) {
 	GetObjectBaton *baton = GetBaton<GetObjectBaton>(req);
 
 	baton->repo->lockRepository();
-	AsyncLibCall(git_object_lookup_prefix(&baton->object, baton->repo->repo_, 
+	AsyncLibCall(git_object_lookup_prefix(&baton->object, baton->repo->repo_,
 		&baton->oid, baton->oidLength, baton->type), baton);
 	baton->repo->unlockRepository();
 }
@@ -502,18 +502,18 @@ void Repository::AsyncAfterGetObject(uv_work_t *req) {
 	delete baton;
 }
 
-Handle<Value> Repository::GetReference(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::GetReference) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	GetReferenceBaton *baton = new GetReferenceBaton(repo, 
+	GetReferenceBaton *baton = new GetReferenceBaton(repo,
 		CastFromJS<string>(args[0]));
 	baton->resolve = CastFromJS<bool>(args[1]);
 	baton->setCallback(args[2]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetReference,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncGetReference(uv_work_t *req) {
@@ -532,8 +532,8 @@ void Repository::AsyncGetReference(uv_work_t *req) {
 	}
 }
 
-Handle<Value> Repository::CreateOidReference(const Arguments &args) {
-	HandleScope scope;
+NAN_METHOD(Repository::CreateOidReference) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 	CreateReferenceBaton *baton = new CreateReferenceBaton(repo,
 			CastFromJS<string>(args[0]), CastFromJS<git_oid>(args[1]),
@@ -543,11 +543,11 @@ Handle<Value> Repository::CreateOidReference(const Arguments &args) {
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
 			NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
 
-	return Undefined();
+	return NanUndefined();
 }
 
-Handle<Value> Repository::CreateSymReference(const Arguments &args) {
-	HandleScope scope;
+NAN_METHOD(Repository::CreateSymReference) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 	CreateReferenceBaton *baton = new CreateReferenceBaton(repo,
 			CastFromJS<string>(args[0]), CastFromJS<string>(args[1]),
@@ -557,7 +557,7 @@ Handle<Value> Repository::CreateSymReference(const Arguments &args) {
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateReference,
 			NODE_094_UV_AFTER_WORK_CAST(AsyncReturnReference));
 
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncCreateReference(uv_work_t *req) {
@@ -575,7 +575,7 @@ void Repository::AsyncCreateReference(uv_work_t *req) {
 }
 
 void Repository::AsyncReturnReference(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
 	ReferenceBaton *baton = GetBaton<ReferenceBaton>(req);
 
 	if(baton->isErrored()) {
@@ -592,9 +592,9 @@ void Repository::AsyncReturnReference(uv_work_t *req) {
 }
 
 Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
-	HandleScope scope;
+	NanEscapableScope();
 
-	Handle<Object> obj = Object::New();
+	Handle<Object> obj = NanNew<Object>();
 
 	git_ref_t refType = git_reference_type(ref);
 	obj->Set(ref_name_symbol, CastToJS(git_reference_name(ref)));
@@ -607,31 +607,31 @@ Handle<Object> Repository::CreateReferenceObject(git_reference *ref) {
 		obj->Set(ref_target_symbol, CastToJS(git_reference_symbolic_target(ref)));
 	}
 
-	return scope.Close(obj);
+	return NanEscapeScope(obj);
 }
 
-Handle<Value> Repository::GetRemote(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::GetRemote) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
-	GetRemoteBaton *baton = new GetRemoteBaton(repo, 
+	GetRemoteBaton *baton = new GetRemoteBaton(repo,
 		CastFromJS<string>(args[0]));
 	baton->setCallback(args[1]);
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncGetRemote,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterGetRemote));
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncGetRemote(uv_work_t *req) {
 	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
 
-	AsyncLibCall(git_remote_load(&baton->remote, baton->repo->repo_, 
+	AsyncLibCall(git_remote_load(&baton->remote, baton->repo->repo_,
 		baton->name.c_str()), baton);
 }
 
 void Repository::AsyncAfterGetRemote(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
 	GetRemoteBaton *baton = GetBaton<GetRemoteBaton>(req);
 
 	if(baton->isErrored()) {
@@ -650,8 +650,8 @@ void Repository::AsyncAfterGetRemote(uv_work_t *req) {
 	delete baton;
 }
 
-Handle<Value> Repository::CreateRemote(const Arguments &args) {
-	HandleScope scope;
+NAN_METHOD(Repository::CreateRemote) {
+	NanScope();
 	Repository *repository = ObjectWrap::Unwrap<Repository>(args.This());
 
 	CreateRemoteBaton *baton = new CreateRemoteBaton(repository);
@@ -662,7 +662,7 @@ Handle<Value> Repository::CreateRemote(const Arguments &args) {
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncCreateRemote,
 			NODE_094_UV_AFTER_WORK_CAST(AsyncAfterCreateRemote));
 
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncCreateRemote(uv_work_t *req) {
@@ -677,7 +677,7 @@ void Repository::AsyncCreateRemote(uv_work_t *req) {
 }
 
 void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
 	CreateRemoteBaton *baton = GetBaton<CreateRemoteBaton>(req);
 
 	if(baton->isErrored()) {
@@ -696,8 +696,8 @@ void Repository::AsyncAfterCreateRemote(uv_work_t *req) {
 	delete baton;
 }
 
-Handle<Value> Repository::Exists(const Arguments& args) {
-	HandleScope scope;
+NAN_METHOD(Repository::Exists) {
+	NanScope();
 	Repository *repo = ObjectWrap::Unwrap<Repository>(args.This());
 
 	ExistsBaton *baton = new ExistsBaton(repo, CastFromJS<git_oid>(args[0]));
@@ -705,7 +705,7 @@ Handle<Value> Repository::Exists(const Arguments& args) {
 
 	uv_queue_work(uv_default_loop(), &baton->req, AsyncExists,
 		NODE_094_UV_AFTER_WORK_CAST(AsyncAfterExists));
-	return Undefined();
+	return NanUndefined();
 }
 
 void Repository::AsyncExists(uv_work_t *req) {
@@ -714,7 +714,7 @@ void Repository::AsyncExists(uv_work_t *req) {
 }
 
 void Repository::AsyncAfterExists(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
 	ExistsBaton *baton = GetBaton<ExistsBaton>(req);
 
 	Handle<Value> argv[] = { Null(), Boolean::New(baton->exists) };

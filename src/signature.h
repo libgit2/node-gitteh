@@ -1,6 +1,7 @@
 #ifndef GITTEH_SIGNATURE_H
 #define GITTEH_SIGNATURE_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {

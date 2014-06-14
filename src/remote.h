@@ -1,6 +1,7 @@
 #ifndef GITTEH_REMOTE_H
 #define GITTEH_REMOTE_H
 
+#include "nan.h"
 #include "gitteh.h"
 
 namespace gitteh {
@@ -16,17 +17,17 @@ namespace gitteh {
 		~Remote();
 
 	protected:
-		static Handle<Value> New(const Arguments&);
-		static Handle<Value> UpdateTips(const Arguments&);
-		static Handle<Value> Connect(const Arguments&);
-		static Handle<Value> Download(const Arguments&);
+		static NAN_METHOD(New);
+		static NAN_METHOD(UpdateTips);
+		static NAN_METHOD(Connect);
+		static NAN_METHOD(Download);
 
 	private:
 		git_remote *remote_;
 		git_transfer_progress progress_;
 		git_off_t downloadBytes_;
 
-		static Handle<Value> GetStats(Local<String>, const AccessorInfo&);
+		static NAN_GETTER(GetStats);
 		static void AsyncUpdateTips(uv_work_t*);
 		static void AsyncAfterUpdateTips(uv_work_t*);
 		static void AsyncConnect(uv_work_t*);
