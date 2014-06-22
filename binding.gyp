@@ -21,23 +21,26 @@
 				'src/ref.cc',
 			],
 
-			'include_dirs': [
-				'deps/v8-convert',
-				'deps/libgit2/include',
-				"<!(node -e \"require('nan')\")"
+			'dependencies': [
+				'<(module_root_dir)/deps/libgit2.gyp:libgit2'
 			],
 
-			'libraries': [
-				'-L<!(pwd)/deps/libgit2/build',
-				'-lgit2'
+			'ldflags': [
+				'-Wl,-rpath,\$$ORIGIN/Release'
+			],
+
+			'include_dirs': [
+				'deps/v8-convert',
+				"<!(node -e \"require('nan')\")"
 			],
 
 			'cflags': [
 				'-Wall'
 			],
 
-			'ldflags': [
-				'-Wl,-rpath,\$$ORIGIN/../../deps/libgit2/build'
+			'libraries': [
+				'-L<!(pwd)/build/Release',
+				'-lgit2'
 			],
 
 			'conditions': [
