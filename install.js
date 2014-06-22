@@ -24,11 +24,11 @@ function passthru() {
 }
 
 var libgit2Dir = path.join(__dirname, "deps/libgit2");
-var buildDir = path.join(libgit2Dir, "build");
 
 async.series([
   function(cb) {
     console.log("[gitteh] Downloading libgit2 dependency.");
+
     if (fs.existsSync(path.join(__dirname, '.git'))) {
       console.log("[gitteh] ...via git submodule");
       passthru("git submodule update --init", cb);
@@ -38,19 +38,7 @@ async.series([
       var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
       request.get(url).pipe(zlib.createUnzip()).pipe(tar.Extract({path: libgit2Dir})).on('end', cb);
     }
-  },
-  function(cb) {
-    console.log("[gitteh] Building libgit2 dependency.");
-    passthru("mkdir -p " + buildDir, cb);
-  },
-  function(cb) {
-    pushd(buildDir);
-    passthru("cmake -DCMAKE_C_FLAGS='-fPIC' -DTHREADSAFE=1 -DBUILD_CLAR=0 ..", cb);
-  },
-  function(cb) {
-    console.log("[gitteh] Build Successful.");
-    passthru("cmake --build .", cb);
-    popd();
+    
   }
 ], function(err) {
 	if(err) process.exit(err);
