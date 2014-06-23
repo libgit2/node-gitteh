@@ -2,6 +2,7 @@
 	'targets': [
 		{
 			'target_name': 'gitteh',
+
 			'sources': [
 				'src/gitteh.cc',
 				'src/signature.cc',
@@ -14,6 +15,7 @@
 				'src/remote.cc',
 				'src/index.cc',
 			],
+
 			'todosources': [
 				'src/index_entry.cc',
 				'src/tag.cc',
@@ -25,10 +27,6 @@
 				'<(module_root_dir)/deps/libgit2.gyp:libgit2'
 			],
 
-			'ldflags': [
-				'-Wl,-rpath,\$$ORIGIN/Release'
-			],
-
 			'include_dirs': [
 				'deps/v8-convert',
 				"<!(node -e \"require('nan')\")"
@@ -36,11 +34,6 @@
 
 			'cflags': [
 				'-Wall'
-			],
-
-			'libraries': [
-				'-L<!(pwd)/build/Release',
-				'-lgit2'
 			],
 
 			'conditions': [

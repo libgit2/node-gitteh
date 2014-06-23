@@ -2,6 +2,7 @@
   'targets': [{
     'target_name': 'libgit2',
     'type': 'static_library',
+
     'defines': [
       'GIT_THREADS',
       'SRC_UTIL_H_'
@@ -14,12 +15,12 @@
 
     'direct_dependent_settings': {
       'include_dirs': [
-        'libgit2/include/'
+        'libgit2/include'
       ]
     },
 
     'include_dirs': [
-      'libgit2/include/',
+      'libgit2/include',
       'libgit2/src',
       'libgit2/deps/regex'
     ],
@@ -250,6 +251,7 @@
   }, {
     'target_name': 'zlib',
     'type': 'static_library',
+
     'defines': [
       'NO_VIZ',
       'STDC',
@@ -263,7 +265,7 @@
 
     'direct_dependent_settings': {
       'include_dirs': [
-        'libgit2/deps/zlib/'
+        'libgit2/deps/zlib'
       ]
     },
 
