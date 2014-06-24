@@ -2,6 +2,7 @@
 	'targets': [
 		{
 			'target_name': 'gitteh',
+
 			'sources': [
 				'src/gitteh.cc',
 				'src/signature.cc',
@@ -14,6 +15,7 @@
 				'src/remote.cc',
 				'src/index.cc',
 			],
+
 			'todosources': [
 				'src/index_entry.cc',
 				'src/tag.cc',
@@ -21,23 +23,17 @@
 				'src/ref.cc',
 			],
 
-			'include_dirs': [
-				'deps/v8-convert',
-				'deps/libgit2/include',
-				"<!(node -e \"require('nan')\")"
+			'dependencies': [
+				'<(module_root_dir)/deps/libgit2.gyp:libgit2'
 			],
 
-			'libraries': [
-				'-L<!(pwd)/deps/libgit2/build',
-				'-lgit2'
+			'include_dirs': [
+				'deps/v8-convert',
+				"<!(node -e \"require('nan')\")"
 			],
 
 			'cflags': [
 				'-Wall'
-			],
-
-			'ldflags': [
-				'-Wl,-rpath,\$$ORIGIN/../../deps/libgit2/build'
 			],
 
 			'conditions': [
