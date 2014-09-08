@@ -1,6 +1,6 @@
 {
   "name": "gitteh",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "description": "Bindings to libgit2.",
   "keywords": [
     "git",
