@@ -23,7 +23,7 @@ function passthru() {
   child.on("exit", cb);
 }
 
-var libgit2Dir = path.join(__dirname, "deps/libgit2");
+var libgit2Dir = path.join(__dirname, "deps/libgit2/");
 
 async.series([
   function(cb) {
@@ -36,9 +36,9 @@ async.series([
       console.log("[gitteh] ...via tarball");
       var libgit2Version = "v0.19.0";
       var url = "https://github.com/libgit2/libgit2/tarball/" + libgit2Version;
-      request.get(url).pipe(zlib.createUnzip()).pipe(tar.Extract({path: libgit2Dir})).on('end', cb);
+      request.get(url).pipe(zlib.createUnzip()).pipe(tar.Extract({path: libgit2Dir, strip: true})).on('end', cb);
     }
-    
+
   }
 ], function(err) {
 	if(err) process.exit(err);
