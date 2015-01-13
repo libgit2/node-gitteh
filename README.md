@@ -1,6 +1,6 @@
 # Gitteh
 
-[![build status](https://img.shields.io/travis/libgit2/node-gitteh.png?style=flat-square)](https://travis-ci.org/libgit2/node-gitteh) [![npm version](http://img.shields.io/npm/v/gitteh.svg?style=flat-square)](https://npmjs.org/package/gitteh)
+[![build status](https://img.shields.io/travis/libgit2/node-gitteh.svg?style=flat-square)](https://travis-ci.org/libgit2/node-gitteh) [![npm version](http://img.shields.io/npm/v/gitteh.svg?style=flat-square)](https://npmjs.org/package/gitteh)
 
 ## Installation
 
