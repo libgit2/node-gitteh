@@ -1,6 +1,6 @@
 # Gitteh
 
-[![build status](https://img.shields.io/travis/libgit2/node-gitteh.png?style=flat-square)](https://travis-ci.org/libgit2/node-gitteh) [![npm version](http://img.shields.io/npm/v/gitteh.svg?style=flat-square)](https://npmjs.org/package/gitteh) [![Dependency Status](https://david-dm.org/libgit2/node-gitteh.svg)](https://david-dm.org/libgit2/node-gitteh) [![devDependency Status](https://david-dm.org/libgit2/node-gitteh/dev-status.svg)](https://david-dm.org/libgit2/node-gitteh#info=devDependencies)
+[![build status](https://img.shields.io/travis/libgit2/node-gitteh.svg?style=flat-square)](https://travis-ci.org/libgit2/node-gitteh) [![npm version](http://img.shields.io/npm/v/gitteh.svg?style=flat-square)](https://npmjs.org/package/gitteh) [![Dependency Status](https://david-dm.org/libgit2/node-gitteh.svg)](https://david-dm.org/libgit2/node-gitteh) [![devDependency Status](https://david-dm.org/libgit2/node-gitteh/dev-status.svg)](https://david-dm.org/libgit2/node-gitteh#info=devDependencies)
 
 ## Installation
 
